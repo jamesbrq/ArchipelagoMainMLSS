@@ -86,6 +86,9 @@ rogueport: typing.List[LocationData] = [
     LocationData("Rogueport Eastside: Star Piece 3", 0x39d907),
     LocationData("Rogueport Eastside: Star Piece 4", 0x39d90f),
     LocationData("Rogueport Eastside: Star Piece 5", 0x39d941),
+]
+
+rogueport_westside: typing.List[LocationData] = [
     LocationData("Rogueport Westside: Blimp Ticket", 0x39d95f),
     LocationData("Rogueport Westside: Train Ticket", 0x39db02),
     LocationData("Rogueport Westside: Cake Mix", 0x39daea),
@@ -182,16 +185,10 @@ sewers: typing.List[LocationData] = [
     LocationData("Rogueport Sewers Spike Room: Spike Shield", 0x39d9e9)
 ]
 
-petal_meadows: typing.List[LocationData] = [
-    LocationData("Petal Meadows Entrance: Mushroom 1", 0x39e1d6),
-    LocationData("Petal Meadows Entrance: Mushroom 2", 0x39e1e3),
-    LocationData("Petal Meadows Entrance: Star Piece", 0x39e208),
-    LocationData("Petal Meadows Bridge Room: Koops", 0x39e210),
-    LocationData("Petal Meadows Bridge Room: Coin 1", 0x39e21d),
+petal_right: typing.List[LocationData] = [
     LocationData("Petal Meadows Bridge Room: Coin 2", 0x39e22a),
     LocationData("Petal Meadows Bridge Room: Fire Flower", 0x39e232),
     LocationData("Petal Meadows Bridge Room: Mystery", 0x39e23f),
-    LocationData("Petal Meadows Bridge Room: Star Piece", 0x39e24c),
     LocationData("Petal Meadows First Fort Exterior: Coin 1", 0x39e254),
     LocationData("Petal Meadows First Fort Exterior: Coin 2", 0x39e261),
     LocationData("Petal Meadows First Fort Exterior: POW Block", 0x39e269),
@@ -201,10 +198,6 @@ petal_meadows: typing.List[LocationData] = [
     LocationData("Petal Meadows Sewers West Key Room: Moon Stone", 0x39e90a),
     LocationData("Petal Meadows Sewers: Multibounce", 0x39e91a),
     LocationData("Petal Meadows Sewers East Key Room: Sun Stone", 0x1e9411),
-    LocationData("Petal Meadows Field: 10 Coins", 0x1e9412),
-    LocationData("Petal Meadows Field: Close Call", 0x229345),
-    LocationData("Petal Meadows Field: Happy Heart", 0x22954d),
-    LocationData("Petal Meadows Field: Horsetail", 0x228a17),
     LocationData("Petalburg Westside: Courage Shell", 0x22913a),
     LocationData("Petalburg Westside: Fire Flower", 0x22890e),
     LocationData("Petalburg Westside: Honey Syrup", 0x228775),
@@ -215,6 +208,19 @@ petal_meadows: typing.List[LocationData] = [
     LocationData("Petalburg Eastside: Mega Rush P", 0x1E9404),
     LocationData("Petalburg Eastside: Star Piece", 0x1e9405),
     LocationData("Petalburg Eastside: Turtley Leaf", 0x1e9435)
+]
+
+petal_left: typing.List[LocationData] = [
+    LocationData("Petal Meadows Entrance: Mushroom 1", 0x39e1d6),
+    LocationData("Petal Meadows Entrance: Mushroom 2", 0x39e1e3),
+    LocationData("Petal Meadows Entrance: Star Piece", 0x39e208),
+    LocationData("Petal Meadows Bridge Room: Koops", 0x39e210),
+    LocationData("Petal Meadows Bridge Room: Coin 1", 0x39e21d),
+    LocationData("Petal Meadows Bridge Room: Star Piece", 0x39e24c),
+    LocationData("Petal Meadows Field: 10 Coins", 0x1e9412),
+    LocationData("Petal Meadows Field: Close Call", 0x229345),
+    LocationData("Petal Meadows Field: Happy Heart", 0x22954d),
+    LocationData("Petal Meadows Field: Horsetail", 0x228a17)
 ]
 
 hooktails_castle: typing.List[LocationData] = [
@@ -331,7 +337,7 @@ glitzville: typing.List[LocationData] = [
     LocationData("Glitzville Storage Room: Shine Sprite", 0x39d7f0),
     LocationData("Glitzville Storage Room: Star Piece", 0x39d7f0),
     LocationData("Glitzville Major-League Room: Champ's Belt", 0x1e9433),
-    LocationData("Glitzville Major-League Room: Ice Stonm", 0x1e9433),
+    LocationData("Glitzville Major-League Room: Ice Storm", 0x1e9433),
     LocationData("Glitzville Minor-League Room: Dubious Paper", 0x1e9432),
     LocationData("Glitzville Minor-League Room: Yoshi", 0x1e9432),
     LocationData("Glitzville Storage Back Room: Star Piece", 0x251347)
@@ -401,13 +407,13 @@ creepy_steeple: typing.List[LocationData] = [
 
 keelhaul_key: typing.List[LocationData] = [
     LocationData("Keelhaul Key Landing Site: Star Piece", 0x39e37d),
-    LocationData("Keelhaul Key Landing Site: Whacka Bump", 0x39e37d),
-    LocationData("Keelhaul Key Landing Site: Whacka Bump", 0x39e37d),
-    LocationData("Keelhaul Key Landing Site: Whacka Bump", 0x39e37d),
-    LocationData("Keelhaul Key Landing Site: Whacka Bump", 0x39e37d),
-    LocationData("Keelhaul Key Landing Site: Whacka Bump", 0x39e37d),
-    LocationData("Keelhaul Key Landing Site: Whacka Bump", 0x39e37d),
-    LocationData("Keelhaul Key Landing Site: Whacka Bump", 0x39e37d),
+    LocationData("Keelhaul Key Landing Site: Whacka Bump 1", 0x39e37d),
+    LocationData("Keelhaul Key Landing Site: Whacka Bump 2", 0x39e37d),
+    LocationData("Keelhaul Key Landing Site: Whacka Bump 3", 0x39e37d),
+    LocationData("Keelhaul Key Landing Site: Whacka Bump 4", 0x39e37d),
+    LocationData("Keelhaul Key Landing Site: Whacka Bump 5", 0x39e37d),
+    LocationData("Keelhaul Key Landing Site: Whacka Bump 6", 0x39e37d),
+    LocationData("Keelhaul Key Landing Site: Whacka Bump 7", 0x39e37d),
     LocationData("Keelhaul Key Town: Chuckola Cola", 0x39e37d),
     LocationData("Keelhaul Key Town: Fire Flower", 0x39e37d),
     LocationData("Keelhaul Key Town: Fright Mask", 0x39e37d),
@@ -474,7 +480,7 @@ excess_express: typing.List[LocationData] = [
     LocationData("Excess Express Middle Passenger Car: Galley Pot", 0x39e53b),
     LocationData("Excess Express Middle Passenger Car: Gold Ring", 0x39e53b),
     LocationData("Excess Express Middle Passenger Car: Shell Earrings", 0x39e53b),
-    LocationData("Excess Express Middle Passenger Car: Shine SPrite", 0x39e53b),
+    LocationData("Excess Express Middle Passenger Car: Shine Sprite", 0x39e53b),
     LocationData("Excess Express Middle Passenger Car: Star Piece", 0x39e53b),
     LocationData("Excess Express Dining Car: Boo's Sheet", 0x39e53b),
     LocationData("Excess Express Dining Car: Maple Syrup", 0x39e53b),
@@ -594,34 +600,37 @@ palace: typing.List[LocationData] = [
     LocationData("Palace of Shadow Far Backroom 1: Repel Cape", 0x39e563),
     LocationData("Palace of Shadow Far Backroom 2: Palace Key", 0x39e563),
     LocationData("Palace of Shadow Far Backroom 2: Point Swap", 0x39e563),
-    LocationData("Teehee Valley Before Popple Digspot 3", 0x39e56b),
-    LocationData("Teehee Valley Before Popple Digspot 4", 0x39e573)
+    LocationData("Palace of Shadow Far Hallway 4: Life Shroom", 0x39e563),
+    LocationData("Palace of Shadow Far Hallway 4: Shooting Star", 0x39e563),
+    LocationData("Palace of Shadow Gloomtail Room: Jammin' Jelly", 0x39e563),
+    LocationData("Palace of Shadow Gloomtail Room: Star Key", 0x39e563),
+    LocationData("Palace of Shadow Gloomtail Room: Ultra Shroom", 0x39e563),
+    LocationData("Palace of Shadow Final Staircase: Jammin' Jelly", 0x39e563),
+    LocationData("Palace of Shadow Final Staircase: Ultra Shroom", 0x39e563)
 ]
 
-theater: typing.List[LocationData] = [
-    LocationData("Yoshi Theater Blue Yoshi", 0x241155),
-    LocationData("Yoshi Theater Red Yoshi", 0x240ebe),
-    LocationData("Yoshi Theater Green Yoshi", 0x241afa),
-    LocationData("Yoshi Theater Yellow Yoshi", 0x241c3c),
-    LocationData("Yoshi Theater Purple Yoshi", 0x241297),
-    LocationData("Yoshi Theater Orange Yoshi", 0x241000),
-    LocationData("Yoshi Theater Azure Yoshi", 0x241d7e),
-    LocationData("Beanstar Piece Yoshi Theater", 0x1e9442)
+pit: typing.List[LocationData] = [
+    LocationData("Pit of 100 Trials Floor 10: Sleepy Stomp", 0x39e563),
+    LocationData("Pit of 100 Trials Floor 20: Fire Drive", 0x39e563),
+    LocationData("Pit of 100 Trials Floor 30: Zap Tap", 0x39e563),
+    LocationData("Pit of 100 Trials Floor 40: Pity Flower", 0x39e563),
+    LocationData("Pit of 100 Trials Floor 50: Strange Sack", 0x39e563),
+    LocationData("Pit of 100 Trials Floor 60: Double Dip", 0x39e563),
+    LocationData("Pit of 100 Trials Floor 70: Double Dip P", 0x39e563),
+    LocationData("Pit of 100 Trials Floor 80: Bump Attack", 0x39e563),
+    LocationData("Pit of 100 Trials Floor 90: Lucky Day", 0x39e563),
+    LocationData("Pit of 100 Trials Floor 100: Return Postage", 0x39e563),
+    LocationData("Pit of 100 Trials Charlieton: Fire Flower", 0x39e563),
+    LocationData("Pit of 100 Trials Charlieton: Honey Syrup", 0x39e563),
+    LocationData("Pit of 100 Trials Charlieton: Maple Syrup", 0x39e563),
+    LocationData("Pit of 100 Trials Charlieton: Mushroom", 0x39e563),
+    LocationData("Pit of 100 Trials Charlieton: Super Shroom", 0x39e563),
+    LocationData("Pit of 100 Trials Charlieton: Thunder Rage", 0x39e563)
 ]
 
-oasis: typing.List[LocationData] = [
-    LocationData("Oho Oasis West Digspot", 0x39df9f),
-    LocationData("Oho Oasis Fire Palace Block", 0x39dfbe),
-    LocationData("Oho Ocean Spike Room Digspot 1", 0x39e08a),
-    LocationData("Oho Ocean Spike Room Digspot 2", 0x39e092),
-    LocationData("Oho Oasis Firebrand", 0x1e9408),
-    LocationData("Oho Oasis Thunderhand", 0x1e9409)
-]
-
-all_locations: typing.List[LocationData] = mainArea + booStatue + chucklehuck + castleTown + startingFlag + \
-                                           chuckolatorFlag + piranhaFlag + kidnappedFlag + beanstarFlag + birdoFlag + \
-                                           winkle + sewers + hooniversity + surfable + airport + gwarharEntrance + \
-                                           teeheeValley + fungitown + fungitownBeanstar + fungitownBirdo + bowsers + \
-                                           jokesEntrance + jokesMain + postJokes + theater + oasis + gwarharMain + bowsersMini + baseUltraRocks + coins
+all_locations: typing.List[LocationData] = (rogueport + sewers + petal_left + petal_right + hooktails_castle + boggly_woods +
+                                            great_tree + glitzville + twilight_town + twilight_trail + creepy_steeple +
+                                            pirates_grotto + keelhaul_key + excess_express + riverside + poshley_heights +
+                                            fahr_outpost + xnaut_fortress + palace + pit)
 
 location_table: typing.Dict[str, int] = {locData.name: locData.id for locData in all_locations}
