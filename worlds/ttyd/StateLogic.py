@@ -15,7 +15,7 @@ def petal_right(state, player):
 
 
 def hooktails_castle(state, player):
-    return state.has("Sun Stone", player) and state.has("Moon Stone", player)
+    return state.has("Sun Stone", player) and state.has("Moon Stone", player) and state.has("Koops", player)
 
 
 def boggly_woods(state, player):
@@ -38,11 +38,11 @@ def twilight_town(state, player):
 
 
 def twilight_trail(state, player):
-    return state.has("Tube Curse")
+    return state.has("Tube Curse", player)
 
 
 def steeple(state, player):
-    return state.has("Paper Curse") and state.has("Flurrie") and state.has("Super Boots", player)
+    return state.has("Paper Curse", player) and state.has("Flurrie", player) and state.has("Super Boots", player)
 
 
 def keelhaul_key(state, player):
@@ -82,9 +82,13 @@ def general_white(state, player):
 
 
 def ttyd(state, player):
-    return (state.has("Plane Curse") or super_hammer(state, player)
+    return (state.has("Plane Curse", player) or super_hammer(state, player)
             or (state.has("Flurrie", player) and (state.has("Bobbery", player) or state.has("Tube Curse", player)
                 or (state.has("Contact Lens", player) and state.has("Paper Curse", player)))))
+
+
+def pit(state, player):
+    return (state.has("Paper Curse", player) and state.has("Plane Curse", player)) or (state.has("Bobbery", player) or state.has("Tube Curse", player) or (state.has("Contact Lens", player) and state.has("Paper Curse", player)))
 
 
 def stars(state, player, chapters: int):
@@ -108,3 +112,7 @@ def stars(state, player, chapters: int):
 
 def palace(state, player, chapters: int):
     return ttyd(state, player) and stars(state, player, chapters)
+
+
+def riddle_tower(state, player):
+    return state.has("Tube Curse", player) and state.has("Palace Key", player) and state.has("Bobbery", player) and state.has("Boat Curse", player) and state.has("Star Key", player) and state.has("Palace Key (Riddle Tower)", player, 8)

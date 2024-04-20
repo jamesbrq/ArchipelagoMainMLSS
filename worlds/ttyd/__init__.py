@@ -66,11 +66,9 @@ class MLSSWorld(World):
         precollected = [item for item in itemList if item in self.multiworld.precollected_items]
         for item in itemList:
             if item not in precollected:
-                freq = item_frequencies.get(item.itemName, 1)
-                if freq is None:
-                    freq = 1
-                required_items += [item.itemName for _ in range(freq)]
-
+                if item.progression == ItemClassification.progression or item.progression == ItemClassification.useful:
+                    freq = item_frequencies.get(item.itemName, 1)
+                    required_items += [item.itemName for _ in range(freq)]
         for itemName in required_items:
             self.multiworld.itempool.append(self.create_item(itemName))
 
@@ -83,7 +81,7 @@ class MLSSWorld(World):
                     freq = 1
                 filler_items += [item.itemName for _ in range(freq)]
 
-        remaining = len(all_locations)
+        remaining = len(all_locations) - len(required_items)
         for i in range(remaining):
             filler_item_name = self.multiworld.random.choice(filler_items)
             item = self.create_item(filler_item_name)
