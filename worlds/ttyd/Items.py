@@ -227,7 +227,11 @@ itemList: typing.List[ItemData] = [
     ItemData(77772211, "Wedding Ring", ItemClassification.progression),
     ItemData(77772212, "Whacka Bump", ItemClassification.filler),
     ItemData(77772213, "Yoshi", ItemClassification.progression),
-    ItemData(77772214, "Zap Tap", ItemClassification.useful)
+    ItemData(77772214, "Zap Tap", ItemClassification.useful),
+    ItemData(77772215, "Silver Card", ItemClassification.progression),
+    ItemData(77772216, "Gold Card", ItemClassification.progression),
+    ItemData(77772217, "Platinum Card", ItemClassification.progression),
+    ItemData(77772218, "Special Card", ItemClassification.progression),
 ]
 
 item_frequencies: typing.Dict[str, int] = {
@@ -315,7 +319,14 @@ item_frequencies: typing.Dict[str, int] = {
     "Ultra Mushroom": 15,
     "Unsimplifier": 2,
     "Volt Shroom": 2,
-    "Whacka Bump": 8
+    "Whacka Bump": 8,
+    "Diamond Star": 0,
+    "Emerald Star": 0,
+    "Gold Star": 0,
+    "Ruby Star": 0,
+    "Sapphire Star": 0,
+    "Garnet Star": 0,
+    "Crystal Star": 0
 }
 
 item_table: typing.Dict[str, ItemData] = {item.itemName: item for item in itemList}

@@ -37,7 +37,7 @@ class TTYDSettings(settings.Group):
     rom_start: bool = True
 
 
-class MLSSWorld(World):
+class TTYDWorld(World):
     """
     TTYD
     """
@@ -58,7 +58,20 @@ class MLSSWorld(World):
         connect_regions(self)
 
     def generate_basic(self) -> None:
-        print("Pog")
+        item = self.create_item("Diamond Star")
+        self.multiworld.get_location("Hooktail's Castle Hooktail's Room: Diamond Star", self.player).place_locked_item(item)
+        item = self.create_item("Emerald Star")
+        self.multiworld.get_location("Great Tree Entrance: Emerald Star", self.player).place_locked_item(item)
+        item = self.create_item("Gold Star")
+        self.multiworld.get_location("Glitzville Arena: Gold Star", self.player).place_locked_item(item)
+        item = self.create_item("Ruby Star")
+        self.multiworld.get_location("Creepy Steeple Upper Room: Ruby Star", self.player).place_locked_item(item)
+        item = self.create_item("Sapphire Star")
+        self.multiworld.get_location("Pirate's Grotto Cortez' Hoard: Sapphire Star", self.player).place_locked_item(item)
+        item = self.create_item("Garnet Star")
+        self.multiworld.get_location("Poshley Heights Sanctum Altar: Garnet Star", self.player).place_locked_item(item)
+        item = self.create_item("Crystal Star")
+        self.multiworld.get_location("X-Naut Fortress Boss Room: Crystal Star", self.player).place_locked_item(item)
 
     def create_items(self) -> None:
         # First add in all progression and useful items
@@ -81,7 +94,7 @@ class MLSSWorld(World):
                     freq = 1
                 filler_items += [item.itemName for _ in range(freq)]
 
-        remaining = len(all_locations) - len(required_items)
+        remaining = len(all_locations) - len(required_items) - 7
         for i in range(remaining):
             filler_item_name = self.multiworld.random.choice(filler_items)
             item = self.create_item(filler_item_name)
@@ -91,7 +104,7 @@ class MLSSWorld(World):
     def set_rules(self) -> None:
         set_rules(self, self.excluded_locations)
         self.multiworld.completion_condition[self.player] = \
-            lambda state: state.can_reach("Palace of Shadow", "Region", self.player)
+            lambda state: state.can_reach("Palace of Shadow Final Staircase: Ultra Shroom", "Location", self.player)
 
     def create_item(self, name: str) -> TTYDItem:
         item = item_table[name]

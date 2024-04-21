@@ -6,6 +6,10 @@ def super_hammer(state, player):
     return state.has("Super Hammer", player) or state.has("Ultra Hammer", player)
 
 
+def tube_curse(state, player):
+    return state.has("Paper Curse", player) and state.has("Tube Curse", player)
+
+
 def petal_left(state, player):
     return state.has("Plane Curse", player)
 
@@ -116,3 +120,11 @@ def palace(state, player, chapters: int):
 
 def riddle_tower(state, player):
     return state.has("Tube Curse", player) and state.has("Palace Key", player) and state.has("Bobbery", player) and state.has("Boat Curse", player) and state.has("Star Key", player) and state.has("Palace Key (Riddle Tower)", player, 8)
+
+
+def sewer_westside(state, player):
+    return state.has("Tube Curse", player) or state.has("Bobbery", player) or (state.has("Paper Curse", player) and state.has("Contact Lens", player)) or (state.has("Ultra Hammer", player) and (state.has("Paper Curse", player) or (state.has("Ultra Boots", player) and state.has("Yoshi", player))))
+
+
+def sewer_westside_ground(state, player):
+    return (state.has("Contact Lens", player) and state.has("Paper Curse", player)) or state.has("Bobbery", player) or state.has("Tube Curse",player) or state.has("Ultra Hammer", player)

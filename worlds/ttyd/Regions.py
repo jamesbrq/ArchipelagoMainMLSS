@@ -1,10 +1,11 @@
 import typing
 
 from BaseClasses import Region, Entrance
-from .Locations import (TTYDLocation, rogueport, sewers, petal_left, petal_right, hooktails_castle,
+from .Locations import (TTYDLocation, rogueport, sewers, sewers_westside, sewers_westside_ground, petal_left, petal_right, hooktails_castle,
                         boggly_woods, great_tree, glitzville, twilight_trail, twilight_town,
                         creepy_steeple, keelhaul_key, pirates_grotto, excess_express, riverside,
-                        poshley_heights, fahr_outpost, xnaut_fortress, palace, pit, rogueport_westside, riddle_tower)
+                        poshley_heights, fahr_outpost, xnaut_fortress, palace, pit, rogueport_westside, riddle_tower,
+                        location_table)
 from . import StateLogic
 
 if typing.TYPE_CHECKING:
@@ -18,6 +19,8 @@ def create_regions(world: "TTYDWorld", excluded: typing.List[str]):
     create_region(world, "Rogueport", rogueport, excluded)
     create_region(world, "Rogueport (Westside)", rogueport_westside, excluded)
     create_region(world, "Rogueport Sewers", sewers, excluded)
+    create_region(world, "Rogueport Sewers Westside", sewers_westside, excluded)
+    create_region(world, "Rogueport Sewers Westside Ground", sewers_westside_ground, excluded)
     create_region(world, "Petal Meadows (Left)", petal_left, excluded)
     create_region(world, "Petal Meadows (Right)", petal_right, excluded)
     create_region(world, "Hooktail's Castle", hooktails_castle, excluded)
@@ -44,8 +47,10 @@ def connect_regions(world: "TTYDWorld"):
 
     connect(world, names, "Menu", "Rogueport")
     connect(world, names, "Rogueport", "Rogueport Sewers")
+    connect(world, names, "Rogueport", "Rogueport Sewers Westside", lambda state: StateLogic.sewer_westside(state, world.player))
+    connect(world, names, "Rogueport", "Rogueport Sewers Westside Ground", lambda state: StateLogic.sewer_westside_ground(state, world.player))
     connect(world, names, "Rogueport Sewers", "Pit of 100 Trials", lambda state: StateLogic.pit(state, world.player))
-    connect(world, names, "Rogueport", "Palace of Shadow", lambda state: StateLogic.palace(state, world.player, world.options.chapter_clears))
+    connect(world, names, "Rogueport", "Palace of Shadow", lambda state: StateLogic.palace(state, world.player, world.options.chapter_clears.value))
     connect(world, names, "Palace of Shadow", "Palace of Shadow (Post-Riddle Tower)", lambda state: StateLogic.riddle_tower(state, world.player))
     connect(world, names, "Rogueport", "Poshley Heights", lambda state: state.has("Ultra Hammer", world.player) and state.has("Super Boots", world.player))
     connect(world, names, "Rogueport", "Fahr Outpost", lambda state: StateLogic.fahr_outpost(state, world.player))
@@ -71,7 +76,7 @@ def connect_regions(world: "TTYDWorld"):
 def create_region(world: "TTYDWorld", name, locations, excluded):
     ret = Region(name, world.player, world.multiworld)
     for location in locations:
-        loc = TTYDLocation(world.player, location.name, location.id, ret)
+        loc = TTYDLocation(world.player, location.name, location_table[location.name], ret)
         if location.name in excluded:
             continue
         ret.locations.append(loc)
