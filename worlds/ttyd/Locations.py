@@ -13,7 +13,7 @@ class LocationData:
 
 
 class TTYDLocation(Location):
-    game: str = "Mario & Luigi Superstar Saga"
+    game: str = "Paper Mario The Thousand Year Door"
 
 
 rogueport: typing.List[LocationData] = [
