@@ -1,7 +1,6 @@
 import io
 import json
 
-from pycdlib import PyCdlib
 from gclib.gcm import GCM
 from typing import TYPE_CHECKING, Dict, Tuple, Iterable
 from BaseClasses import Location, ItemClassification
@@ -28,28 +27,27 @@ class TTYDPatchExtension(APPatchExtension):
         from CommonClient import logger
         locations: Dict[str, Tuple] = json.loads(caller.get_file(f"locations.json").decode("utf-8"))
         logger.info(f"PATCHING")
-        caller.iso = GCM(get_settings().ttyd_options.rom_file)
-        caller.iso.read_entire_disc()
+        rels: Dict[Rels, io.BytesIO] = {}
         for rel in Rels:
-            path = f'files/rel/{rel.value}.rel'
-            rel = caller.iso.read_file_data(path)
-            for location_name, (item_id, player) in locations.items():
-                data = locationName_to_data.get(location_name, None)
-                if data is None:
-                    continue
-                if data.rel != rel:
-                    continue
-                if data.offset != 0:
-                    item_data = items_by_id.get(item_id, ItemData)
-                    if item_data.rom_id != 0:
-                        rel.seek(data.offset)
-                        rel.write(item_data.rom_id.to_bytes(4, "big"))
-            caller.iso.changed_files[path] = rel
-            logger.info(f"Changed {path}")
-        logger.info(caller.file_path)
+            path = get_rel_path(rel)
+            rels[rel] = caller.iso.read_file_data(path)
+        for location_name, (item_id, player) in locations.items():
+            data = locationName_to_data.get(location_name, None)
+            if data is None:
+                continue
+            if data.offset != 0:
+                item_data = items_by_id.get(item_id, ItemData)
+                if item_data.rom_id != 0:
+                    rels[data.rel].seek(data.offset)
+                    rels[data.rel].write(item_data.rom_id.to_bytes(4, "big"))
+        for rel in rels.keys():
+            caller.iso.changed_files[get_rel_path(rel)] = rels[rel]
         for _,_ in caller.iso.export_disc_to_iso_with_changed_files(caller.file_path + ".iso"):
             continue
         return rom
+
+def get_rel_path(rel: Rels):
+    return f'files/rel/{rel.value}.rel'
 
 
 class TTYDProcedurePatch(APProcedurePatch, APTokenMixin):
@@ -69,6 +67,8 @@ class TTYDProcedurePatch(APProcedurePatch, APTokenMixin):
         return get_base_rom_as_bytes()
 
     def patch(self, target) -> None:
+        self.iso = GCM(get_settings().ttyd_options.rom_file)
+        self.iso.read_entire_disc()
         self.file_path = target
         super().patch(target)
 
