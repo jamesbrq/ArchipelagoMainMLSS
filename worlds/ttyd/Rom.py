@@ -1,0 +1,85 @@
+import io
+import json
+
+from pycdlib import PyCdlib
+from gclib.gcm import GCM
+from typing import TYPE_CHECKING, Dict, Tuple, Iterable
+from BaseClasses import Location, ItemClassification
+from settings import get_settings
+from worlds.Files import APProcedurePatch, APTokenMixin, APPatchExtension, AutoPatchExtensionRegister
+from .Items import items_by_id, ItemData
+from .Locations import locationName_to_data
+from .Data import Rels
+
+if TYPE_CHECKING:
+    from . import TTYDWorld
+
+
+def get_base_rom_as_bytes() -> bytes:
+    with open(get_settings().ttyd_options.rom_file, "rb") as infile:
+        base_rom_bytes = bytes(infile.read())
+    return base_rom_bytes
+
+class TTYDPatchExtension(APPatchExtension):
+    game = "Paper Mario The Thousand Year Door"
+
+    @staticmethod
+    def patch_items(caller: "TTYDProcedurePatch", rom: bytes) -> bytes:
+        from CommonClient import logger
+        locations: Dict[str, Tuple] = json.loads(caller.get_file(f"locations.json").decode("utf-8"))
+        logger.info(f"PATCHING")
+        caller.iso = GCM(get_settings().ttyd_options.rom_file)
+        caller.iso.read_entire_disc()
+        for rel in Rels:
+            path = f'files/rel/{rel.value}.rel'
+            rel = caller.iso.read_file_data(path)
+            for location_name, (item_id, player) in locations.items():
+                data = locationName_to_data.get(location_name, None)
+                if data is None:
+                    continue
+                if data.rel != rel:
+                    continue
+                if data.offset != 0:
+                    item_data = items_by_id.get(item_id, ItemData)
+                    if item_data.rom_id != 0:
+                        rel.seek(data.offset)
+                        rel.write(item_data.rom_id.to_bytes(4, "big"))
+            caller.iso.changed_files[path] = rel
+            logger.info(f"Changed {path}")
+        logger.info(caller.file_path)
+        for _,_ in caller.iso.export_disc_to_iso_with_changed_files(caller.file_path + ".iso"):
+            continue
+        return rom
+
+
+class TTYDProcedurePatch(APProcedurePatch, APTokenMixin):
+    game = "Paper Mario The Thousand Year Door"
+    hash = "4b1a5897d89d9e74ec7f630eefdfd435"
+    patch_file_ending = ".apttyd"
+    result_file_ending = ".iso"
+    file_path: str = ""
+    iso: GCM
+
+    procedure = [
+        ("patch_items", [])
+    ]
+
+    @classmethod
+    def get_source_data(cls) -> bytes:
+        return get_base_rom_as_bytes()
+
+    def patch(self, target) -> None:
+        self.file_path = target
+        super().patch(target)
+
+def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
+    options_dict = {
+        "seed": world.multiworld.seed,
+        "player": world.player,
+    }
+    patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
+    patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))
+
+def locations_to_dict(locations: Iterable[Location]) -> Dict[str, Tuple]:
+    return {location.name: (location.item.code, location.item.player) if location.item is not None else (0, 0)
+                    for location in locations}

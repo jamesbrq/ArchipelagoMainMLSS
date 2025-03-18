@@ -7,6 +7,7 @@ class ItemData(typing.NamedTuple):
     code: int
     itemName: str
     progression: ItemClassification
+    rom_id: int = 0x86
 
 
 class TTYDItem(Item):
@@ -31,7 +32,7 @@ itemList: typing.List[ItemData] = [
     ItemData(77772014, "Blue Key", ItemClassification.progression),
     ItemData(77772015, "Boat Curse", ItemClassification.progression),
     ItemData(77772016, "Bobbery", ItemClassification.progression),
-    ItemData(77772017, "Boo's Sheet", ItemClassification.useful),
+    ItemData(77772017, "Boo's Sheet", ItemClassification.useful, 0x86),
     ItemData(77772018, "Briefcase", ItemClassification.progression),
     ItemData(77772019, "Bump Attack", ItemClassification.filler),
     ItemData(77772020, "Cake Mix", ItemClassification.filler),

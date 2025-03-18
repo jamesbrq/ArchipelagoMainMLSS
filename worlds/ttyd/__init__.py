@@ -1,5 +1,4 @@
 import os
-import pkgutil
 import typing
 import settings
 from BaseClasses import Tutorial, ItemClassification
@@ -8,7 +7,23 @@ from .Locations import all_locations, location_table
 from .Options import TTYDOptions
 from .Items import TTYDItem, itemList, item_frequencies, item_table
 from .Regions import create_regions, connect_regions
+from .Rom import TTYDProcedurePatch, write_files
 from .Rules import set_rules
+from worlds.LauncherComponents import Component, SuffixIdentifier, Type, components, launch_subprocess
+
+def launch_client(*args):
+    from .TTYDClient import launch
+    launch_subprocess(launch, name="TTYDClient", args=args)
+
+
+components.append(
+    Component(
+        "TTYDClient",
+        func=launch_client,
+        component_type=Type.CLIENT,
+        file_identifier=SuffixIdentifier(".apttyd"),
+    ),
+)
 
 
 class TTYDWebWorld(WebWorld):
@@ -28,10 +43,9 @@ class TTYDWebWorld(WebWorld):
 
 class TTYDSettings(settings.Group):
     class RomFile(settings.UserFilePath):
-        """File name of the MLSS US rom"""
-        copy_to = "Paper Mario - The Thousand Year Door"
-        description = "TTYD ROM File"
-        md5s = ["4b1a5897d89d9e74ec7f630eefdfd435"]
+        """File name of the TTYD US iso"""
+        copy_to = "Paper Mario - The Thousand Year Door.iso"
+        description = "TTYD GC .iso File"
 
     rom_file: RomFile = RomFile(RomFile.copy_to)
     rom_start: bool = True
@@ -109,3 +123,11 @@ class TTYDWorld(World):
     def create_item(self, name: str) -> TTYDItem:
         item = item_table[name]
         return TTYDItem(item.itemName, item.progression, item.code, self.player)
+
+    def generate_output(self, output_directory: str) -> None:
+        patch = TTYDProcedurePatch(player=self.player, player_name=self.multiworld.player_name[self.player])
+        write_files(self, patch)
+        rom_path = os.path.join(
+            output_directory, f"{self.multiworld.get_out_file_name_base(self.player)}" f"{patch.patch_file_ending}"
+        )
+        patch.write(rom_path)
