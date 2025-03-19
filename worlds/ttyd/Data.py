@@ -6,6 +6,7 @@ class Rels(Enum):
     aji = "aji"
     bom = "bom"
     dmo = "dmo"
+    dol = "dol"
     dou = "dou"
     eki = "eki"
     end = "end"
