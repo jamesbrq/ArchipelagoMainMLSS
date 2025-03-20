@@ -27,7 +27,6 @@ class TTYDPatchExtension(APPatchExtension):
     def patch_items(caller: "TTYDProcedurePatch") -> None:
         from CommonClient import logger
         locations: Dict[str, Tuple] = json.loads(caller.get_file(f"locations.json").decode("utf-8"))
-        logger.info(f"PATCHING")
         rels: Dict[Rels, io.BytesIO] = {}
         dol = DOL()
         dol.read(caller.iso.read_file_data("sys/main.dol"))
@@ -43,17 +42,18 @@ class TTYDPatchExtension(APPatchExtension):
             if data.offset != 0:
                 item_data = items_by_id.get(item_id, ItemData(code=0, itemName="", progression=ItemClassification.filler, rom_id=0x86))
                 if data.rel == Rels.dol:
-                    logger.info(f"PATCHING {location_name} with {item_data.itemName}")
-                    dol.data.seek(data.offset)
-                    dol.data.write(item_data.rom_id.to_bytes(4, "big"))
+                    continue
+                    #for offset in data.offset:
+                        #dol.data.seek(offset)
+                        #dol.data.write(item_data.rom_id.to_bytes(4, "big"))
                 else:
-                    print("pog")
-                    #rels[data.rel].seek(data.offset)
-                    #rels[data.rel].write(item_data.rom_id.to_bytes(4, "big"))
+                    for offset in data.offset:
+                        rels[data.rel].seek(offset)
+                        rels[data.rel].write(item_data.rom_id.to_bytes(4, "big"))
         for rel in rels.keys():
             caller.iso.changed_files[get_rel_path(rel)] = rels[rel]
         caller.iso.changed_files["sys/main.dol"] = dol.data
-        for _,_ in caller.iso.export_disc_to_iso_with_changed_files(caller.file_path + ".iso"):
+        for _,_ in caller.iso.export_disc_to_iso_with_changed_files(caller.file_path):
             continue
 
 def get_rel_path(rel: Rels):
