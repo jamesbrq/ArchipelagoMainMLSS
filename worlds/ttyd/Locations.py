@@ -154,20 +154,20 @@ sewers: typing.List[LocationData] = [
     LocationData("Rogueport Sewers Town: Star Piece 4", 78780130, Rels.tik, [0x13548]),
     LocationData("Rogueport Sewers East Entrance: Star Piece", 78780132, Rels.tik, [0x14CC8]),
     LocationData("Rogueport Sewers East Entrance: Defend Plus P", 78780705, Rels.tik, [0x14A40]),
-    LocationData("Rogueport Sewers Petal Meadows Pipe: Shine Sprite", 78780133, Rels.tik, []),
+    LocationData("Rogueport Sewers Petal Meadows Pipe: Shine Sprite", 78780133, Rels.tik, [0x16674]),
     LocationData("Rogueport Sewers Boggly Woods Pipe: Damage Dodge", 78780134, Rels.tik, [0x17DC8]),
     LocationData("Rogueport Sewers Boggly Woods Pipe: Star Piece", 78780135, Rels.tik, [0x17E00]),
     LocationData("Rogueport Sewers Black Key Room: Black Key", 78780136, Rels.tik, [0x18AA8]),
     LocationData("Rogueport Sewers Black Key Room: Happy Heart P", 78780137, Rels.tik, [0x18830]),
     LocationData("Rogueport Sewers Black Key Room: Pretty Lucky", 78780138, Rels.tik, [0x18B74]),
     LocationData("Rogueport Sewers Black Key Room: Star Piece", 78780139, Rels.tik, [0x18B90]),
-    LocationData("Rogueport Sewers Thousand Year Door: Shine Sprite", 78780140, Rels.tik, []),
+    LocationData("Rogueport Sewers Thousand Year Door: Shine Sprite", 78780140, Rels.tik, [0x1F01C]),
     LocationData("Rogueport Sewers Thousand Year Door: Star Piece", 78780141, Rels.tik, [0x1F0B4]),
     LocationData("Rogueport Sewers Pit Entrance: Star Piece", 78780142, Rels.tik, [0x1FB68]),
     LocationData("Rogueport Sewers Star Piece House: Star Piece", 78780704, Rels.tik, [0x212AC]),
     LocationData("Rogueport Sewers East Enemy Hall: Fire Flower", 78780147, Rels.tik, [0x2BAC8]),
     LocationData("Rogueport Sewers East Enemy Hall: Mushroom", 78780148, Rels.tik, [0x2BAF0]),
-    LocationData("Rogueport Sewers East Pipe Room: Shine Sprite", 78780149, Rels.tik, []),
+    LocationData("Rogueport Sewers East Pipe Room: Shine Sprite", 78780149, Rels.tik, [0x2C22C]),
     LocationData("Rogueport Sewers West Pipe Room: FP Plus", 78780150, Rels.tik, [0x2C7DC]),
     LocationData("Rogueport Sewers Black Chest Room: Plane Curse", 78780153, Rels.tik, []),
     LocationData("Rogueport Sewers Black Chest Room: Star Piece", 78780154, Rels.tik, [0x2DAC8]),
@@ -179,30 +179,30 @@ sewers_westside: typing.List[LocationData] = [
     LocationData("Rogueport Sewers Town: Gold Bar x3", 78780111, Rels.tik, [0xDD98]),
     LocationData("Rogueport Sewers Town: Gradual Syrup", 78780112, Rels.tik, [0xDD98]),
     LocationData("Rogueport Sewers Town: Jammin' Jelly", 78780118, Rels.tik, [0xDD98]),
-    LocationData("Rogueport Sewers Town: Shine Sprite", 78780124, Rels.tik, []),
+    LocationData("Rogueport Sewers Town: Shine Sprite", 78780124, Rels.tik, [0x134E4]),
     LocationData("Rogueport Sewers Town: Slow Shroom", 78780125, Rels.tik, [0xDD98]),
-    LocationData("Rogueport Sewers Town: Soft Stomp", 78780126, Rels.tik, []),
-    LocationData("Rogueport Sewers Town: Star Piece 1", 78780127, Rels.tik, []),
-    LocationData("Rogueport Sewers Town: Star Piece 2", 78780128, Rels.tik, []),
-    LocationData("Rogueport Sewers Town: Star Piece 3", 78780129, Rels.tik, []),
+    LocationData("Rogueport Sewers Town: Soft Stomp", 78780126, Rels.tik, [0x132A0]),
+    LocationData("Rogueport Sewers Town: Star Piece 1", 78780127, Rels.tik, [0x13570]),
+    LocationData("Rogueport Sewers Town: Star Piece 2", 78780128, Rels.tik, [0x13598]),
+    LocationData("Rogueport Sewers Town: Star Piece 3", 78780129, Rels.tik, [0x13534]),
     LocationData("Rogueport Sewers East Entrance: Ultra Mushroom", 78780131, Rels.tik, [0xDD98])
 ]
 
 sewers_westside_ground: typing.List[LocationData] = [
-    LocationData("Rogueport Sewers West Enemy Hall: Gradual Syrup", 78780151, Rels.tik, []),
-    LocationData("Rogueport Sewers West Enemy Hall: Slow Shroom", 78780152, Rels.tik, []),
-    LocationData("Rogueport Sewers Spania Room: Defend Plus", 78780155, Rels.tik, []),
-    LocationData("Rogueport Sewers Spania Room: Shine Sprite 1", 78780156, Rels.tik, []),
-    LocationData("Rogueport Sewers Spania Room: Shine Sprite 2", 78780157, Rels.tik, []),
-    LocationData("Rogueport Sewers Spania Room: Shine Sprite 3", 78780158, Rels.tik, []),
-    LocationData("Rogueport Sewers West Entrance: Flower Saver P", 78780143, Rels.tik, []),
-    LocationData("Rogueport Sewers West Entrance: Star Piece 1", 78780145, Rels.tik)
+    LocationData("Rogueport Sewers West Enemy Hall: Gradual Syrup", 78780151, Rels.tik, [0x2CDA8]),
+    LocationData("Rogueport Sewers West Enemy Hall: Slow Shroom", 78780152, Rels.tik, [0x2CDD0]),
+    LocationData("Rogueport Sewers Spania Room: Defend Plus", 78780155, Rels.tik, [0x2DD20]),
+    LocationData("Rogueport Sewers Spania Room: Shine Sprite 1", 78780156, Rels.tik, [0x2DD54]),
+    LocationData("Rogueport Sewers Spania Room: Shine Sprite 2", 78780157, Rels.tik, [0x2DD78]),
+    LocationData("Rogueport Sewers Spania Room: Shine Sprite 3", 78780158, Rels.tik, [0x2DD9C]),
+    LocationData("Rogueport Sewers West Entrance: Flower Saver P", 78780143, Rels.tik, [0x20320]),
+    LocationData("Rogueport Sewers West Entrance: Star Piece 1", 78780145, Rels.tik, [0x204C4])
 ]
 
 petal_right: typing.List[LocationData] = [
-    LocationData("Petal Meadows Bridge Room: Coin 2", 78780160, Rels.hei, []),
-    LocationData("Petal Meadows Bridge Room: Fire Flower", 78780161, Rels.hei, []),
-    LocationData("Petal Meadows Bridge Room: Mystery", 78780162, Rels.hei, []),
+    LocationData("Petal Meadows Bridge Room: Coin 2", 78780160, Rels.hei, [0xCC48]),
+    LocationData("Petal Meadows Bridge Room: Fire Flower", 78780161, Rels.hei, [0xEE68]),
+    LocationData("Petal Meadows Bridge Room: Mystery", 78780162, Rels.hei, [0xCC98]),
     LocationData("Petal Meadows First Fort Exterior: Coin 1", 78780163, Rels.hei, []),
     LocationData("Petal Meadows First Fort Exterior: Coin 2", 78780164, Rels.hei, []),
     LocationData("Petal Meadows First Fort Exterior: POW Block", 78780165, Rels.hei, []),
@@ -225,16 +225,16 @@ petal_right: typing.List[LocationData] = [
 ]
 
 petal_left: typing.List[LocationData] = [
-    LocationData("Petal Meadows Entrance: Mushroom 1", 78780182, Rels.hei, []),
-    LocationData("Petal Meadows Entrance: Mushroom 2", 78780183, Rels.hei, []),
-    LocationData("Petal Meadows Entrance: Star Piece", 78780184, Rels.hei, []),
+    LocationData("Petal Meadows Entrance: Mushroom 1", 78780182, Rels.hei, [0xC974]),
+    LocationData("Petal Meadows Entrance: Mushroom 2", 78780183, Rels.hei, [0xBE8C]),
+    LocationData("Petal Meadows Entrance: Star Piece", 78780184, Rels.hei, [0xBE3C]),
     LocationData("Petal Meadows Bridge Room: Koops", 78780185, Rels.hei, []),
-    LocationData("Petal Meadows Bridge Room: Coin 1", 78780186, Rels.hei, []),
-    LocationData("Petal Meadows Bridge Room: Star Piece", 78780187, Rels.hei, []),
-    LocationData("Petal Meadows Field: 10 Coins", 78780188, Rels.hei, []),
-    LocationData("Petal Meadows Field: Close Call", 78780189, Rels.hei, []),
-    LocationData("Petal Meadows Field: Happy Heart", 78780190, Rels.hei, []),
-    LocationData("Petal Meadows Field: Horsetail", 78780191, Rels.hei)
+    LocationData("Petal Meadows Bridge Room: Coin 1", 78780186, Rels.hei, [0xCCE8]),
+    LocationData("Petal Meadows Bridge Room: Star Piece", 78780187, Rels.hei, [0xEE84]),
+    #LocationData("Petal Meadows Field: 10 Coins", 78780188, Rels.hei, []),
+    LocationData("Petal Meadows Field: Close Call", 78780189, Rels.hei, [0x149D0]),
+    LocationData("Petal Meadows Field: Happy Heart", 78780190, Rels.hei, [0x14A5C]),
+    LocationData("Petal Meadows Field: Horsetail", 78780191, Rels.hei, [0x148D4, 0x1492C])
 ]
 
 hooktails_castle: typing.List[LocationData] = [
@@ -377,8 +377,8 @@ twilight_town: typing.List[LocationData] = [
     LocationData("Twilight Town Rightside: Super Shroom", 78780316, Rels.usu, []),
     LocationData("Twilight Town Rightside: Thunder Rage", 78780317, Rels.usu, []),
     LocationData("Twilight Town Rightside: Tube Curse", 78780318, Rels.usu, []),
-    LocationData("Rogueport Sewers West Entrance: Shine Sprite", 78780144, Rels.usu, []),
-    LocationData("Rogueport Sewers West Entrance: Star Piece 2", 78780146, Rels.usu)
+    LocationData("Rogueport Sewers West Entrance: Shine Sprite", 78780144, Rels.tik, [0x20474]),
+    LocationData("Rogueport Sewers West Entrance: Star Piece 2", 78780146, Rels.tik, [0x2048C])
 ]
 
 twilight_trail: typing.List[LocationData] = [
