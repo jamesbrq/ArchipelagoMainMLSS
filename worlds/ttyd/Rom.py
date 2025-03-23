@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING, Dict, Tuple, Iterable
 from BaseClasses import Location, ItemClassification
 from settings import get_settings
 from worlds.Files import APProcedurePatch, APTokenMixin, APPatchExtension, AutoPatchExtensionRegister
-from .Items import items_by_id, ItemData
+from .Items import items_by_id, ItemData, item_type_dict
 from .Locations import locationName_to_data
-from .Data import Rels
+from .Data import Rels, shop_items
 
 if TYPE_CHECKING:
     from . import TTYDWorld
@@ -30,6 +30,8 @@ class TTYDPatchExtension(APPatchExtension):
         rels: Dict[Rels, io.BytesIO] = {}
         dol = DOL()
         dol.read(caller.iso.read_file_data("sys/main.dol"))
+        palace_keys = 0
+        riddle_keys = 0
         for rel in Rels:
             if rel == Rels.dol:
                 continue
@@ -40,16 +42,35 @@ class TTYDPatchExtension(APPatchExtension):
             if data is None:
                 continue
             if data.offset != 0:
-                item_data = items_by_id.get(item_id, ItemData(code=0, itemName="", progression=ItemClassification.filler, rom_id=0x86))
+                if player != caller.player:
+                    item_data = ItemData(code=0, itemName="", progression=ItemClassification.filler, rom_id=0x71)
+                else:
+                    item_data = items_by_id.get(item_id, ItemData(code=0, itemName="", progression=ItemClassification.filler, rom_id=0x0))
+                if item_data.rom_id != 0x71:
+                    item_data.rom_id = item_type_dict.get(item_data.itemName, 0x0)
+                    if item_data.rom_id == 0:
+                        logger.error(f"Item {item_data.itemName} not found in item_type_dict")
+                if "Palace Key" in item_data.itemName and item_data.itemName not in ["Palace Key (Riddle Tower)"]:
+                    palace_keys += 1
+                    item_data.rom_id += palace_keys
+                if "Palace Key (Riddle Tower)" in item_data.itemName:
+                    riddle_keys += 1
+                    item_data.rom_id += riddle_keys
                 if data.rel == Rels.dol:
                     continue
                     #for offset in data.offset:
                         #dol.data.seek(offset)
                         #dol.data.write(item_data.rom_id.to_bytes(4, "big"))
                 else:
-                    for offset in data.offset:
+                    for i, offset in enumerate(data.offset):
+                        if "30 Coins" in data.name and i == 1:
+                            rels[Rels.pik].seek(offset)
+                            rels[Rels.pik].write(item_data.rom_id.to_bytes(4, "big"))
                         rels[data.rel].seek(offset)
                         rels[data.rel].write(item_data.rom_id.to_bytes(4, "big"))
+                        if data.id in shop_items:
+                            rels[data.rel].seek(offset + 4)
+                            rels[data.rel].write(int.to_bytes(10, 4, "big"))
         for rel in rels.keys():
             caller.iso.changed_files[get_rel_path(rel)] = rels[rel]
         caller.iso.changed_files["sys/main.dol"] = dol.data

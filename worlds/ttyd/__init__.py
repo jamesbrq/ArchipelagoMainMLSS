@@ -1,7 +1,7 @@
 import os
 import typing
 import settings
-from BaseClasses import Tutorial, ItemClassification
+from BaseClasses import Tutorial, ItemClassification, CollectionState, Item
 from worlds.AutoWorld import WebWorld, World
 from .Locations import all_locations, location_table
 from .Options import TTYDOptions
@@ -72,6 +72,10 @@ class TTYDWorld(World):
         connect_regions(self)
 
     def generate_basic(self) -> None:
+        item = self.create_item("Mushroom")
+        self.multiworld.get_location("Rogueport Center: Mushroom", self.player).place_locked_item(item)
+        item = self.create_item("Goombella")
+        self.multiworld.get_location("Rogueport Center: Goombella", self.player).place_locked_item(item)
         item = self.create_item("Diamond Star")
         self.multiworld.get_location("Hooktail's Castle Hooktail's Room: Diamond Star", self.player).place_locked_item(item)
         item = self.create_item("Emerald Star")
@@ -117,12 +121,23 @@ class TTYDWorld(World):
 
     def set_rules(self) -> None:
         set_rules(self, self.excluded_locations)
-        self.multiworld.completion_condition[self.player] = \
-            lambda state: state.can_reach("Palace of Shadow Final Staircase: Ultra Shroom", "Location", self.player)
+        self.multiworld.completion_condition[self.player] = lambda state: state.can_reach("Palace of Shadow Final Staircase: Ultra Shroom", "Location", self.player) and state.has("stars", self.player, self.options.chapter_clears.value)
 
     def create_item(self, name: str) -> TTYDItem:
         item = item_table[name]
         return TTYDItem(item.itemName, item.progression, item.code, self.player)
+
+    def collect(self, state: "CollectionState", item: "Item") -> bool:
+        change = super().collect(state, item)
+        if change and "Castle Key" in item.name:
+            state.prog_items[item.player]["castle_keys"] += 1
+        if change and item.name in ["Crystal Star", "Garnet Star", "Sapphire Star", "Ruby Star", "Gold Star", "Emerald Star", "Diamond Star"]:
+            state.prog_items[item.player]["stars"] += 1
+        return change
+
+    def remove(self, state: "CollectionState", item: "Item") -> bool:
+        change = super().remove(state, item)
+        return change
 
     def generate_output(self, output_directory: str) -> None:
         patch = TTYDProcedurePatch(player=self.player, player_name=self.multiworld.player_name[self.player])
