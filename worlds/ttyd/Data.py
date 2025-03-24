@@ -33,6 +33,10 @@ class Rels(Enum):
     win = "win"
     yuu = "yuu"
 
+class GSWType(Enum):
+    GSW = 0
+    GSWF = 1
+
 shop_items = [
     78780003,
     78780019,
@@ -95,3 +99,12 @@ shop_items = [
     78780573,
     78780574
 ]
+
+location_gsw_info = {
+    78780002: (GSWType.GSW, 1700, 7),
+    78780045: (GSWType.GSWF, 5569, 1),
+    78780047: (GSWType.GSWF, 5570, 1),
+    78780048: (GSWType.GSWF, 5571, 1),
+    78780049: (GSWType.GSWF, 5572, 1),
+    78780046: (GSWType.GSWF, 5573, 1),
+}

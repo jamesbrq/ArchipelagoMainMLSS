@@ -6,7 +6,7 @@ from .Data import Rels
 
 class LocationData:
     name: str = ""
-    id: int = 0x00
+    id: int = 0x0
     rel: Rels = None
     offset: typing.List[int] = []
 

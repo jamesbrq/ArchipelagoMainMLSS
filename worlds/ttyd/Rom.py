@@ -1,5 +1,6 @@
 import io
 import json
+import pkgutil
 
 from gclib.gcm import GCM
 from gclib.dol import DOL
@@ -24,19 +25,36 @@ class TTYDPatchExtension(APPatchExtension):
     game = "Paper Mario The Thousand Year Door"
 
     @staticmethod
+    def patch_mod(caller: "TTYDProcedurePatch", mod_path: str, loader_path: str) -> None:
+        mod = io.BytesIO(caller.get_file(mod_path))
+        loader = caller.get_file(loader_path)
+        seed_options = json.loads(caller.get_file("options.json").decode("utf-8"))
+        caller.dol.data.seek(0x200)
+        caller.dol.data.write(seed_options["player_name"].encode("utf-8")[0:16])
+        caller.dol.data.seek(0x1888)
+        caller.dol.data.write(loader)
+        caller.dol.data.seek(0x6CE38)
+        caller.dol.data.write(int.to_bytes(0x4BF94A50, 4, "big"))
+        caller.iso.add_new_directory("files/mod")
+        caller.iso.add_new_file("files/mod/mod.rel", mod)
+
+
+
+    @staticmethod
+    def close_iso(caller: "TTYDProcedurePatch") -> None:
+        for rel in caller.rels.keys():
+            caller.iso.changed_files[get_rel_path(rel)] = caller.rels[rel]
+        caller.iso.changed_files["sys/main.dol"] = caller.dol.data
+        for _,_ in caller.iso.export_disc_to_iso_with_changed_files(caller.file_path):
+            continue
+
+
+    @staticmethod
     def patch_items(caller: "TTYDProcedurePatch") -> None:
         from CommonClient import logger
         locations: Dict[str, Tuple] = json.loads(caller.get_file(f"locations.json").decode("utf-8"))
-        rels: Dict[Rels, io.BytesIO] = {}
-        dol = DOL()
-        dol.read(caller.iso.read_file_data("sys/main.dol"))
         palace_keys = 0
         riddle_keys = 0
-        for rel in Rels:
-            if rel == Rels.dol:
-                continue
-            path = get_rel_path(rel)
-            rels[rel] = caller.iso.read_file_data(path)
         for location_name, (item_id, player) in locations.items():
             data = locationName_to_data.get(location_name, None)
             if data is None:
@@ -64,16 +82,16 @@ class TTYDPatchExtension(APPatchExtension):
                 else:
                     for i, offset in enumerate(data.offset):
                         if "30 Coins" in data.name and i == 1:
-                            rels[Rels.pik].seek(offset)
-                            rels[Rels.pik].write(item_data.rom_id.to_bytes(4, "big"))
-                        rels[data.rel].seek(offset)
-                        rels[data.rel].write(item_data.rom_id.to_bytes(4, "big"))
+                            caller.rels[Rels.pik].seek(offset)
+                            caller.rels[Rels.pik].write(item_data.rom_id.to_bytes(4, "big"))
+                        caller.rels[data.rel].seek(offset)
+                        caller.rels[data.rel].write(item_data.rom_id.to_bytes(4, "big"))
                         if data.id in shop_items:
-                            rels[data.rel].seek(offset + 4)
-                            rels[data.rel].write(int.to_bytes(10, 4, "big"))
-        for rel in rels.keys():
-            caller.iso.changed_files[get_rel_path(rel)] = rels[rel]
-        caller.iso.changed_files["sys/main.dol"] = dol.data
+                            caller.rels[data.rel].seek(offset + 4)
+                            caller.rels[data.rel].write(int.to_bytes(10, 4, "big"))
+        for rel in caller.rels.keys():
+            caller.iso.changed_files[get_rel_path(rel)] = caller.rels[rel]
+        caller.iso.changed_files["sys/main.dol"] = caller.dol.data
         for _,_ in caller.iso.export_disc_to_iso_with_changed_files(caller.file_path):
             continue
 
@@ -87,10 +105,14 @@ class TTYDProcedurePatch(APProcedurePatch, APTokenMixin):
     patch_file_ending = ".apttyd"
     result_file_ending = ".iso"
     file_path: str = ""
+    rels: Dict[Rels, io.BytesIO] = {}
     iso: GCM
+    dol: DOL
 
     procedure = [
-        ("patch_items", [])
+        ("patch_mod", ["mod.rel", "US.bin"]),
+        ("patch_items", []),
+        ("close_iso", [])
     ]
 
     @classmethod
@@ -100,6 +122,13 @@ class TTYDProcedurePatch(APProcedurePatch, APTokenMixin):
     def patch(self, target) -> None:
         self.iso = GCM(get_settings().ttyd_options.rom_file)
         self.iso.read_entire_disc()
+        self.dol = DOL()
+        self.dol.read(self.iso.read_file_data("sys/main.dol"))
+        for rel in Rels:
+            if rel == Rels.dol:
+                continue
+            path = get_rel_path(rel)
+            self.rels[rel] = self.iso.read_file_data(path)
         self.file_path = target
         self.read()
         patch_extender = AutoPatchExtensionRegister.get_handler(self.game)
@@ -117,9 +146,12 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
     options_dict = {
         "seed": world.multiworld.seed,
         "player": world.player,
+        "player_name": world.multiworld.player_name[world.player],
     }
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))
+    patch.write_file("US.bin", pkgutil.get_data(__name__, "data/US.bin"))
+    patch.write_file("mod.rel", pkgutil.get_data(__name__, "data/mod.rel"))
 
 def locations_to_dict(locations: Iterable[Location]) -> Dict[str, Tuple]:
     return {location.name: (location.item.code, location.item.player) if location.item is not None else (0, 0)
