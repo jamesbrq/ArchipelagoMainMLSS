@@ -72,8 +72,6 @@ class TTYDWorld(World):
         connect_regions(self)
 
     def generate_basic(self) -> None:
-        item = self.create_item("Mushroom")
-        self.multiworld.get_location("Rogueport Center: Mushroom", self.player).place_locked_item(item)
         item = self.create_item("Goombella")
         self.multiworld.get_location("Rogueport Center: Goombella", self.player).place_locked_item(item)
         item = self.create_item("Diamond Star")

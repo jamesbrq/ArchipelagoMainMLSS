@@ -73,7 +73,7 @@ itemList: typing.List[ItemData] = [
     ItemData(77772047, "Double Dip P", ItemClassification.useful),
     ItemData(77772048, "Double Pain", ItemClassification.useful),
     ItemData(77772049, "Dried Shroom", ItemClassification.filler),
-    ItemData(77772050, "Dubious Paper", ItemClassification.progression),
+    #ItemData(77772050, "Dubious Paper", ItemClassification.progression),
     ItemData(77772051, "Earth Quake", ItemClassification.filler),
     ItemData(77772052, "Elevator Key", ItemClassification.progression),
     ItemData(77772053, "Elevator Key 1", ItemClassification.progression),
@@ -235,10 +235,10 @@ itemList: typing.List[ItemData] = [
     ItemData(77772212, "Whacka Bump", ItemClassification.filler),
     ItemData(77772213, "Yoshi", ItemClassification.progression),
     ItemData(77772214, "Zap Tap", ItemClassification.useful),
-    ItemData(77772215, "Silver Card", ItemClassification.progression),
-    ItemData(77772216, "Gold Card", ItemClassification.progression),
-    ItemData(77772217, "Platinum Card", ItemClassification.progression),
-    ItemData(77772218, "Special Card", ItemClassification.progression),
+    #ItemData(77772215, "Silver Card", ItemClassification.progression),
+    #ItemData(77772216, "Gold Card", ItemClassification.progression),
+    #ItemData(77772217, "Platinum Card", ItemClassification.progression),
+    #ItemData(77772218, "Special Card", ItemClassification.progression),
 ]
 
 item_frequencies: typing.Dict[str, int] = {

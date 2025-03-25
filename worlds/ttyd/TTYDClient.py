@@ -6,7 +6,7 @@ from CommonClient import ClientCommandProcessor, CommonContext, get_base_parser,
 import dolphin_memory_engine as dolphin
 
 from NetUtils import NetworkItem, ClientStatus
-from worlds.ttyd.Data import location_gsw_info, GSWType
+from worlds.ttyd.Data import location_gsw_info, GSWType, shop_data
 from worlds.ttyd.Items import items_by_id, item_type_dict
 
 RECEIVED_INDEX = 0x803DB860
@@ -16,6 +16,10 @@ GP_BASE = 0x803DAC18
 GSWF_BASE = 0x178
 GSW0 = 0x174
 GSW_BASE = 0x578
+ROOM = 0x803DF728
+SHOP_POINTER = 0x8041EB60
+SHOP_ITEM_OFFSET = 0x2F
+SHOP_ITEM_PURCHASED = 0xD7
 
 def read_string(address: int, length: int):
     return dolphin.read_bytes(address, length).decode().strip("\0")
@@ -118,6 +122,8 @@ class TTYDContext(CommonContext):
         try:
             for location, gsw_info in location_gsw_info.items():
                 gsw_type, offset, value = gsw_info
+                if offset == 0:
+                    continue
                 if gsw_type.value == 0:
                     if gsw_byte_get(offset) >= value:
                         locations_to_send.add(location)
@@ -129,6 +135,20 @@ class TTYDContext(CommonContext):
                 await self.send_msgs([{"cmd": 'LocationChecks', "locations": locations_to_send}])
         except Exception as e:
             logger.error(traceback.format_exc())
+
+    async def check_shops(self):
+        locations_to_send = set()
+        room = read_string(ROOM, 0x10).strip()
+        if room in shop_data:
+            pointer = dolphin.read_word(SHOP_POINTER)
+            buying = dolphin.read_byte(pointer + 1)
+            if buying == 2:
+                purchased = dolphin.read_byte(pointer + SHOP_ITEM_PURCHASED)
+                if purchased != 0:
+                    locations_to_send.add(shop_data[room][dolphin.read_byte(pointer + SHOP_ITEM_OFFSET)])
+        if len(locations_to_send) > 0:
+            self.checked_locations &= locations_to_send
+            await self.send_msgs([{"cmd": 'LocationChecks', "locations": locations_to_send}])
 
     def save_loaded(self) -> bool:
         value = gsw_byte_get(1700)
@@ -152,6 +172,7 @@ async def ttyd_sync_task(ctx: TTYDContext):
                     continue
                 await ctx.receive_items()
                 await ctx.check_ttyd_locations()
+                await ctx.check_shops()
                 if not ctx.finished_game and gsw_byte_get(1708) >= 18:
                     await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
                 await asyncio.sleep(0.1)
