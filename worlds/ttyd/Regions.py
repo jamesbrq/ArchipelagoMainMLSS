@@ -1,11 +1,12 @@
 import typing
 
 from BaseClasses import Region, Entrance
-from .Locations import (TTYDLocation, rogueport, sewers, sewers_westside, sewers_westside_ground, petal_left, petal_right, hooktails_castle,
+from .Locations import (TTYDLocation, rogueport, sewers, sewers_westside, sewers_westside_ground, petal_left,
+                        petal_right, hooktails_castle,
                         boggly_woods, great_tree, glitzville, twilight_trail, twilight_town,
                         creepy_steeple, keelhaul_key, pirates_grotto, excess_express, riverside,
                         poshley_heights, fahr_outpost, xnaut_fortress, palace, pit, rogueport_westside, riddle_tower,
-                        location_table)
+                        location_table, shadow_queen)
 from . import StateLogic
 
 if typing.TYPE_CHECKING:
@@ -40,6 +41,7 @@ def create_regions(world: "TTYDWorld", excluded: typing.List[str]):
     create_region(world, "Palace of Shadow", palace, excluded)
     create_region(world, "Palace of Shadow (Post-Riddle Tower)", riddle_tower, excluded)
     create_region(world, "Pit of 100 Trials", pit, excluded)
+    create_region(world, "Shadow Queen", shadow_queen, excluded)
 
 
 def connect_regions(world: "TTYDWorld"):
@@ -52,7 +54,8 @@ def connect_regions(world: "TTYDWorld"):
     connect(world, names, "Rogueport Sewers", "Pit of 100 Trials", lambda state: StateLogic.pit(state, world.player))
     connect(world, names, "Rogueport", "Palace of Shadow", lambda state: StateLogic.palace(state, world.player, world.options.chapter_clears.value))
     connect(world, names, "Palace of Shadow", "Palace of Shadow (Post-Riddle Tower)", lambda state: StateLogic.riddle_tower(state, world.player))
-    connect(world, names, "Rogueport", "Poshley Heights", lambda state: state.has("Ultra Hammer", world.player) and state.has("Super Boots", world.player))
+    connect(world, names, "Palace of Shadow (Post-Riddle Tower)", "Shadow Queen", lambda state: state.can_reach("Palace of Shadow Final Staircase: Ultra Shroom", "Location", world.player))
+    connect(world, names, "Rogueport", "Poshley Heights", lambda state: StateLogic.ultra_hammer(state, world.player) and StateLogic.super_boots(state, world.player))
     connect(world, names, "Rogueport", "Fahr Outpost", lambda state: StateLogic.fahr_outpost(state, world.player))
     connect(world, names, "Rogueport", "Keelhaul Key", lambda state: StateLogic.keelhaul_key(state, world.player))
     connect(world, names, "Keelhaul Key", "Pirate's Grotto", lambda state: StateLogic.pirates_grottos(state, world.player))

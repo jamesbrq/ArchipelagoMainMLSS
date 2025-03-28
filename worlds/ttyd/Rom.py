@@ -31,6 +31,20 @@ class TTYDPatchExtension(APPatchExtension):
         seed_options = json.loads(caller.get_file("options.json").decode("utf-8"))
         caller.dol.data.seek(0x200)
         caller.dol.data.write(seed_options["player_name"].encode("utf-8")[0:16])
+        caller.dol.data.seek(0x210)
+        caller.dol.data.write(seed_options["chapter_clears"].to_bytes(1, "big"))
+        caller.dol.data.seek(0x211)
+        caller.dol.data.write(seed_options["starting_partner"].to_bytes(1, "big"))
+        caller.dol.data.seek(0x212)
+        caller.dol.data.write(seed_options["yoshi_color"].to_bytes(1, "big"))
+        caller.dol.data.seek(0x213)
+        caller.dol.data.write((1).to_bytes(1, "big"))
+        caller.dol.data.seek(0x214)
+        caller.dol.data.write((0x80003220).to_bytes(4, "big"))
+        caller.dol.data.seek(0x220)
+        caller.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
+        caller.dol.data.seek(0xEB6B6)
+        caller.dol.data.write(int.to_bytes(seed_options["starting_coins"], 2, "big"))
         caller.dol.data.seek(0x1888)
         caller.dol.data.write(loader)
         caller.dol.data.seek(0x6CE38)
@@ -147,6 +161,11 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "seed": world.multiworld.seed,
         "player": world.player,
         "player_name": world.multiworld.player_name[world.player],
+        "yoshi_name": world.options.yoshi_name.value,
+        "yoshi_color": world.options.yoshi_color.value,
+        "starting_partner": world.options.starting_partner.value,
+        "chapter_clears": world.options.chapter_clears.value,
+        "starting_coins": world.options.starting_coins.value,
     }
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))

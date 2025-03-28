@@ -43,10 +43,10 @@ def glitzville(state, player):
 
 
 def twilight_town(state, player):
-    return state.has("Paper Curse", player) and westside(state, player) if state.has("Yoshi", player) else \
-        (ultra_boots(state, player) and (ultra_hammer(state, player)
+    return ((state.has("Paper Curse", player) and westside(state, player)) if state.has("Yoshi", player) else
+            (ultra_boots(state, player) and (ultra_hammer(state, player)
             or state.has("Bobbery", player) or tube_curse(state, player)
-            or (state.has("Paper Curse", player) and state.has("Contact Lens", player))))
+            or (state.has("Paper Curse", player) and state.has("Contact Lens", player)))))
 
 
 def twilight_trail(state, player):
@@ -71,7 +71,7 @@ def excess_express(state, player):
 
 
 def riverside(state, player):
-    return state.has("Vivian", player) and state.has("Autograph", player) and state.has("Ragged Diary", player) and state.has("Blanket", player) and state.has("Vital Paper", player)
+    return state.has("Vivian", player) and state.has("Autograph", player) and state.has("Ragged Diary", player) and state.has("Blanket", player) and state.has("Vital Paper", player) and state.has("Train Ticket", player)
 
 
 def poshley_heights(state, player):
@@ -123,7 +123,7 @@ def stars(state, player, chapters: int):
 
 
 def palace(state, player, chapters: int):
-    return ttyd(state, player) and stars(state, player, chapters)
+    return ttyd(state, player) and state.has("stars", player, chapters)
 
 
 def riddle_tower(state, player):

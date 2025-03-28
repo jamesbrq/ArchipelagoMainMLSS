@@ -7,9 +7,9 @@ class ItemData:
     code: int
     itemName: str
     progression: ItemClassification
-    rom_id: int = 0x0
+    rom_id: int
 
-    def __init__(self, code: int, itemName: str, progression: ItemClassification, rom_id: int = 0x0):
+    def __init__(self, code: int | None, itemName: str, progression: ItemClassification, rom_id: int = 0x0):
         self.code = code
         self.itemName = itemName
         self.progression = progression
@@ -49,7 +49,7 @@ itemList: typing.List[ItemData] = [
     ItemData(77772219, "Castle Key 2", ItemClassification.progression),
     ItemData(77772220, "Castle Key 3", ItemClassification.progression),
     ItemData(77772221, "Castle Key 4", ItemClassification.progression),
-    ItemData(77772026, "Champ's Belt", ItemClassification.progression),
+    ItemData(77772026, "Champ's Belt", ItemClassification.useful),
     ItemData(77772027, "Charge", ItemClassification.useful),
     ItemData(77772028, "Charge P", ItemClassification.useful),
     ItemData(77772029, "Chill Out", ItemClassification.useful),
@@ -58,22 +58,21 @@ itemList: typing.List[ItemData] = [
     ItemData(77772032, "Close Call P", ItemClassification.useful),
     ItemData(77772033, "Coconut", ItemClassification.progression),
     ItemData(77772034, "Cog", ItemClassification.progression),
-    ItemData(77772035, "Coin", ItemClassification.filler),
     ItemData(77772036, "Contact Lens", ItemClassification.progression),
-    ItemData(77772037, "Cookbook", ItemClassification.progression),
+    ItemData(77772037, "Cookbook", ItemClassification.useful),
     ItemData(77772038, "Courage Shell", ItemClassification.filler),
     ItemData(77772039, "Crystal Star", ItemClassification.progression),
-    ItemData(77772040, "Damage Dodge", ItemClassification.progression),
-    ItemData(77772041, "Damage Dodge P", ItemClassification.progression),
-    ItemData(77772042, "Defend Plus", ItemClassification.progression),
-    ItemData(77772043, "Defend Plus P", ItemClassification.progression),
+    ItemData(77772040, "Damage Dodge", ItemClassification.useful),
+    ItemData(77772041, "Damage Dodge P", ItemClassification.useful),
+    ItemData(77772042, "Defend Plus", ItemClassification.useful),
+    ItemData(77772043, "Defend Plus P", ItemClassification.useful),
     ItemData(77772044, "Diamond Star", ItemClassification.progression),
     ItemData(77772045, "Dizzy Dial", ItemClassification.filler),
     ItemData(77772046, "Double Dip", ItemClassification.useful),
     ItemData(77772047, "Double Dip P", ItemClassification.useful),
     ItemData(77772048, "Double Pain", ItemClassification.useful),
     ItemData(77772049, "Dried Shroom", ItemClassification.filler),
-    #ItemData(77772050, "Dubious Paper", ItemClassification.progression),
+    #ItemData(77772050, "Dubious Paper", ItemClassification.useful),
     ItemData(77772051, "Earth Quake", ItemClassification.filler),
     ItemData(77772052, "Elevator Key", ItemClassification.progression),
     ItemData(77772053, "Elevator Key 1", ItemClassification.progression),
@@ -132,7 +131,6 @@ itemList: typing.List[ItemData] = [
     ItemData(77772106, "Last Stand", ItemClassification.useful),
     ItemData(77772107, "Last Stand P", ItemClassification.useful),
     ItemData(77772108, "Life Shroom", ItemClassification.useful),
-    ItemData(77772109, "Lottery Pick", ItemClassification.useful),
     ItemData(77772110, "Lucky Day", ItemClassification.useful),
     ItemData(77772111, "Lucky Start", ItemClassification.useful),
     ItemData(77772112, "Maple Syrup", ItemClassification.filler),
@@ -142,6 +140,7 @@ itemList: typing.List[ItemData] = [
     ItemData(77772116, "Money Money", ItemClassification.useful),
     ItemData(77772117, "Moon Stone", ItemClassification.progression),
     ItemData(77772118, "Mr. Softener", ItemClassification.filler),
+    ItemData(77772219, "Ms. Mowz", ItemClassification.useful),
     ItemData(77772119, "Multibounce", ItemClassification.useful),
     ItemData(77772120, "Mushroom", ItemClassification.filler),
     ItemData(77772121, "Mystery", ItemClassification.filler),
@@ -199,7 +198,7 @@ itemList: typing.List[ItemData] = [
     ItemData(77772174, "Spike Shield", ItemClassification.useful),
     ItemData(77772175, "Spite Pouch", ItemClassification.filler),
     ItemData(77772176, "Star Key", ItemClassification.progression),
-    ItemData(77772177, "Star Piece", ItemClassification.progression),
+    ItemData(77772177, "Star Piece", ItemClassification.useful),
     ItemData(77772178, "Station Key 1", ItemClassification.progression),
     ItemData(77772179, "Station Key 2", ItemClassification.progression),
     ItemData(77772180, "Steeple Key 1", ItemClassification.progression),
@@ -242,13 +241,12 @@ itemList: typing.List[ItemData] = [
 ]
 
 item_frequencies: typing.Dict[str, int] = {
-    "10 Coins": 10,
+    "10 Coins": 50,
     "Boo's Sheet": 4,
     "Castle Key": 4,
     "Close Call": 2,
     "Close Call P": 2,
     "Coconut": 2,
-    "Coin": 30,
     "Courage Shell": 3,
     "Damage Dodge": 2,
     "Damage Dodge P": 2,
@@ -305,7 +303,7 @@ item_frequencies: typing.Dict[str, int] = {
     "Quake Hammer": 2,
     "Repel Cape": 3,
     "Ruin Powder": 3,
-    "Shine Sprite": 50,
+    "Shine Sprite": 40,
     "Shooting Star": 8,
     "Shrink Stomp": 2,
     "Simplifier": 2,
@@ -314,7 +312,7 @@ item_frequencies: typing.Dict[str, int] = {
     "Slow Shroom": 2,
     "Soft Stomp": 2,
     "Spite Pouch": 2,
-    "Star Piece": 120,
+    "Star Piece": 100,
     "Stopwatch": 5,
     "Super Appeal": 2,
     "Super Appeal P": 2,

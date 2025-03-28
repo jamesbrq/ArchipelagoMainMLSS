@@ -55,10 +55,10 @@ def gswf_check(bit_number: int) -> bool:
     bit_mask = 1 << bit
     return bool(current_byte & bit_mask)
 
-def gsw_byte_set(index, value):
-    return dolphin.write_word(GP_BASE + GSW0, value) if index == 0 else dolphin.write_byte(GP_BASE + index + GSW_BASE, value)
+def gsw_set(index, value):
+    dolphin.write_word(GP_BASE + GSW0, value) if index == 0 else dolphin.write_byte(GP_BASE + index + GSW_BASE, value)
 
-def gsw_byte_get(index):
+def gsw_check(index):
     return dolphin.read_word(GP_BASE + GSW0) if index == 0 else dolphin.read_byte(GP_BASE + index + GSW_BASE)
 
 
@@ -72,6 +72,13 @@ class TTYDCommandProcessor(ClientCommandProcessor):
 
     def _cmd_check_gswf(self, bit_number: int):
         result = gswf_check(int(bit_number))
+        logger.info(f"GSWF Check: 0x{format(result, 'x')}")
+
+    def _cmd_set_gsw(self, gsw: int, value: int):
+        gsw_set(int(gsw), int(value))
+
+    def _cmd_check_gsw(self, gsw: int):
+        result = gsw_check(int(gsw))
         logger.info(f"GSWF Check: {result}")
 
 
@@ -125,7 +132,7 @@ class TTYDContext(CommonContext):
                 if offset == 0:
                     continue
                 if gsw_type.value == 0:
-                    if gsw_byte_get(offset) >= value:
+                    if gsw_check(offset) >= value:
                         locations_to_send.add(location)
                 elif gsw_type.value == 1:
                     if gswf_check(offset):
@@ -151,7 +158,7 @@ class TTYDContext(CommonContext):
             await self.send_msgs([{"cmd": 'LocationChecks', "locations": locations_to_send}])
 
     def save_loaded(self) -> bool:
-        value = gsw_byte_get(1700)
+        value = gsw_check(1700)
         return value > 0
 
 
@@ -173,12 +180,13 @@ async def ttyd_sync_task(ctx: TTYDContext):
                 await ctx.receive_items()
                 await ctx.check_ttyd_locations()
                 await ctx.check_shops()
-                if not ctx.finished_game and gsw_byte_get(1708) >= 18:
+                if not ctx.finished_game and gsw_check(1708) >= 18:
                     await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
                 await asyncio.sleep(0.1)
             else:
                 if not ctx.auth:
-                    ctx.auth = read_string(PLAYER_NAME, 0x10).strip()
+                    ctx.auth = read_string(PLAYER_NAME, 0x10)
+                    logger.info(ctx.auth)
                     if not ctx.auth:
                         ctx.auth = None
                         logger.info("No slot name was detected. Please load the correct ROM.")

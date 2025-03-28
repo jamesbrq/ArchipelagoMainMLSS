@@ -6,11 +6,11 @@ from .Data import Rels
 
 class LocationData:
     name: str = ""
-    id: int = 0x0
+    id: int | None = 0x0
     rel: Rels = None
     offset: typing.List[int] = []
 
-    def __init__(self, name: str, id_: int, rel: Rels, offset: typing.List[int]=None):
+    def __init__(self, name: str, id_: int | None, rel: Rels, offset: typing.List[int]=None):
         self.name = name
         self.id = id_
         self.rel = rel
@@ -83,7 +83,7 @@ rogueport: typing.List[LocationData] = [
     #LocationData("Rogueport Center: Unsimplifier", 78780057, Rels.gor),
     #LocationData("Rogueport Center: Unsimplifier (6 Chapters Cleared)", 78780058, Rels.gor),
     #LocationData("Rogueport Center: W Emblem", 78780059, Rels.gor),
-    LocationData("Rogueport Eastside: Power Smash", 78780060, Rels.gor),
+    LocationData("Rogueport Eastside: Power Smash", 78780060, Rels.gor, [0x49BF0]),
     LocationData("Rogueport Eastside: Double Dip", 78780061, Rels.gor, [0x4CE58]),
     LocationData("Rogueport Eastside: Shine Sprite 1", 78780062, Rels.gor, [0x4D76C]),
     LocationData("Rogueport Eastside: Shine Sprite 2", 787800708, Rels.gor, [0x4D7B4]),
@@ -168,7 +168,7 @@ sewers: typing.List[LocationData] = [
     LocationData("Rogueport Sewers East Enemy Hall: Mushroom", 78780148, Rels.tik, [0x2BAF0]),
     LocationData("Rogueport Sewers East Pipe Room: Shine Sprite", 78780149, Rels.tik, [0x2C22C]),
     LocationData("Rogueport Sewers West Pipe Room: FP Plus", 78780150, Rels.tik, [0x2C7DC]),
-    LocationData("Rogueport Sewers Black Chest Room: Plane Curse", 78780153, Rels.tik, []),
+    LocationData("Rogueport Sewers Black Chest Room: Plane Curse", 78780153, Rels.tik, [0x2D65C]),
     LocationData("Rogueport Sewers Black Chest Room: Star Piece", 78780154, Rels.tik, [0x2DAC8]),
     LocationData("Rogueport Sewers Spike Room: Spike Shield", 78780159, Rels.tik, [0x2B5F4])
 ]
@@ -223,7 +223,7 @@ petal_right: typing.List[LocationData] = [
     LocationData("Petalburg Westside: Star Piece", 78780178, Rels.nok, [0x58C0]),
     LocationData("Petalburg Eastside: Mega Rush P", 78780179, Rels.nok, [0x9758]),
     LocationData("Petalburg Eastside: Star Piece", 78780180, Rels.nok, [0x9744]),
-    LocationData("Petalburg Eastside: Turtley Leaf", 78780181, Rels.nok, [0xB0C4, 0xB128, 0xB18C])
+    LocationData("Petalburg Eastside: Turtley Leaf", 78780181, Rels.nok, [0x93B8, 0x941C, 0x9480, 0x978C])
 ]
 
 petal_left: typing.List[LocationData] = [
@@ -233,7 +233,7 @@ petal_left: typing.List[LocationData] = [
     LocationData("Petal Meadows Bridge Room: Coin 1", 78780186, Rels.hei, [0xCCE8]),
     LocationData("Petal Meadows Bridge Room: Coin 2", 78780160, Rels.hei, [0xCC48]),
     LocationData("Petal Meadows Bridge Room: Star Piece", 78780187, Rels.hei, [0xEE84]),
-    #LocationData("Petal Meadows Field: 10 Coins", 78780188, Rels.hei, []),
+    LocationData("Petal Meadows Field: 10 Coins", 78780188, Rels.hei, [0x14A94]),
     LocationData("Petal Meadows Field: Close Call", 78780189, Rels.hei, [0x149D0]),
     LocationData("Petal Meadows Field: Happy Heart", 78780190, Rels.hei, [0x14A5C]),
     LocationData("Petal Meadows Field: Horsetail", 78780191, Rels.hei, [0x148D4, 0x1492C])
@@ -252,7 +252,7 @@ hooktails_castle: typing.List[LocationData] = [
     LocationData("Hooktail's Castle Stair Central Staircase: Last Stand P", 78780201, Rels.gon, [0xE76C]),
     LocationData("Hooktail's Castle Stair Central Staircase: Shine Sprite", 78780202, Rels.gon, [0xE860]),
     LocationData("Hooktail's Castle Stair Central Staircase: Star Piece", 78780203, Rels.gon, [0xE744]),
-    LocationData("Hooktail's Castle Prison Entrance: Paper Curse", 78780204, Rels.gon, []),
+    LocationData("Hooktail's Castle Prison Entrance: Paper Curse", 78780204, Rels.gon, [0xF504]),
     LocationData("Hooktail's Castle Prison Entrance: Attack FX R", 78780205, Rels.gon, [0xFD68]),
     LocationData("Hooktail's Castle Spikes Room: Black Key 2", 78780206, Rels.gon, [0x1026C]),
     LocationData("Hooktail's Castle Life Shroom Room: Life Shroom", 78780207, Rels.gon, [0x11C00]),
@@ -293,7 +293,7 @@ great_tree: typing.List[LocationData] = [
     LocationData("Great Tree Red/Blue Cages: Star Piece", 78780236, Rels.mri, [0x3C840]),
     LocationData("Great Tree Red Key Room: Coin", 78780237, Rels.mri, [0x3DFF0]),
     LocationData("Great Tree Red Key Room: Mushroom", 78780238, Rels.mri, [0x3CC58]),
-    LocationData("Great Tree Red Key Room: Red Key", 78780239, Rels.mri, [0x3E378]),
+    LocationData("Great Tree Red Key Room: Red Key", 78780239, Rels.mri, [0x3E378, 0x3DA14]),
     LocationData("Great Tree Red Key Room: Ultra Shroom", 78780240, Rels.mri, [0x3E098]),
     LocationData("Great Tree Bubble Room: Shine Sprite", 78780241, Rels.mri, [0x3F890]),
     LocationData("Great Tree Bubble Room: Thunder Rage", 78780242, Rels.mri, [0x3E954]),
@@ -355,7 +355,7 @@ glitzville: typing.List[LocationData] = [
     LocationData("Glitzville Major-League Room: Champ's Belt", 78780295, Rels.tou, [0x34328, 0x378D8]),
     LocationData("Glitzville Major-League Room: Ice Storm", 78780296, Rels.tou, [0x3857C]),
     LocationData("Glitzville Minor-League Room: Dubious Paper", 78780297, Rels.tou, [0x3DCB0]),
-    LocationData("Glitzville Minor-League Room: Yoshi", 78780298, Rels.tou, [0x3BE6C]),
+    LocationData("Glitzville Minor-League Room: Yoshi", 78780298, Rels.tou, [0x3BE30]),
     LocationData("Glitzville Storage Back Room: Star Piece", 78780299, Rels.tou, [0x3F3DC])
 ]
 
@@ -378,7 +378,7 @@ twilight_town: typing.List[LocationData] = [
     LocationData("Twilight Town Rightside: Stopwatch", 78780315, Rels.usu, [0x15BF8]),
     LocationData("Twilight Town Rightside: Super Shroom", 78780316, Rels.usu, [0x15C08]),
     LocationData("Twilight Town Rightside: Thunder Rage", 78780317, Rels.usu, [0x15BE8]),
-    LocationData("Twilight Town Rightside: Tube Curse", 78780318, Rels.usu, []),
+    LocationData("Twilight Town Rightside: Tube Curse", 78780318, Rels.usu, [0x162E8]),
     LocationData("Rogueport Sewers West Entrance: Shine Sprite", 78780144, Rels.tik, [0x20474]),
     LocationData("Rogueport Sewers West Entrance: Star Piece 2", 78780146, Rels.tik, [0x2048C])
 ]
@@ -461,7 +461,7 @@ keelhaul_key: typing.List[LocationData] = [
     LocationData("Keelhaul Key Jungle Bridge: Ice Power", 78780485, Rels.muj, [0x278E0]),
     LocationData("Keelhaul Key Jungle Bridge: Inn Coupon", 78780486, Rels.muj, [0x27908]),
     LocationData("Keelhaul Key Jungle Bridge: Shine Sprite", 78780487, Rels.muj, [0x2793C]),
-    LocationData("Keelhaul Key Grotto Entrance: Bobbery", 78780488, Rels.muj, [0x27E18]),
+    LocationData("Keelhaul Key Grotto Entrance: Bobbery", 78780488, Rels.muj, [0x27DFC]),
     LocationData("Keelhaul Key Grotto Entrance: Skull Gem", 78780489, Rels.muj, [0x284CC]),
     LocationData("Keelhaul Key Grotto Entrance: Spite Pouch", 78780490, Rels.muj, [0x2AEA0]),
     LocationData("Keelhaul Key Grotto Entrance: Star Piece", 78780491, Rels.muj, [0x2B1D4]),
@@ -482,7 +482,7 @@ pirates_grotto: typing.List[LocationData] = [
     LocationData("Pirate's Grotto Staircase: Shine Sprite", 78780503, Rels.dou, [0xB34C]),
     LocationData("Pirate's Grotto Parabuzzy Room: Star Piece", 78780504, Rels.dou, [0xB598]),
     LocationData("Pirate's Grotto Chest Boat: Black Key 4", 78780505, Rels.dou, [0xC464, 0xB64C]),
-    LocationData("Pirate's Grotto Chest Boat: Boat Curse", 78780506, Rels.dou, []),
+    LocationData("Pirate's Grotto Chest Boat: Boat Curse", 78780506, Rels.dou, [0xBE8C]),
     LocationData("Pirate's Grotto Chest Boat: P-Down D-Up", 78780507, Rels.dou, [0xC408]),
     LocationData("Pirate's Grotto Barrel Room: 10 Coins", 78780508, Rels.dou, [0xD858]),
     LocationData("Pirate's Grotto Barrel Room: Shine Sprite", 78780509, Rels.dou, [0xD834]),
@@ -659,11 +659,15 @@ pit: typing.List[LocationData] = [
     #LocationData("Pit of 100 Trials Charlieton: Thunder Rage", 78780653, Rels.dol, [0x3C7270])
 ]
 
+shadow_queen: typing.List[LocationData] = [
+    LocationData("Shadow Queen", None, Rels.las, [])
+]
+
 all_locations: typing.List[LocationData] = (rogueport + rogueport_westside + sewers + sewers_westside + sewers_westside_ground +
                                             petal_left + petal_right + hooktails_castle + boggly_woods +
                                             great_tree + glitzville + twilight_town + twilight_trail + creepy_steeple +
                                             keelhaul_key + pirates_grotto + excess_express + riverside + poshley_heights +
-                                            fahr_outpost + xnaut_fortress + palace + riddle_tower + pit)
+                                            fahr_outpost + xnaut_fortress + palace + riddle_tower + pit + shadow_queen)
 
 location_table: typing.Dict[str, int] = {locData.name: locData.id for locData in all_locations}
 

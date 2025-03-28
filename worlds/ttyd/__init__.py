@@ -2,10 +2,12 @@ import os
 import typing
 import settings
 from BaseClasses import Tutorial, ItemClassification, CollectionState, Item
+from Utils import visualize_regions
 from worlds.AutoWorld import WebWorld, World
+from .Data import starting_partners
 from .Locations import all_locations, location_table
-from .Options import TTYDOptions
-from .Items import TTYDItem, itemList, item_frequencies, item_table
+from .Options import TTYDOptions, YoshiColor, StartingPartner
+from .Items import TTYDItem, itemList, item_frequencies, item_table, ItemData
 from .Regions import create_regions, connect_regions
 from .Rom import TTYDProcedurePatch, write_files
 from .Rules import set_rules
@@ -67,37 +69,33 @@ class TTYDWorld(World):
 
     excluded_locations = []
 
+    def generate_early(self) -> None:
+        if self.options.yoshi_color.value == YoshiColor.option_random:
+            self.options.yoshi_color.value = self.multiworld.random.randint(0, 6)
+        if self.options.starting_partner.value == StartingPartner.option_random:
+            self.options.starting_partner.value = self.multiworld.random.randint(1, 7)
+
     def create_regions(self) -> None:
         create_regions(self, self.excluded_locations)
         connect_regions(self)
-
-    def generate_basic(self) -> None:
-        item = self.create_item("Goombella")
-        self.multiworld.get_location("Rogueport Center: Goombella", self.player).place_locked_item(item)
-        item = self.create_item("Diamond Star")
-        self.multiworld.get_location("Hooktail's Castle Hooktail's Room: Diamond Star", self.player).place_locked_item(item)
-        item = self.create_item("Emerald Star")
-        self.multiworld.get_location("Great Tree Entrance: Emerald Star", self.player).place_locked_item(item)
-        item = self.create_item("Gold Star")
-        self.multiworld.get_location("Glitzville Arena: Gold Star", self.player).place_locked_item(item)
-        item = self.create_item("Ruby Star")
-        self.multiworld.get_location("Creepy Steeple Upper Room: Ruby Star", self.player).place_locked_item(item)
-        item = self.create_item("Sapphire Star")
-        self.multiworld.get_location("Pirate's Grotto Cortez' Hoard: Sapphire Star", self.player).place_locked_item(item)
-        item = self.create_item("Garnet Star")
-        self.multiworld.get_location("Poshley Heights Sanctum Altar: Garnet Star", self.player).place_locked_item(item)
-        item = self.create_item("Crystal Star")
-        self.multiworld.get_location("X-Naut Fortress Boss Room: Crystal Star", self.player).place_locked_item(item)
+        self.lock_item("Rogueport Center: Goombella", starting_partners[self.options.starting_partner.value - 1])
+        self.lock_item("Hooktail's Castle Hooktail's Room: Diamond Star", "Diamond Star")
+        self.lock_item("Great Tree Entrance: Emerald Star", "Emerald Star")
+        self.lock_item("Glitzville Arena: Gold Star", "Gold Star")
+        self.lock_item("Creepy Steeple Upper Room: Ruby Star", "Ruby Star")
+        self.lock_item("Pirate's Grotto Cortez' Hoard: Sapphire Star", "Sapphire Star")
+        self.lock_item("Poshley Heights Sanctum Altar: Garnet Star", "Garnet Star")
+        self.lock_item("X-Naut Fortress Boss Room: Crystal Star", "Crystal Star")
+        self.lock_item("Shadow Queen", "Victory")
 
     def create_items(self) -> None:
         # First add in all progression and useful items
         required_items = []
         precollected = [item for item in itemList if item in self.multiworld.precollected_items]
-        for item in itemList:
-            if item not in precollected:
-                if item.progression == ItemClassification.progression or item.progression == ItemClassification.useful:
-                    freq = item_frequencies.get(item.itemName, 1)
-                    required_items += [item.itemName for _ in range(freq)]
+        for item in [item for item in itemList if item.progression == ItemClassification.progression or item.progression == ItemClassification.useful]:
+            if item not in precollected and item.itemName != starting_partners[self.options.starting_partner.value - 1]:
+                freq = item_frequencies.get(item.itemName, 1)
+                required_items += [item.itemName for _ in range(freq)]
         for itemName in required_items:
             self.multiworld.itempool.append(self.create_item(itemName))
 
@@ -110,7 +108,7 @@ class TTYDWorld(World):
                     freq = 1
                 filler_items += [item.itemName for _ in range(freq)]
 
-        remaining = len(all_locations) - len(required_items) - 7
+        remaining = len(all_locations) - len(required_items) - 9
         for i in range(remaining):
             filler_item_name = self.multiworld.random.choice(filler_items)
             item = self.create_item(filler_item_name)
@@ -119,11 +117,15 @@ class TTYDWorld(World):
 
     def set_rules(self) -> None:
         set_rules(self, self.excluded_locations)
-        self.multiworld.completion_condition[self.player] = lambda state: state.can_reach("Palace of Shadow Final Staircase: Ultra Shroom", "Location", self.player) and state.has("stars", self.player, self.options.chapter_clears.value)
+        self.multiworld.completion_condition[self.player] = lambda state: state.has("Victory", self.player)
 
     def create_item(self, name: str) -> TTYDItem:
-        item = item_table[name]
+        item = item_table.get(name, ItemData(None, name, ItemClassification.progression))
         return TTYDItem(item.itemName, item.progression, item.code, self.player)
+
+    def lock_item(self, location: str, item_name: str):
+        item = self.create_item(item_name)
+        self.get_location(location).place_locked_item(item)
 
     def collect(self, state: "CollectionState", item: "Item") -> bool:
         change = super().collect(state, item)
@@ -135,9 +137,14 @@ class TTYDWorld(World):
 
     def remove(self, state: "CollectionState", item: "Item") -> bool:
         change = super().remove(state, item)
+        if change and "Castle Key" in item.name:
+            state.prog_items[item.player]["castle_keys"] -= 1
+        if change and item.name in ["Crystal Star", "Garnet Star", "Sapphire Star", "Ruby Star", "Gold Star", "Emerald Star", "Diamond Star"]:
+            state.prog_items[item.player]["stars"] -= 1
         return change
 
     def generate_output(self, output_directory: str) -> None:
+        visualize_regions(self.multiworld.get_region("Menu", self.player), "my_world.puml")
         patch = TTYDProcedurePatch(player=self.player, player_name=self.multiworld.player_name[self.player])
         write_files(self, patch)
         rom_path = os.path.join(
