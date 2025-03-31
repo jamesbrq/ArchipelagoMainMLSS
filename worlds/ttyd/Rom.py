@@ -1,6 +1,7 @@
 import io
 import json
 import pkgutil
+import bsdiff4
 
 from gclib.gcm import GCM
 from gclib.dol import DOL
@@ -10,7 +11,7 @@ from settings import get_settings
 from worlds.Files import APProcedurePatch, APTokenMixin, APPatchExtension, AutoPatchExtensionRegister
 from .Items import items_by_id, ItemData, item_type_dict
 from .Locations import locationName_to_data
-from .Data import Rels, shop_items
+from .Data import Rels, shop_items, tubu_dt
 
 if TYPE_CHECKING:
     from . import TTYDWorld
@@ -49,6 +50,9 @@ class TTYDPatchExtension(APPatchExtension):
         caller.dol.data.write(loader)
         caller.dol.data.seek(0x6CE38)
         caller.dol.data.write(int.to_bytes(0x4BF94A50, 4, "big"))
+        #for key, value in tubu_dt.items():
+            #caller.dol.data.seek(key)
+            #caller.dol.data.write(value.to_bytes(2, "big"))
         caller.iso.add_new_directory("files/mod")
         caller.iso.add_new_file("files/mod/mod.rel", mod)
 
@@ -62,6 +66,23 @@ class TTYDPatchExtension(APPatchExtension):
         for _,_ in caller.iso.export_disc_to_iso_with_changed_files(caller.file_path):
             continue
 
+    @staticmethod
+    def patch_icon(caller: "TTYDProcedurePatch") -> None:
+        icon_patch = caller.get_file("icon.bsdiff4")
+        bin_patch = caller.get_file("icon_bin.bsdiff4")
+        icon_file = caller.iso.read_file_data("files/icon.tpl")
+        bin_file = caller.iso.read_file_data("files/icon.bin")
+        icon_file.seek(0)
+        original_icon_data = icon_file.read()
+        bin_file.seek(0)
+        original_bin_data = bin_file.read()
+        patched_icon_data = bsdiff4.patch(original_icon_data, icon_patch)
+        patched_bin_data = bsdiff4.patch(original_bin_data, bin_patch)
+        new_icon_file = io.BytesIO(patched_icon_data)
+        new_bin_file = io.BytesIO(patched_bin_data)
+        caller.iso.changed_files["files/icon.tpl"] = new_icon_file
+        caller.iso.changed_files["files/icon.bin"] = new_bin_file
+
 
     @staticmethod
     def patch_items(caller: "TTYDProcedurePatch") -> None:
@@ -73,7 +94,7 @@ class TTYDPatchExtension(APPatchExtension):
             data = locationName_to_data.get(location_name, None)
             if data is None:
                 continue
-            if data.offset != 0:
+            if data.offset:
                 if player != caller.player:
                     item_data = ItemData(code=0, itemName="", progression=ItemClassification.filler, rom_id=0x71)
                 else:
@@ -98,6 +119,7 @@ class TTYDPatchExtension(APPatchExtension):
                         if "30 Coins" in data.name and i == 1:
                             caller.rels[Rels.pik].seek(offset)
                             caller.rels[Rels.pik].write(item_data.rom_id.to_bytes(4, "big"))
+                            continue
                         caller.rels[data.rel].seek(offset)
                         caller.rels[data.rel].write(item_data.rom_id.to_bytes(4, "big"))
                         if data.id in shop_items:
@@ -125,6 +147,7 @@ class TTYDProcedurePatch(APProcedurePatch, APTokenMixin):
 
     procedure = [
         ("patch_mod", ["mod.rel", "US.bin"]),
+        ("patch_icon", []),
         ("patch_items", []),
         ("close_iso", [])
     ]
@@ -171,6 +194,8 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))
     patch.write_file("US.bin", pkgutil.get_data(__name__, "data/US.bin"))
     patch.write_file("mod.rel", pkgutil.get_data(__name__, "data/mod.rel"))
+    patch.write_file("icon.bsdiff4", pkgutil.get_data(__name__, "data/icon.bsdiff4"))
+    patch.write_file("icon_bin.bsdiff4", pkgutil.get_data(__name__, "data/icon_bin.bsdiff4"))
 
 def locations_to_dict(locations: Iterable[Location]) -> Dict[str, Tuple]:
     return {location.name: (location.item.code, location.item.player) if location.item is not None else (0, 0)

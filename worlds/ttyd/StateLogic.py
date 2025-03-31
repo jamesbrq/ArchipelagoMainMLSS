@@ -100,7 +100,7 @@ def ttyd(state, player):
 
 
 def pit(state, player):
-    return (state.has("Paper Curse", player) and state.has("Plane Curse", player)) or (state.has("Bobbery", player) or tube_curse(state, player) or (state.has("Contact Lens", player) and state.has("Paper Curse", player)))
+    return (state.has("Paper Curse", player) and state.has("Plane Curse", player)) or ((state.has("Bobbery", player) or tube_curse(state, player) or (state.has("Contact Lens", player) or ultra_hammer(state, player)) and state.has("Paper Curse", player) and state.has("Flurrie", player)))
 
 
 def stars(state, player, chapters: int):
@@ -135,4 +135,4 @@ def sewer_westside(state, player):
 
 
 def sewer_westside_ground(state, player):
-    return (state.has("Contact Lens", player) and state.has("Paper Curse", player)) or state.has("Bobbery", player) or state.has("Tube Curse",player) or ultra_hammer(state, player)
+    return (state.has("Contact Lens", player) and state.has("Paper Curse", player)) or state.has("Bobbery", player) or tube_curse(state, player) or ultra_hammer(state, player)

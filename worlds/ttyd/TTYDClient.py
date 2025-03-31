@@ -145,7 +145,7 @@ class TTYDContext(CommonContext):
 
     async def check_shops(self):
         locations_to_send = set()
-        room = read_string(ROOM, 0x10).strip()
+        room = read_string(ROOM, 0x6)
         if room in shop_data:
             pointer = dolphin.read_word(SHOP_POINTER)
             buying = dolphin.read_byte(pointer + 1)
@@ -186,7 +186,6 @@ async def ttyd_sync_task(ctx: TTYDContext):
             else:
                 if not ctx.auth:
                     ctx.auth = read_string(PLAYER_NAME, 0x10)
-                    logger.info(ctx.auth)
                     if not ctx.auth:
                         ctx.auth = None
                         logger.info("No slot name was detected. Please load the correct ROM.")
