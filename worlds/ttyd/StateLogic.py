@@ -100,26 +100,7 @@ def ttyd(state, player):
 
 
 def pit(state, player):
-    return (state.has("Paper Curse", player) and state.has("Plane Curse", player)) or ((state.has("Bobbery", player) or tube_curse(state, player) or (state.has("Contact Lens", player) or ultra_hammer(state, player)) and state.has("Paper Curse", player) and state.has("Flurrie", player)))
-
-
-def stars(state, player, chapters: int):
-    count = 0
-    if state.has("Diamond Star", player):
-        count += 1
-    if state.has("Emerald Star", player):
-        count += 1
-    if state.has("Gold Star", player):
-        count += 1
-    if state.has("Ruby Star", player):
-        count += 1
-    if state.has("Sapphire Star", player):
-        count += 1
-    if state.has("Garnet Star", player):
-        count += 1
-    if state.has("Crystal Star", player):
-        count += 1
-    return count >= chapters
+    return (state.has("Paper Curse", player) and state.has("Plane Curse", player)) or (state.has("Bobbery", player) or tube_curse(state, player) or (state.has("Contact Lens", player) or ultra_hammer(state, player)) and state.has("Paper Curse", player) and state.has("Flurrie", player))
 
 
 def palace(state, player, chapters: int):

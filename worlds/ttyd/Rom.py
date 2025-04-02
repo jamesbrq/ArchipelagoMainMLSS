@@ -88,8 +88,6 @@ class TTYDPatchExtension(APPatchExtension):
     def patch_items(caller: "TTYDProcedurePatch") -> None:
         from CommonClient import logger
         locations: Dict[str, Tuple] = json.loads(caller.get_file(f"locations.json").decode("utf-8"))
-        palace_keys = 0
-        riddle_keys = 0
         for location_name, (item_id, player) in locations.items():
             data = locationName_to_data.get(location_name, None)
             if data is None:
@@ -103,12 +101,6 @@ class TTYDPatchExtension(APPatchExtension):
                     item_data.rom_id = item_type_dict.get(item_data.itemName, 0x0)
                     if item_data.rom_id == 0:
                         logger.error(f"Item {item_data.itemName} not found in item_type_dict")
-                if "Palace Key" in item_data.itemName and item_data.itemName not in ["Palace Key (Riddle Tower)"]:
-                    palace_keys += 1
-                    item_data.rom_id += palace_keys
-                if "Palace Key (Riddle Tower)" in item_data.itemName:
-                    riddle_keys += 1
-                    item_data.rom_id += riddle_keys
                 if data.rel == Rels.dol:
                     continue
                     #for offset in data.offset:

@@ -364,7 +364,7 @@ twilight_town: typing.List[LocationData] = [
     LocationData("Twilight Town Leftside: Peachy Peach", 78780301, Rels.usu, [0xAEF8]),
     LocationData("Twilight Town Leftside: Star Piece 1", 78780302, Rels.usu, [0xBC18]),
     LocationData("Twilight Town Leftside: Star Piece 2", 78780303, Rels.usu, [0xF8A8]),
-    LocationData("Twilight Town Leftside: Superbombomb", 78780304, Rels.usu, [0xBEC0, 0x99B8, 0x9A7C]),
+    LocationData("Twilight Town Leftside: Superbombomb", 78780304, Rels.usu, [0xBEC0]),
     LocationData("Twilight Town Leftside: Vivian", 78780305, Rels.usu, [0xA148]),
     LocationData("Twilight Town Rightside: Boo's Sheet", 78780306, Rels.usu, [0x16D88]),
     LocationData("Twilight Town Rightside: Defend Plus", 78780307, Rels.usu, [0x1690C]),

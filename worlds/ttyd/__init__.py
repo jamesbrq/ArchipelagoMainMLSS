@@ -129,16 +129,12 @@ class TTYDWorld(World):
 
     def collect(self, state: "CollectionState", item: "Item") -> bool:
         change = super().collect(state, item)
-        if change and "Castle Key" in item.name:
-            state.prog_items[item.player]["castle_keys"] += 1
         if change and item.name in ["Crystal Star", "Garnet Star", "Sapphire Star", "Ruby Star", "Gold Star", "Emerald Star", "Diamond Star"]:
             state.prog_items[item.player]["stars"] += 1
         return change
 
     def remove(self, state: "CollectionState", item: "Item") -> bool:
         change = super().remove(state, item)
-        if change and "Castle Key" in item.name:
-            state.prog_items[item.player]["castle_keys"] -= 1
         if change and item.name in ["Crystal Star", "Garnet Star", "Sapphire Star", "Ruby Star", "Gold Star", "Emerald Star", "Diamond Star"]:
             state.prog_items[item.player]["stars"] -= 1
         return change
