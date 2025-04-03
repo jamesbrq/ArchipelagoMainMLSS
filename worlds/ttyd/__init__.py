@@ -74,17 +74,17 @@ class TTYDWorld(World):
     item_name_to_id = {name: data.code for name, data in item_table.items()}
     location_name_to_id = {loc_data.name: loc_data.id for loc_data in all_locations}
     required_client_version = (0, 6, 0)
-
-    excluded_locations = []
+    disabled_locations: set
 
     def generate_early(self) -> None:
+        self.disabled_locations = set()
         if self.options.yoshi_color.value == YoshiColor.option_random:
             self.options.yoshi_color.value = self.multiworld.random.randint(0, 6)
         if self.options.starting_partner.value == StartingPartner.option_random:
             self.options.starting_partner.value = self.multiworld.random.randint(1, 7)
 
     def create_regions(self) -> None:
-        create_regions(self, self.excluded_locations)
+        create_regions(self)
         connect_regions(self)
         self.lock_item("Rogueport Center: Goombella", starting_partners[self.options.starting_partner.value - 1])
         self.lock_item("Hooktail's Castle Hooktail's Room: Diamond Star", "Diamond Star")
