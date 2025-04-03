@@ -83,7 +83,7 @@ def fahr_outpost(state, player):
 
 
 def moon(state, player):
-    return state.has("Bobbery", player) and state.has("Goldbob Guide", player) and general_white(state, player)
+    return state.has("Bobbery", player) and state.has("Goldbob Guide", player)
 
 
 def general_white(state, player):
