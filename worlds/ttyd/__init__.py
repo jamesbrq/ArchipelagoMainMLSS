@@ -1,6 +1,6 @@
 import os
 import typing
-import settings
+from settings import UserFilePath, Group
 from BaseClasses import Tutorial, ItemClassification, CollectionState, Item
 from Utils import visualize_regions
 from worlds.AutoWorld import WebWorld, World
@@ -43,14 +43,22 @@ class TTYDWebWorld(WebWorld):
     ]
 
 
-class TTYDSettings(settings.Group):
-    class RomFile(settings.UserFilePath):
+class TTYDSettings(Group):
+    class DolphinPath(UserFilePath):
+        """
+        The location of the Dolphin you want to auto launch patched ROMs with
+        """
+        is_exe = True
+        description = "Dolphin Executable"
+
+    class RomFile(UserFilePath):
         """File name of the TTYD US iso"""
         copy_to = "Paper Mario - The Thousand Year Door.iso"
-        description = "TTYD GC .iso File"
+        description = "US TTYD .iso File"
 
     rom_file: RomFile = RomFile(RomFile.copy_to)
     rom_start: bool = True
+    dolphin_path: DolphinPath = DolphinPath(None)
 
 
 class TTYDWorld(World):
@@ -59,13 +67,13 @@ class TTYDWorld(World):
     """
     game = "Paper Mario The Thousand Year Door"
     web = TTYDWebWorld()
-    data_version = 1
+
     options_dataclass = TTYDOptions
     options: TTYDOptions
     settings: typing.ClassVar[TTYDSettings]
     item_name_to_id = {name: data.code for name, data in item_table.items()}
     location_name_to_id = {loc_data.name: loc_data.id for loc_data in all_locations}
-    required_client_version = (0, 4, 5)
+    required_client_version = (0, 6, 0)
 
     excluded_locations = []
 

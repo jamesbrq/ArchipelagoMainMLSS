@@ -1,7 +1,9 @@
 import asyncio
+import subprocess
 import traceback
 
 import Patch
+import Utils
 from CommonClient import ClientCommandProcessor, CommonContext, get_base_parser, gui_enabled, logger, server_loop
 import dolphin_memory_engine as dolphin
 
@@ -12,6 +14,7 @@ from worlds.ttyd.Items import items_by_id, item_type_dict
 RECEIVED_INDEX = 0x803DB860
 RECEIVED_ITEM = 0x803DB864
 PLAYER_NAME = 0x80003200
+SEED = 0x80003210
 GP_BASE = 0x803DAC18
 GSWF_BASE = 0x178
 GSW0 = 0x174
@@ -87,7 +90,8 @@ class TTYDContext(CommonContext):
     game = "Paper Mario The Thousand Year Door"
     items_handling = 0b101
     dolphin_connected: bool = False
-    slot_data: dict = {}
+    seed_verified: bool = False
+    slot_data: dict | None = {}
     checked_locations = set()
 
     def __init__(self, server_address, password):
@@ -106,6 +110,16 @@ class TTYDContext(CommonContext):
             if "keys" not in args:
                 logger.warning(f"invalid Retrieved packet to TTYDClient: {args}")
                 return
+        elif cmd == "RoomInfo":
+            self.seed_name = args["seed_name"]
+
+    async def disconnect(self, allow_autoreconnect: bool = False):
+        await super().disconnect()
+        self.slot = None
+        self.slot_data = None
+        self.checked_locations = set()
+        self.seed_name = None
+        self.seed_verified = False
 
     def run_gui(self):
         from kvui import GameManager
@@ -121,7 +135,7 @@ class TTYDContext(CommonContext):
         index = dolphin.read_word(RECEIVED_INDEX)
         for i in range(index, len(self.items_received)):
             dolphin.write_word(RECEIVED_ITEM, get_rom_item_id(self.items_received[i]))
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.1)
             dolphin.write_word(RECEIVED_INDEX, i + 1)
 
     async def check_ttyd_locations(self):
@@ -155,15 +169,33 @@ class TTYDContext(CommonContext):
                     locations_to_send.add(shop_data[room][dolphin.read_byte(pointer + SHOP_ITEM_OFFSET)])
         if len(locations_to_send) > 0:
             self.checked_locations &= locations_to_send
-            await self.send_msgs([{"cmd": 'LocationChecks', "locations": locations_to_send}])
+            await self.check_locations(locations_to_send)
 
     def save_loaded(self) -> bool:
         value = gsw_check(1700)
         return value > 0
 
+async def _run_game(rom: str):
+    import os
+    auto_start = Utils.get_settings().ttyd_options.rom_start
 
-async def _patch_game(patch_file: str):
+    if auto_start is True:
+        dolphin_path = Utils.get_settings().ttyd_options.dolphin_path
+        subprocess.Popen(
+            [
+                dolphin_path,
+                f"--exec={os.path.realpath(rom)}",
+            ],
+            cwd=Utils.local_path("."),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+async def _patch_and_run_game(patch_file: str):
     metadata, output_file = Patch.create_rom_file(patch_file)
+    Utils.async_start(_run_game(output_file))
+    return metadata
 
 
 # Sends player items from server
@@ -174,15 +206,28 @@ async def ttyd_sync_task(ctx: TTYDContext):
     while not ctx.exit_event.is_set():
         if dolphin.is_hooked() and ctx.dolphin_connected:
             if ctx.slot:
-                if not ctx.save_loaded():
+                try:
+                    if not ctx.seed_verified:
+                        seed = dolphin.read_word(SEED, 0x10)
+                        if seed not in ctx.seed_name:
+                            await ctx.disconnect()
+                            logger.info("ROM Seed does not match Room seed. Please make sure you are using the correct patch.")
+                            dolphin.un_hook()
+                            await asyncio.sleep(3)
+                            continue
+                        ctx.seed_verified = True
+                    if not ctx.save_loaded():
+                        await asyncio.sleep(3)
+                        continue
+                    await ctx.receive_items()
+                    await ctx.check_ttyd_locations()
+                    await ctx.check_shops()
+                    if not ctx.finished_game and gsw_check(1708) >= 18:
+                        await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
                     await asyncio.sleep(0.1)
-                    continue
-                await ctx.receive_items()
-                await ctx.check_ttyd_locations()
-                await ctx.check_shops()
-                if not ctx.finished_game and gsw_check(1708) >= 18:
-                    await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
-                await asyncio.sleep(0.1)
+                except Exception as e:
+                    dolphin.un_hook()
+                    ctx.dolphin_connected = False
             else:
                 if not ctx.auth:
                     ctx.auth = read_string(PLAYER_NAME, 0x10)
@@ -193,8 +238,8 @@ async def ttyd_sync_task(ctx: TTYDContext):
                         dolphin.un_hook()
                         await asyncio.sleep(3)
                         continue
-                await ctx.server_auth()
-                await asyncio.sleep(0.1)
+                    await ctx.server_auth()
+                    await asyncio.sleep(0.1)
         else:
             try:
                 logger.info("Attempting to connect to Dolphin...")
@@ -221,7 +266,7 @@ async def ttyd_sync_task(ctx: TTYDContext):
 def launch(*args):
     async def main(args):
         if args.patch_file:
-            await asyncio.create_task(_patch_game(args.patch_file))
+            await asyncio.create_task(_patch_and_run_game(args.patch_file))
         ctx = TTYDContext(args.connect, args.password)
         ctx.server_task = asyncio.create_task(server_loop(ctx), name="ServerLoop")
         if gui_enabled:

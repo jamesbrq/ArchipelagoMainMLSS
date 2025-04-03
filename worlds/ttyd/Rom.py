@@ -16,12 +16,6 @@ from .Data import Rels, shop_items, tubu_dt
 if TYPE_CHECKING:
     from . import TTYDWorld
 
-
-def get_base_rom_as_bytes() -> bytes:
-    with open(get_settings().ttyd_options.rom_file, "rb") as infile:
-        base_rom_bytes = bytes(infile.read())
-    return base_rom_bytes
-
 class TTYDPatchExtension(APPatchExtension):
     game = "Paper Mario The Thousand Year Door"
 
@@ -33,16 +27,18 @@ class TTYDPatchExtension(APPatchExtension):
         caller.dol.data.seek(0x200)
         caller.dol.data.write(seed_options["player_name"].encode("utf-8")[0:16])
         caller.dol.data.seek(0x210)
-        caller.dol.data.write(seed_options["chapter_clears"].to_bytes(1, "big"))
-        caller.dol.data.seek(0x211)
-        caller.dol.data.write(seed_options["starting_partner"].to_bytes(1, "big"))
-        caller.dol.data.seek(0x212)
-        caller.dol.data.write(seed_options["yoshi_color"].to_bytes(1, "big"))
-        caller.dol.data.seek(0x213)
-        caller.dol.data.write((1).to_bytes(1, "big"))
-        caller.dol.data.seek(0x214)
-        caller.dol.data.write((0x80003220).to_bytes(4, "big"))
+        caller.dol.data.write(seed_options["seed"].encode("utf-8")[0:16])
         caller.dol.data.seek(0x220)
+        caller.dol.data.write(seed_options["chapter_clears"].to_bytes(1, "big"))
+        caller.dol.data.seek(0x221)
+        caller.dol.data.write(seed_options["starting_partner"].to_bytes(1, "big"))
+        caller.dol.data.seek(0x222)
+        caller.dol.data.write(seed_options["yoshi_color"].to_bytes(1, "big"))
+        caller.dol.data.seek(0x223)
+        caller.dol.data.write((1).to_bytes(1, "big"))
+        caller.dol.data.seek(0x224)
+        caller.dol.data.write((0x80003230).to_bytes(4, "big"))
+        caller.dol.data.seek(0x230)
         caller.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
         caller.dol.data.seek(0xEB6B6)
         caller.dol.data.write(int.to_bytes(seed_options["starting_coins"], 2, "big"))
@@ -143,10 +139,6 @@ class TTYDProcedurePatch(APProcedurePatch, APTokenMixin):
         ("patch_items", []),
         ("close_iso", [])
     ]
-
-    @classmethod
-    def get_source_data(cls) -> bytes:
-        return get_base_rom_as_bytes()
 
     def patch(self, target) -> None:
         self.iso = GCM(get_settings().ttyd_options.rom_file)
