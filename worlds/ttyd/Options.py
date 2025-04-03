@@ -1,4 +1,4 @@
-from Options import Range, StartInventoryPool, PerGameCommonOptions, Choice, FreeText, TextChoice, OptionSet
+from Options import Range, StartInventoryPool, PerGameCommonOptions, Choice, FreeText, TextChoice
 from dataclasses import dataclass
 
 
