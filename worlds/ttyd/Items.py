@@ -345,7 +345,7 @@ item_type_dict = {
     "Progressive Hammer": 0x9,
     "Super Hammer": 0xA,
     "Ultra Hammer": 0xB,
-    "Castle Key 1": 0xC,
+    "Castle Key": 0xC,
     "Castle Key 2": 0xD,
     "Castle Key 3": 0xE,
     "Castle Key 4": 0xF,

@@ -645,113 +645,113 @@ tubu_dt = {
 
 item_prices = {
     77772000: 10,  # 10 Coins
-    77772002: 10,  # All or Nothing
-    77772003: 10,  # Attack FX G
-    77772004: 10,  # Attack FX P
-    77772005: 10,  # Attack FX R
-    77772006: 10,  # Attack FX Y
-    77772007: 10,  # Autograph
-    77772008: 10,  # Black Key (Plane Curse)
-    77772009: 10,  # Black Key (Paper Curse)
-    77772010: 10,  # Black Key (Tube Curse)
-    77772011: 10,  # Black Key (Boat Curse)
-    77772012: 10,  # Blanket
-    77772013: 10,  # Blimp Ticket
-    77772014: 10,  # Blue Key
-    77772015: 10,  # Boat Curse
-    77772016: 10,  # Bobbery
-    77772017: 10,  # Boo's Sheet
-    77772018: 10,  # Briefcase
-    77772019: 10,  # Bump Attack
-    77772020: 10,  # Cake Mix
-    77772021: 10,  # Card Key 1
-    77772022: 10,  # Card Key 2
-    77772023: 10,  # Card Key 3
-    77772024: 10,  # Card Key 4
-    77772025: 10,  # Castle Key
-    77772026: 10,  # Champ's Belt
-    77772027: 10,  # Charge
-    77772028: 10,  # Charge P
-    77772029: 10,  # Chill Out
-    77772030: 10,  # Chuckola Cola
-    77772031: 10,  # Close Call
-    77772032: 10,  # Close Call P
-    77772033: 10,  # Coconut
-    77772034: 10,  # Cog
-    77772036: 10,  # Contact Lens
-    77772037: 10,  # Cookbook
-    77772038: 10,  # Courage Shell
-    77772039: 10,  # Crystal Star
-    77772040: 10,  # Damage Dodge
-    77772041: 10,  # Damage Dodge P
-    77772042: 10,  # Defend Plus
-    77772043: 10,  # Defend Plus P
-    77772044: 10,  # Diamond Star
-    77772045: 10,  # Dizzy Dial
-    77772046: 10,  # Double Dip
-    77772047: 10,  # Double Dip P
-    77772048: 10,  # Double Pain
-    77772049: 10,  # Dried Shroom
+    77772002: 20,  # All or Nothing
+    77772003: 20,  # Attack FX G
+    77772004: 20,  # Attack FX P
+    77772005: 20,  # Attack FX R
+    77772006: 20,  # Attack FX Y
+    77772007: 30,  # Autograph
+    77772008: 30,  # Black Key (Plane Curse)
+    77772009: 30,  # Black Key (Paper Curse)
+    77772010: 30,  # Black Key (Tube Curse)
+    77772011: 30,  # Black Key (Boat Curse)
+    77772012: 30,  # Blanket
+    77772013: 30,  # Blimp Ticket
+    77772014: 30,  # Blue Key
+    77772015: 30,  # Boat Curse
+    77772016: 30,  # Bobbery
+    77772017: 20,  # Boo's Sheet
+    77772018: 30,  # Briefcase
+    77772019: 20,  # Bump Attack
+    77772020: 5,  # Cake Mix
+    77772021: 30,  # Card Key 1
+    77772022: 30,  # Card Key 2
+    77772023: 30,  # Card Key 3
+    77772024: 130,  # Card Key 4
+    77772025: 30,  # Castle Key
+    77772026: 30,  # Champ's Belt
+    77772027: 20,  # Charge
+    77772028: 20,  # Charge P
+    77772029: 20,  # Chill Out
+    77772030: 30,  # Chuckola Cola
+    77772031: 20,  # Close Call
+    77772032: 20,  # Close Call P
+    77772033: 30,  # Coconut
+    77772034: 30,  # Cog
+    77772036: 30,  # Contact Lens
+    77772037: 30,  # Cookbook
+    77772038: 4,  # Courage Shell
+    77772039: 30,  # Crystal Star
+    77772040: 20,  # Damage Dodge
+    77772041: 20,  # Damage Dodge P
+    77772042: 20,  # Defend Plus
+    77772043: 20,  # Defend Plus P
+    77772044: 30,  # Diamond Star
+    77772045: 8,  # Dizzy Dial
+    77772046: 20,  # Double Dip
+    77772047: 20,  # Double Dip P
+    77772048: 20,  # Double Pain
+    77772049: 1,  # Dried Shroom
     77772051: 10,  # Earth Quake
-    77772052: 10,  # Elevator Key
-    77772053: 10,  # Elevator Key 1
-    77772054: 10,  # Elevator Key 2
-    77772055: 10,  # Emerald Star
-    77772056: 10,  # Feeling Fine
-    77772057: 10,  # Feeling Fine P
-    77772058: 10,  # Fire Drive
-    77772059: 10,  # Fire Flower
-    77772060: 10,  # First Attack
-    77772061: 10,  # Flower Finder
-    77772062: 10,  # Flower Saver
-    77772063: 10,  # Flower Saver P
-    77772064: 10,  # Flurrie
-    77772065: 10,  # FP Drain
-    77772066: 10,  # FP Plus
-    77772067: 10,  # Fresh Pasta
-    77772068: 10,  # Fright Mask
-    77772069: 10,  # Galley Pot
-    77772070: 10,  # Garnet Star
-    77772071: 10,  # Gate Handle
-    77772072: 10,  # Gold Bar
-    77772073: 10,  # Gold Bar x3
-    77772074: 10,  # Gold Ring
-    77772075: 10,  # Gold Star
-    77772076: 10,  # Goldbob Guide
-    77772077: 10,  # Golden Leaf
-    77772078: 10,  # Goombella
+    77772052: 30,  # Elevator Key
+    77772053: 30,  # Elevator Key 1
+    77772054: 30,  # Elevator Key 2
+    77772055: 30,  # Emerald Star
+    77772056: 20,  # Feeling Fine
+    77772057: 20,  # Feeling Fine P
+    77772058: 20,  # Fire Drive
+    77772059: 5,  # Fire Flower
+    77772060: 20,  # First Attack
+    77772061: 20,  # Flower Finder
+    77772062: 20,  # Flower Saver
+    77772063: 20,  # Flower Saver P
+    77772064: 30,  # Flurrie
+    77772065: 20,  # FP Drain
+    77772066: 20,  # FP Plus
+    77772067: 30,  # Fresh Pasta
+    77772068: 5,  # Fright Mask
+    77772069: 30,  # Galley Pot
+    77772070: 30,  # Garnet Star
+    77772071: 30,  # Gate Handle
+    77772072: 110,  # Gold Bar
+    77772073: 310,  # Gold Bar x3
+    77772074: 30,  # Gold Ring
+    77772075: 30,  # Gold Star
+    77772076: 30,  # Goldbob Guide
+    77772077: 5,  # Golden Leaf
+    77772078: 30,  # Goombella
     77772079: 10,  # Gradual Syrup
-    77772080: 10,  # Grotto Key
-    77772081: 10,  # Hammer Throw
-    77772082: 10,  # Hammerman
-    77772083: 10,  # Happy Flower
-    77772084: 10,  # Happy Heart
-    77772085: 10,  # Happy Heart P
-    77772086: 10,  # Head Rattle
-    77772087: 10,  # Heart Finder
-    77772088: 10,  # Honey Syrup
-    77772089: 10,  # Horsetail
-    77772090: 10,  # Hot Dog
-    77772091: 10,  # HP Drain
-    77772092: 10,  # HP Drain (Badge)
-    77772093: 10,  # HP Drain P
-    77772094: 10,  # HP Plus
-    77772095: 10,  # HP Plus P
-    77772096: 10,  # Ice Power
-    77772097: 10,  # Ice Smash
+    77772080: 30,  # Grotto Key
+    77772081: 20,  # Hammer Throw
+    77772082: 20,  # Hammerman
+    77772083: 20,  # Happy Flower
+    77772084: 20,  # Happy Heart
+    77772085: 20,  # Happy Heart P
+    77772086: 20,  # Head Rattle
+    77772087: 20,  # Heart Finder
+    77772088: 5,  # Honey Syrup
+    77772089: 4,  # Horsetail
+    77772090: 8,  # Hot Dog
+    77772091: 20,  # HP Drain
+    77772092: 20,  # HP Drain (Badge)
+    77772093: 20,  # HP Drain P
+    77772094: 20,  # HP Plus
+    77772095: 20,  # HP Plus P
+    77772096: 20,  # Ice Power
+    77772097: 20,  # Ice Smash
     77772098: 10,  # Ice Storm
-    77772099: 10,  # Inn Coupon
-    77772100: 10,  # Item Hog
-    77772101: 10,  # Jammin' Jelly
-    77772102: 10,  # Jumpman
-    77772103: 10,  # Keel Mango
-    77772104: 10,  # Koops
-    77772105: 10,  # L Emblem
-    77772106: 10,  # Last Stand
-    77772107: 10,  # Last Stand P
-    77772108: 10,  # Life Shroom
-    77772110: 10,  # Lucky Day
-    77772111: 10,  # Lucky Start
+    77772099: 8,  # Inn Coupon
+    77772100: 20,  # Item Hog
+    77772101: 50,  # Jammin' Jelly
+    77772102: 20,  # Jumpman
+    77772103: 5,  # Keel Mango
+    77772104: 30,  # Koops
+    77772105: 20,  # L Emblem
+    77772106: 20,  # Last Stand
+    77772107: 20,  # Last Stand P
+    77772108: 50,  # Life Shroom
+    77772110: 20,  # Lucky Day
+    77772111: 20,  # Lucky Start
     77772112: 10,  # Maple Syrup
     77772113: 10,  # Mega Rush
     77772114: 10,  # Mega Rush P
