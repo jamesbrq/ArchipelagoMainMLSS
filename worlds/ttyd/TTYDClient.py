@@ -208,7 +208,10 @@ async def ttyd_sync_task(ctx: TTYDContext):
             if ctx.slot:
                 try:
                     if not ctx.seed_verified:
-                        seed = dolphin.read_word(SEED, 0x10)
+                        logger.info("Checking ROM seed...")
+                        seed = read_string(SEED, 0x10)
+                        logger.info(f"ROM seed: {seed}")
+                        logger.info(ctx.seed_name)
                         if seed not in ctx.seed_name:
                             await ctx.disconnect()
                             logger.info("ROM Seed does not match Room seed. Please make sure you are using the correct patch.")
@@ -229,17 +232,23 @@ async def ttyd_sync_task(ctx: TTYDContext):
                     dolphin.un_hook()
                     ctx.dolphin_connected = False
             else:
-                if not ctx.auth:
-                    ctx.auth = read_string(PLAYER_NAME, 0x10)
+                try:
                     if not ctx.auth:
-                        ctx.auth = None
-                        logger.info("No slot name was detected. Please load the correct ROM.")
-                        ctx.dolphin_connected = False
-                        dolphin.un_hook()
-                        await asyncio.sleep(3)
-                        continue
+                        logger.info("Checking ROM name...")
+                        ctx.auth = read_string(PLAYER_NAME, 0x10)
+                        logger.info(f"ROM name: {ctx.auth}")
+                        if not ctx.auth:
+                            ctx.auth = None
+                            logger.info("No slot name was detected. Please load the correct ROM.")
+                            ctx.dolphin_connected = False
+                            dolphin.un_hook()
+                            await asyncio.sleep(3)
+                            continue
                     await ctx.server_auth()
                     await asyncio.sleep(0.1)
+                except Exception as e:
+                    dolphin.un_hook()
+                    ctx.dolphin_connected = False
         else:
             try:
                 logger.info("Attempting to connect to Dolphin...")

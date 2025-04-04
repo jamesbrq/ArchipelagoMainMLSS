@@ -56,9 +56,9 @@ class TTYDSettings(Group):
         copy_to = "Paper Mario - The Thousand Year Door.iso"
         description = "US TTYD .iso File"
 
+    dolphin_path: DolphinPath = DolphinPath(None)
     rom_file: RomFile = RomFile(RomFile.copy_to)
     rom_start: bool = True
-    dolphin_path: DolphinPath = DolphinPath(None)
 
 
 class TTYDWorld(World):
@@ -124,7 +124,7 @@ class TTYDWorld(World):
             filler_items.remove(filler_item_name)
 
     def set_rules(self) -> None:
-        set_rules(self, self.excluded_locations)
+        set_rules(self)
         self.multiworld.completion_condition[self.player] = lambda state: state.has("Victory", self.player)
 
     def create_item(self, name: str) -> TTYDItem:

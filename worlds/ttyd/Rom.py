@@ -165,7 +165,7 @@ class TTYDProcedurePatch(APProcedurePatch, APTokenMixin):
 
 def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
     options_dict = {
-        "seed": world.multiworld.seed,
+        "seed": world.multiworld.seed_name,
         "player": world.player,
         "player_name": world.multiworld.player_name[world.player],
         "yoshi_name": world.options.yoshi_name.value,
