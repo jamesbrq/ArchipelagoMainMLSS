@@ -1,6 +1,7 @@
 import asyncio
 import subprocess
 import traceback
+import settings
 
 import Patch
 import Utils
@@ -177,10 +178,10 @@ class TTYDContext(CommonContext):
 
 async def _run_game(rom: str):
     import os
-    auto_start = Utils.get_settings().ttyd_options.rom_start
+    auto_start = settings.get_settings().ttyd_options.rom_start
 
     if auto_start is True:
-        dolphin_path = Utils.get_settings().ttyd_options.dolphin_path
+        dolphin_path = settings.get_settings().ttyd_options.dolphin_path
         subprocess.Popen(
             [
                 dolphin_path,
@@ -210,7 +211,6 @@ async def ttyd_sync_task(ctx: TTYDContext):
                     if not ctx.seed_verified:
                         logger.info("Checking ROM seed...")
                         seed = read_string(SEED, 0x10)
-                        logger.info(f"ROM seed: {seed}")
                         logger.info(ctx.seed_name)
                         if seed not in ctx.seed_name:
                             await ctx.disconnect()
@@ -234,9 +234,7 @@ async def ttyd_sync_task(ctx: TTYDContext):
             else:
                 try:
                     if not ctx.auth:
-                        logger.info("Checking ROM name...")
                         ctx.auth = read_string(PLAYER_NAME, 0x10)
-                        logger.info(f"ROM name: {ctx.auth}")
                         if not ctx.auth:
                             ctx.auth = None
                             logger.info("No slot name was detected. Please load the correct ROM.")
