@@ -11,7 +11,7 @@ from settings import get_settings
 from worlds.Files import APProcedurePatch, APTokenMixin, APPatchExtension, AutoPatchExtensionRegister
 from .Items import items_by_id, ItemData, item_type_dict
 from .Locations import locationName_to_data
-from .Data import Rels, shop_items, tubu_dt
+from .Data import Rels, shop_items, tubu_dt, item_prices
 
 if TYPE_CHECKING:
     from . import TTYDWorld
@@ -112,7 +112,10 @@ class TTYDPatchExtension(APPatchExtension):
                         caller.rels[data.rel].write(item_data.rom_id.to_bytes(4, "big"))
                         if data.id in shop_items:
                             caller.rels[data.rel].seek(offset + 4)
-                            caller.rels[data.rel].write(int.to_bytes(10, 4, "big"))
+                            if item_data.rom_id == 0x71:
+                                caller.rels[data.rel].write(int.to_bytes(30, 4, "big"))
+                            else:
+                                caller.rels[data.rel].write(int.to_bytes(item_prices.get(item_data.code, 10), 4, "big"))
         for rel in caller.rels.keys():
             caller.iso.changed_files[get_rel_path(rel)] = caller.rels[rel]
         caller.iso.changed_files["sys/main.dol"] = caller.dol.data

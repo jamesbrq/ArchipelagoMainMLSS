@@ -732,7 +732,7 @@ item_prices = {
     77772088: 5,  # Honey Syrup
     77772089: 4,  # Horsetail
     77772090: 8,  # Hot Dog
-    77772091: 20,  # HP Drain
+    77772091: 10,  # HP Drain
     77772092: 20,  # HP Drain (Badge)
     77772093: 20,  # HP Drain P
     77772094: 20,  # HP Plus
@@ -753,103 +753,103 @@ item_prices = {
     77772110: 20,  # Lucky Day
     77772111: 20,  # Lucky Start
     77772112: 10,  # Maple Syrup
-    77772113: 10,  # Mega Rush
-    77772114: 10,  # Mega Rush P
+    77772113: 20,  # Mega Rush
+    77772114: 20,  # Mega Rush P
     77772115: 10,  # Mini Mr.Mini
-    77772116: 10,  # Money Money
-    77772117: 10,  # Moon Stone
-    77772118: 10,  # Mr. Softener
-    77772222: 10,  # Ms. Mowz
-    77772119: 10,  # Multibounce
-    77772120: 10,  # Mushroom
-    77772121: 10,  # Mystery
-    77772122: 10,  # Mystic Egg
-    77772123: 10,  # Necklace
-    77772124: 10,  # Old Letter
-    77772125: 10,  # Omelette Meal
-    77772126: 10,  # P-Down D-Up
-    77772127: 10,  # P-Down D-Up P
-    77772128: 10,  # P-Up D-Down
-    77772129: 10,  # P-Up D-Down P
-    77772130: 10,  # Palace Key
-    77772131: 10,  # Palace Key (Riddle Tower)
-    77772132: 10,  # Paper Curse
-    77772133: 10,  # Peachy Peach
-    77772134: 10,  # Peekaboo
-    77772135: 10,  # Piercing Blow
-    77772136: 10,  # Pity Flower
-    77772137: 10,  # Plane Curse
-    77772138: 10,  # Point Swap
-    77772139: 10,  # POW Block
-    77772140: 10,  # Power Bounce
-    77772141: 10,  # Power Jump
-    77772142: 10,  # Power Plus
-    77772143: 10,  # Power Plus P
-    77772144: 10,  # Power Punch
-    77772145: 10,  # Power Rush
-    77772146: 10,  # Power Rush P
-    77772147: 10,  # Power Smash
-    77772148: 10,  # Pretty Lucky
-    77772149: 10,  # Pretty Lucky P
-    77772150: 10,  # Puni Orb
-    77772151: 10,  # Quake Hammer
-    77772152: 10,  # Quick Change
-    77772153: 10,  # Ragged Diary
-    77772154: 10,  # Red Key
-    77772155: 10,  # Refund
-    77772156: 10,  # Repel Cape
-    77772157: 10,  # Return Postage
-    77772158: 10,  # Ruby Star
-    77772159: 10,  # Ruin Powder
-    77772160: 10,  # Sapphire Star
-    77772161: 10,  # Shell Earrings
-    77772162: 10,  # Shine Sprite
-    77772164: 10,  # Shooting Star
-    77772165: 10,  # Shop Key
-    77772166: 10,  # Shrink Stomp
-    77772167: 10,  # Simplifier
-    77772168: 10,  # Skull Gem
-    77772169: 10,  # Sleepy Sheep
-    77772170: 10,  # Slow Go
-    77772171: 10,  # Slow Shroom
-    77772172: 10,  # Soft Stomp
-    77772173: 10,  # Space Food
-    77772174: 10,  # Spike Shield
+    77772116: 20,  # Money Money
+    77772117: 30,  # Moon Stone
+    77772118: 8,  # Mr. Softener
+    77772222: 20,  # Ms. Mowz
+    77772119: 20,  # Multibounce
+    77772120: 5,  # Mushroom
+    77772121: 3,  # Mystery
+    77772122: 4,  # Mystic Egg
+    77772123: 30,  # Necklace
+    77772124: 30,  # Old Letter
+    77772125: 12,  # Omelette Meal
+    77772126: 20,  # P-Down D-Up
+    77772127: 20,  # P-Down D-Up P
+    77772128: 20,  # P-Up D-Down
+    77772129: 20,  # P-Up D-Down P
+    77772130: 30,  # Palace Key
+    77772131: 30,  # Palace Key (Riddle Tower)
+    77772132: 30,  # Paper Curse
+    77772133: 5,  # Peachy Peach
+    77772134: 20,  # Peekaboo
+    77772135: 20,  # Piercing Blow
+    77772136: 20,  # Pity Flower
+    77772137: 30,  # Plane Curse
+    77772138: 5,  # Point Swap
+    77772139: 5,  # POW Block
+    77772140: 20,  # Power Bounce
+    77772141: 20,  # Power Jump
+    77772142: 20,  # Power Plus
+    77772143: 20,  # Power Plus P
+    77772144: 15,  # Power Punch
+    77772145: 20,  # Power Rush
+    77772146: 20,  # Power Rush P
+    77772147: 20,  # Power Smash
+    77772148: 20,  # Pretty Lucky
+    77772149: 20,  # Pretty Lucky P
+    77772150: 30,  # Puni Orb
+    77772151: 20,  # Quake Hammer
+    77772152: 20,  # Quick Change
+    77772153: 30,  # Ragged Diary
+    77772154: 30,  # Red Key
+    77772155: 20,  # Refund
+    77772156: 15,  # Repel Cape
+    77772157: 20,  # Return Postage
+    77772158: 30,  # Ruby Star
+    77772159: 15,  # Ruin Powder
+    77772160: 30,  # Sapphire Star
+    77772161: 30,  # Shell Earrings
+    77772162: 15,  # Shine Sprite
+    77772164: 30,  # Shooting Star
+    77772165: 30,  # Shop Key
+    77772166: 20,  # Shrink Stomp
+    77772167: 20,  # Simplifier
+    77772168: 30,  # Skull Gem
+    77772169: 8,  # Sleepy Sheep
+    77772170: 20,  # Slow Go
+    77772171: 15,  # Slow Shroom
+    77772172: 20,  # Soft Stomp
+    77772173: 12,  # Space Food
+    77772174: 20,  # Spike Shield
     77772175: 10,  # Spite Pouch
-    77772176: 10,  # Star Key
-    77772177: 10,  # Star Piece
-    77772178: 10,  # Station Key 1
-    77772179: 10,  # Station Key 2
-    77772180: 10,  # Steeple Key
-    77772182: 10,  # Stopwatch
-    77772183: 10,  # Storage Key 1
-    77772184: 10,  # Storage Key 2
-    77772185: 10,  # Strange Sack
-    77772186: 10,  # Sun Stone
-    77772187: 10,  # Super Appeal
-    77772188: 10,  # Super Appeal P
-    77772190: 10,  # Progressive Hammer
-    77772191: 10,  # Super Shroom
-    77772192: 10,  # Superbombomb
-    77772193: 10,  # Tasty Tonic
-    77772194: 10,  # The Letter "P"
-    77772195: 10,  # Thunder Bolt
-    77772196: 10,  # Thunder Rage
-    77772197: 10,  # Timing Tutor
-    77772198: 10,  # Tornado Jump
-    77772199: 10,  # Train Ticket
-    77772200: 10,  # Tube Curse
-    77772201: 10,  # Turtley Leaf
-    77772202: 10,  # Progressive Boots
-    77772204: 10,  # Ultra Shroom
-    77772205: 10,  # Unsimplifier
-    77772206: 10,  # Up Arrow
-    77772207: 10,  # Vital Paper
-    77772208: 10,  # Vivian
+    77772176: 30,  # Star Key
+    77772177: 15,  # Star Piece
+    77772178: 30,  # Station Key 1
+    77772179: 30,  # Station Key 2
+    77772180: 30,  # Steeple Key
+    77772182: 12,  # Stopwatch
+    77772183: 30,  # Storage Key 1
+    77772184: 30,  # Storage Key 2
+    77772185: 20,  # Strange Sack
+    77772186: 30,  # Sun Stone
+    77772187: 20,  # Super Appeal
+    77772188: 20,  # Super Appeal P
+    77772190: 30,  # Progressive Hammer
+    77772191: 15,  # Super Shroom
+    77772192: 30,  # Superbombomb
+    77772193: 3,  # Tasty Tonic
+    77772194: 30,  # The Letter "P"
+    77772195: 12,  # Thunder Bolt
+    77772196: 20,  # Thunder Rage
+    77772197: 20,  # Timing Tutor
+    77772198: 20,  # Tornado Jump
+    77772199: 30,  # Train Ticket
+    77772200: 30,  # Tube Curse
+    77772201: 2,  # Turtley Leaf
+    77772202: 30,  # Progressive Boots
+    77772204: 50,  # Ultra Shroom
+    77772205: 30,  # Unsimplifier
+    77772206: 20,  # Up Arrow
+    77772207: 30,  # Vital Paper
+    77772208: 30,  # Vivian
     77772209: 10,  # Volt Shroom
-    77772210: 10,  # W Emblem
-    77772211: 10,  # Wedding Ring
-    77772212: 10,  # Whacka Bump
-    77772213: 10,  # Yoshi
-    77772214: 10,  # Zap Tap
+    77772210: 20,  # W Emblem
+    77772211: 30,  # Wedding Ring
+    77772212: 50,  # Whacka Bump
+    77772213: 30,  # Yoshi
+    77772214: 20,  # Zap Tap
 }
