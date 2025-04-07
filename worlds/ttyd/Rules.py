@@ -385,9 +385,9 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
         "Pirate's Grotto Staircase: Defend Plus P":
             lambda state: state.has("Yoshi", world.player) and state.has("Bobbery", world.player) and state.has("Boat Curse", world.player),
         "Pirate's Grotto Cortez' Hoard: Sapphire Star":
-            lambda state: (state.has("Yoshi", world.player) and state.has("Bobbery", world.player)
+            lambda state: state.has("Yoshi", world.player) and state.has("Bobbery", world.player)
                            and state.has("Boat Curse", world.player) and state.has("Gate Handle", world.player)
-                           and state.has("Plane Curse", world.player)),
+                           and state.has("Plane Curse", world.player) and state.has("Grotto Key", world.player),
         "Pirate's Grotto Sluice Gate: Star Piece":
             lambda state: state.has("Yoshi", world.player) and state.has("Bobbery", world.player)
                           and StateLogic.super_boots(state, world.player),

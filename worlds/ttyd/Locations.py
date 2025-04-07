@@ -151,7 +151,7 @@ sewers: typing.List[LocationData] = [
     #LocationData("Rogueport Sewers Town: Power Plus P", 78780121, Rels.dol, [0x3AA070]),
     #LocationData("Rogueport Sewers Town: Pretty Lucky", 78780122, Rels.dol, [0x3AA040]),
     #LocationData("Rogueport Sewers Town: Quick Change", 78780123, Rels.dol, [0x3AA060]),
-    LocationData("Rogueport Sewers Town: Star Piece 4", 78780130, Rels.tik, [0x13548]),
+    LocationData("Rogueport Sewers Town: Star Piece 1", 78780127, Rels.tik, [0x13570]),
     LocationData("Rogueport Sewers East Entrance: Star Piece", 78780132, Rels.tik, [0x14CC8]),
     LocationData("Rogueport Sewers East Entrance: Defend Plus P", 78780705, Rels.tik, [0x14A40]),
     LocationData("Rogueport Sewers Petal Meadows Pipe: Shine Sprite", 78780133, Rels.tik, [0x16674]),
@@ -181,9 +181,9 @@ sewers_westside: typing.List[LocationData] = [
     LocationData("Rogueport Sewers Town: Shine Sprite", 78780124, Rels.tik, [0x134E4]),
     LocationData("Rogueport Sewers Town: Slow Shroom", 78780125, Rels.tik, [0xDD98]),
     LocationData("Rogueport Sewers Town: Soft Stomp", 78780126, Rels.tik, [0x132A0]),
-    LocationData("Rogueport Sewers Town: Star Piece 1", 78780127, Rels.tik, [0x13570]),
     LocationData("Rogueport Sewers Town: Star Piece 2", 78780128, Rels.tik, [0x13598]),
     LocationData("Rogueport Sewers Town: Star Piece 3", 78780129, Rels.tik, [0x13534]),
+    LocationData("Rogueport Sewers Town: Star Piece 4", 78780130, Rels.tik, [0x13548]),
     LocationData("Rogueport Sewers Town: Ultra Mushroom", 78780131, Rels.tik, [0xDDA8])
 ]
 
@@ -253,7 +253,7 @@ hooktails_castle: typing.List[LocationData] = [
     LocationData("Hooktail's Castle Stair Central Staircase: Shine Sprite", 78780202, Rels.gon, [0xE860]),
     LocationData("Hooktail's Castle Stair Central Staircase: Star Piece", 78780203, Rels.gon, [0xE744]),
     LocationData("Hooktail's Castle Prison Entrance: Paper Curse", 78780204, Rels.gon, [0xF504]),
-    LocationData("Hooktail's Castle Prison Entrance: Attack FX R", 78780205, Rels.gon, [0xFD68]),
+    LocationData("Hooktail's Castle Prison Entrance: Attack FX R", 78780205, Rels.gon, [0xFD5C]),
     LocationData("Hooktail's Castle Spikes Room: Black Key 2", 78780206, Rels.gon, [0x1026C]),
     LocationData("Hooktail's Castle Life Shroom Room: Life Shroom", 78780207, Rels.gon, [0x11C00]),
     LocationData("Hooktail's Castle Plane Rafters Room: Star Piece", 78780208, Rels.gon, [0x129AC]),
