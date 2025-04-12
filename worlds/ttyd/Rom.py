@@ -113,7 +113,7 @@ class TTYDPatchExtension(APPatchExtension):
                         if data.id in shop_items:
                             caller.rels[data.rel].seek(offset + 4)
                             if item_data.rom_id == 0x71:
-                                caller.rels[data.rel].write(int.to_bytes(30, 4, "big"))
+                                caller.rels[data.rel].write(int.to_bytes(20, 4, "big"))
                             else:
                                 caller.rels[data.rel].write(int.to_bytes(item_prices.get(item_data.code, 10), 4, "big"))
         for rel in caller.rels.keys():

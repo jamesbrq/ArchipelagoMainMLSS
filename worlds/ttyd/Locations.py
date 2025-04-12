@@ -278,7 +278,7 @@ boggly_woods: typing.List[LocationData] = [
     LocationData("Boggly Woods Outside Flurrie's House: Star Piece 1", 78780224, Rels.win, [0xB5E0]),
     LocationData("Boggly Woods Outside Flurrie's House: Star Piece 2", 78780225, Rels.win, [0xB768]),
     LocationData("Boggly Woods Outside Flurrie's House: Volt Shroom", 78780226, Rels.win, [0xB740]),
-    LocationData("Boggly Woods Flurrie's House: Flurrie", 78780227, Rels.win, [0xDFB8]),
+    LocationData("Boggly Woods Flurrie's House: Flurrie", 78780227, Rels.win, [0xDFC4]),
     LocationData("Boggly Woods Flurrie's House Backroom: Star Piece", 78780228, Rels.win, [0x10128]),
     LocationData("Boggly Woods Flurrie's House Backroom: Super Appeal P", 78780229, Rels.win, [0xFE78]),
     LocationData("Boggly Woods Outside Great Tree: FP Plus", 78780230, Rels.mri, [0x2CBA0])
@@ -365,7 +365,7 @@ twilight_town: typing.List[LocationData] = [
     LocationData("Twilight Town Leftside: Star Piece 1", 78780302, Rels.usu, [0xBC18]),
     LocationData("Twilight Town Leftside: Star Piece 2", 78780303, Rels.usu, [0xF8A8]),
     LocationData("Twilight Town Leftside: Superbombomb", 78780304, Rels.usu, [0xBEC0]),
-    LocationData("Twilight Town Leftside: Vivian", 78780305, Rels.usu, [0xA12C]),
+    LocationData("Twilight Town Leftside: Vivian", 78780305, Rels.usu, [0xA16C]),
     LocationData("Twilight Town Rightside: Boo's Sheet", 78780306, Rels.usu, [0x16D88]),
     LocationData("Twilight Town Rightside: Defend Plus", 78780307, Rels.usu, [0x1690C]),
     LocationData("Twilight Town Rightside: Inn Coupon", 78780308, Rels.usu, [0x16DD8]),
