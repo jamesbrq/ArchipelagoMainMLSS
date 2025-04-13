@@ -651,6 +651,11 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
             lambda state: state.has("Boat Curse", world.player),
         "Rogueport Westside: Shine Sprite 1":
             lambda state: state.has("Bobbery", world.player),
+        "Rogueport Westside: Shine Sprite 2":
+            lambda state: StateLogic.tube_curse(state, world.player),
+        "Rogueport Westside: Train Ticket":
+            lambda state: StateLogic.keelhaul_key(state, world.player) and state.has("Wedding Ring", world.player)
+                          and state.has("Yoshi", world.player),
         "Rogueport Sewers Black Key Room: Happy Heart P":
             lambda state: state.has("Flurrie", world.player),
         "Rogueport Sewers Spike Room: Spike Shield":
@@ -678,8 +683,6 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
             lambda state: StateLogic.super_hammer(state, world.player),
         "Rogueport Sewers West Pipe Room: FP Plus":
             lambda state: StateLogic.ultra_hammer(state, world.player),
-        "Rogueport Westside: Shine Sprite 2":
-            lambda state: StateLogic.tube_curse(state, world.player),
         "Rogueport Center: Ultra Hammer":
             lambda state: StateLogic.ultra_boots(state, world.player),
         "Rogueport Eastside: Double Dip":
