@@ -11,7 +11,7 @@ from settings import get_settings
 from worlds.Files import APProcedurePatch, APTokenMixin, APPatchExtension, AutoPatchExtensionRegister
 from .Items import items_by_id, ItemData, item_type_dict
 from .Locations import locationName_to_data
-from .Data import Rels, shop_items, tubu_dt, item_prices
+from .Data import Rels, shop_items, tubu_dt, item_prices, rel_filepaths
 
 if TYPE_CHECKING:
     from . import TTYDWorld
@@ -20,9 +20,7 @@ class TTYDPatchExtension(APPatchExtension):
     game = "Paper Mario The Thousand Year Door"
 
     @staticmethod
-    def patch_mod(caller: "TTYDProcedurePatch", mod_path: str, loader_path: str) -> None:
-        mod = io.BytesIO(caller.get_file(mod_path))
-        loader = caller.get_file(loader_path)
+    def patch_mod(caller: "TTYDProcedurePatch") -> None:
         seed_options = json.loads(caller.get_file("options.json").decode("utf-8"))
         caller.dol.data.seek(0x200)
         caller.dol.data.write(seed_options["player_name"].encode("utf-8")[0:16])
@@ -43,14 +41,17 @@ class TTYDPatchExtension(APPatchExtension):
         caller.dol.data.seek(0xEB6B6)
         caller.dol.data.write(int.to_bytes(seed_options["starting_coins"], 2, "big"))
         caller.dol.data.seek(0x1888)
-        caller.dol.data.write(loader)
+        caller.dol.data.write(caller.get_file("US.bin"))
         caller.dol.data.seek(0x6CE38)
         caller.dol.data.write(int.to_bytes(0x4BF94A50, 4, "big"))
         #for key, value in tubu_dt.items():
             #caller.dol.data.seek(key)
             #caller.dol.data.write(value.to_bytes(2, "big"))
         caller.iso.add_new_directory("files/mod")
-        caller.iso.add_new_file("files/mod/mod.rel", mod)
+        caller.iso.add_new_directory("files/mod/subrels")
+        for file in [file for file in rel_filepaths if file != "mod"]:
+            caller.iso.add_new_file(f"files/mod/subrels/{file}.rel", io.BytesIO(caller.get_file(f"{file}.rel")))
+        caller.iso.add_new_file("files/mod/mod.rel", io.BytesIO(caller.get_file("mod.rel")))
 
 
 
@@ -137,7 +138,7 @@ class TTYDProcedurePatch(APProcedurePatch, APTokenMixin):
     dol: DOL
 
     procedure = [
-        ("patch_mod", ["mod.rel", "US.bin"]),
+        ("patch_mod", []),
         ("patch_icon", []),
         ("patch_items", []),
         ("close_iso", [])
@@ -180,7 +181,8 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))
     patch.write_file("US.bin", pkgutil.get_data(__name__, "data/US.bin"))
-    patch.write_file("mod.rel", pkgutil.get_data(__name__, "data/mod.rel"))
+    for path in rel_filepaths:
+        patch.write_file(f"{path}.rel", pkgutil.get_data(__name__, f"data/{path}.rel"))
     patch.write_file("icon.bsdiff4", pkgutil.get_data(__name__, "data/icon.bsdiff4"))
     patch.write_file("icon_bin.bsdiff4", pkgutil.get_data(__name__, "data/icon_bin.bsdiff4"))
 

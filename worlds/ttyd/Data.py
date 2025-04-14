@@ -33,6 +33,36 @@ class Rels(Enum):
     win = "win"
     yuu = "yuu"
 
+rel_filepaths = [
+    "aaa",
+    "aji",
+    "bom",
+    "dou",
+    "eki",
+    "end",
+    "gon",
+    "gor",
+    "gra",
+    "hei",
+    "hom",
+    "init",
+    "jin",
+    "kpa",
+    "las",
+    "mod",
+    "moo",
+    "mri",
+    "muj",
+    "nok",
+    "pik",
+    "rsh",
+    "tik",
+    "tou",
+    "tou2",
+    "usu",
+    "win",
+]
+
 class GSWType(Enum):
     GSW = 0
     GSWF = 1
@@ -494,9 +524,9 @@ location_gsw_info = {
     78780620: (GSWType.GSWF, 4368, 1),
     78780621: (GSWType.GSWF, 4369, 1),
     78780622: (GSWType.GSWF, 4387, 1),
-    78780623: (GSWType.GSWF, 4378, 1),
+    78780623: (GSWType.GSWF, 4389, 1),
     78780624: (GSWType.GSWF, 4388, 1),
-    78780625: (GSWType.GSWF, 4379, 1),
+    78780625: (GSWType.GSWF, 4378, 1),
     78780626: (GSWType.GSWF, 6073, 1),
     78780627: (GSWType.GSWF, 4377, 1),
     78780628: (GSWType.GSWF, 4390, 1),

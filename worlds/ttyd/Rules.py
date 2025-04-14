@@ -316,7 +316,7 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
         "Keelhaul Key Grotto Entrance: Bobbery":
             lambda state: state.has("Yoshi", world.player) and state.has("Chuckola Cola", world.player),
         "Keelhaul Key Grotto Entrance: Skull Gem":
-            lambda state: state.has("Yoshi", world.player) and state.has("Chuckola Cola", world.player),
+            lambda state: state.has("Yoshi", world.player) and state.has("Coconut", world.player),
         "Keelhaul Key Town: Chuckola Cola":
             lambda state: state.has("Yoshi", world.player) and state.has("Coconut", world.player),
         "Palace of Shadow Dark Bones Room: Palace Key":
