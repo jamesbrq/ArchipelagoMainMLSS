@@ -55,8 +55,15 @@ def get_region_connections_dict(world: "TTYDWorld") -> dict[tuple[str, str], typ
         ("Rogueport", "Rogueport Sewers"): None,
         ("Rogueport", "Rogueport Sewers Westside"):
             lambda state: StateLogic.sewer_westside(state, world.player),
+        ("Rogueport Sewers Westside", "Twilight Town"):
+            lambda state: state.has("Yoshi", world.player),
         ("Rogueport", "Rogueport Sewers Westside Ground"):
             lambda state: StateLogic.sewer_westside_ground(state, world.player),
+        ("Rogueport Sewers Westside Ground", "Pit of 100 Trials"):
+            lambda state: StateLogic.pit_westside_ground(state, world.player),
+        ("Rogueport Sewers Westside Ground", "Rogueport (Westside)"): None,
+        ("Rogueport Sewers Westside Ground", "Twilight Town"):
+            lambda state: StateLogic.ultra_boots(state, world.player),
         ("Rogueport Sewers", "Pit of 100 Trials"):
             lambda state: StateLogic.pit(state, world.player),
         ("Rogueport", "Palace of Shadow"):
@@ -87,8 +94,6 @@ def get_region_connections_dict(world: "TTYDWorld") -> dict[tuple[str, str], typ
             lambda state: StateLogic.petal_left(state, world.player),
         ("Rogueport Sewers", "Boggly Woods"):
             lambda state: StateLogic.boggly_woods(state, world.player),
-        ("Rogueport Sewers", "Twilight Town"):
-            lambda state: StateLogic.twilight_town(state, world.player),
         ("Twilight Town", "Twilight Trail"):
             lambda state: StateLogic.twilight_trail(state, world.player),
         ("Twilight Trail", "Creepy Steeple"):
@@ -178,8 +183,3 @@ def connect(world: "TTYDWorld",
         name = target + (" " * used_names[target])
 
     source_region.connect(target_region, name, rule)
-
-# Example usage:
-# excluded_regions = {"Pit of 100 Trials", "X-Naut Fortress"}
-# create_regions(world, excluded_regions)
-# connect_regions(world, excluded_regions)

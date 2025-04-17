@@ -1,18 +1,22 @@
 def westside(state, player):
-    return state.has("Contact Lens", player) or state.has("Bobbery", player) or tube_curse(state, player) or state.has("Ultra Hammer", player)
+    return state.has("Contact Lens", player) or state.has("Bobbery", player) or tube_curse(state, player) or ultra_hammer(state, player)
 
 
 def super_hammer(state, player):
     return state.has("Progressive Hammer", player, 1)
 
+
 def ultra_hammer(state, player):
     return state.has("Progressive Hammer", player, 2)
+
 
 def super_boots(state, player):
     return state.has("Progressive Boots", player, 1)
 
+
 def ultra_boots(state, player):
     return state.has("Progressive Boots", player, 2)
+
 
 def tube_curse(state, player):
     return state.has("Paper Curse", player) and state.has("Tube Curse", player)
@@ -27,7 +31,7 @@ def petal_right(state, player):
 
 
 def hooktails_castle(state, player):
-    return state.has("Sun Stone", player) and state.has("Moon Stone", player) and state.has("Koops", player)
+    return state.has("Sun Stone", player) and state.has("Moon Stone", player) and (state.has("Koops", player) or state.has("Bobbery", player))
 
 
 def boggly_woods(state, player):
@@ -86,13 +90,6 @@ def moon(state, player):
     return state.has("Bobbery", player) and state.has("Goldbob Guide", player)
 
 
-def general_white(state, player):
-    return (state.has("Bobbery", player) and (petal_left(state, player) or petal_right(state, player))
-            and keelhaul_key(state, player) and glitzville(state, player)
-            and (boggly_woods(state, player) and great_tree(state, player))
-            and twilight_town(state, player))
-
-
 def ttyd(state, player):
     return (state.has("Plane Curse", player) or super_hammer(state, player)
             or (state.has("Flurrie", player) and (state.has("Bobbery", player) or tube_curse(state, player)
@@ -100,7 +97,11 @@ def ttyd(state, player):
 
 
 def pit(state, player):
-    return (state.has("Paper Curse", player) and state.has("Plane Curse", player)) or (state.has("Bobbery", player) or tube_curse(state, player) or (state.has("Contact Lens", player) or ultra_hammer(state, player)) and state.has("Paper Curse", player) and state.has("Flurrie", player))
+    return state.has("Paper Curse", player) and state.has("Plane Curse", player)
+
+
+def pit_westside_ground(state, player):
+    return state.has("Flurrie", player) and ((state.has("Contact Lens", player) and state.has("Paper Curse", player)) or state.has("Bobbery", player) or tube_curse(state, player) or ultra_hammer(state, player))
 
 
 def palace(state, player, chapters: int):

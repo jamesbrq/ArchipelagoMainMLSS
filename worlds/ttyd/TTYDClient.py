@@ -9,7 +9,7 @@ from CommonClient import ClientCommandProcessor, CommonContext, get_base_parser,
 import dolphin_memory_engine as dolphin
 
 from NetUtils import NetworkItem, ClientStatus
-from worlds.ttyd.Data import location_gsw_info, GSWType, shop_data
+from worlds.ttyd.Data import location_gsw_info
 from worlds.ttyd.Items import items_by_id, item_type_dict
 
 RECEIVED_INDEX = 0x803DB860
@@ -157,23 +157,8 @@ class TTYDContext(CommonContext):
                 await self.send_msgs([{"cmd": 'LocationChecks', "locations": locations_to_send}])
         except Exception as e:
             logger.error(traceback.format_exc())
-
-    async def check_shops(self):
-        locations_to_send = set()
-        room = read_string(ROOM, 0x6)
-        if room in shop_data:
-            pointer = dolphin.read_word(SHOP_POINTER)
-            buying = dolphin.read_byte(pointer + 1)
-            if buying == 2:
-                purchased = dolphin.read_byte(pointer + SHOP_ITEM_PURCHASED)
-                if purchased != 0:
-                    locations_to_send.add(shop_data[room][dolphin.read_byte(pointer + SHOP_ITEM_OFFSET)])
-        if len(locations_to_send) > 0:
-            self.checked_locations &= locations_to_send
-            await self.check_locations(locations_to_send)
-
     def save_loaded(self) -> bool:
-        value = gsw_check(1700)
+        value = dolphin.read_byte(0x80003228)
         return value > 0
 
 async def _run_game(rom: str):
@@ -220,11 +205,10 @@ async def ttyd_sync_task(ctx: TTYDContext):
                             continue
                         ctx.seed_verified = True
                     if not ctx.save_loaded():
-                        await asyncio.sleep(3)
+                        await asyncio.sleep(1)
                         continue
                     await ctx.receive_items()
                     await ctx.check_ttyd_locations()
-                    await ctx.check_shops()
                     if not ctx.finished_game and gsw_check(1708) >= 18:
                         await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
                     await asyncio.sleep(0.1)

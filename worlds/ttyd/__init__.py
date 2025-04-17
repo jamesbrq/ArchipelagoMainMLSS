@@ -5,7 +5,7 @@ from BaseClasses import Tutorial, ItemClassification, CollectionState, Item
 from Utils import visualize_regions
 from worlds.AutoWorld import WebWorld, World
 from .Data import starting_partners
-from .Locations import all_locations, location_table
+from .Locations import all_locations, location_table, pit
 from .Options import TTYDOptions, YoshiColor, StartingPartner
 from .Items import TTYDItem, itemList, item_frequencies, item_table, ItemData
 from .Regions import create_regions, connect_regions
@@ -78,6 +78,8 @@ class TTYDWorld(World):
 
     def generate_early(self) -> None:
         self.disabled_locations = set()
+        if self.options.exclude_pit:
+            self.disabled_locations.update(location.name for location in pit if "Pit of 100 Trials" in location.name)
         if self.options.yoshi_color.value == YoshiColor.option_random:
             self.options.yoshi_color.value = self.multiworld.random.randint(0, 6)
         if self.options.starting_partner.value == StartingPartner.option_random:

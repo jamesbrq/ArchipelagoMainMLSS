@@ -62,14 +62,16 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
         "Creepy Steeple Parrot Room: The Letter \"P\"":
             lambda state: state.has("Vivian", world.player),
         "Excess Express Middle Passenger Car: Blanket":
-            lambda state: state.has("Autograph", world.player),
+            lambda state: state.has("Autograph", world.player) and state.has("Vivian", world.player)
+                          and state.has("Ragged Diary", world.player),
         "Excess Express Back Passenger Car: Shine Sprite":
             lambda state: state.has("Autograph", world.player),
         "Excess Express Back Passenger Car: Mushroom":
-            lambda state: state.has("Autograph", world.player) and state.has("Blanket", world.player),
+            lambda state: state.has("Autograph", world.player) and state.has("Blanket", world.player)
+                          and state.has("Ragged Diary", world.player) and state.has("Vivian", world.player),
         "Excess Express Storage Car: Ragged Diary":
             lambda state: state.has("Autograph", world.player) and state.has("Vivian", world.player)
-                          and state.has("Paper Curse", world.player),
+                          and (state.has("Paper Curse", world.player) or StateLogic.ultra_boots(state, world.player)),
         "Excess Express Front Passenger Car: Vital Paper":
             lambda state: (state.has("Autograph", world.player) and state.has("Vivian", world.player)
                            and state.has("Ragged Diary", world.player) and state.has("Blanket", world.player)),
@@ -370,6 +372,10 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
                           or StateLogic.ultra_boots(state, world.player),
         "Petalburg Eastside: Mega Rush P":
             lambda state: state.has("Paper Curse", world.player),
+        "Petalburg Eastside: Star Piece":
+            lambda state: StateLogic.super_boots(state, world.player),
+        "Petalburg Westside: Star Piece":
+            lambda state: StateLogic.super_boots(state, world.player),
         "Pirate's Grotto Staircase: Coin":
             lambda state: state.has("Yoshi", world.player),
         "Pirate's Grotto Staircase: Shine Sprite":
@@ -525,7 +531,8 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
         "Rogueport Sewers West Entrance: Flower Saver P":
             lambda state: StateLogic.ultra_boots(state, world.player),
         "Rogueport Sewers Spania Room: Defend Plus":
-            lambda state: state.has("Flurrie", world.player) and state.has("Boat Curse", world.player),
+            lambda state: state.has("Flurrie", world.player) and state.has("Boat Curse", world.player)
+                          and (state.has("Yoshi", world.player) or (state.has("Koops", world.player) and StateLogic.ultra_boots(state, world.player))),
         "Rogueport Sewers Spania Room: Shine Sprite 1":
             lambda state: state.has("Flurrie", world.player) and state.has("Boat Curse", world.player),
         "Rogueport Sewers Spania Room: Shine Sprite 2":

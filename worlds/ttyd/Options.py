@@ -1,4 +1,4 @@
-from Options import Range, StartInventoryPool, PerGameCommonOptions, Choice, FreeText, TextChoice
+from Options import Range, StartInventoryPool, PerGameCommonOptions, Choice, FreeText, TextChoice, Toggle
 from dataclasses import dataclass
 
 
@@ -10,6 +10,12 @@ class ChapterClears(Range):
     range_start = 0
     range_end = 7
     default = 7
+
+class ExcludePit(Toggle):
+    """
+    This will remove all Pit of 100 Trials locations from the location pool.
+    """
+    display_name = "Exclude Pit"
 
 class StartingCoins(Range):
     """
@@ -64,6 +70,7 @@ class YoshiName(FreeText):
 class TTYDOptions(PerGameCommonOptions):
     start_inventory_from_pool: StartInventoryPool
     chapter_clears: ChapterClears
+    exclude_pit: ExcludePit
     starting_coins: StartingCoins
     starting_partner: StartingPartner
     yoshi_color: YoshiColor
