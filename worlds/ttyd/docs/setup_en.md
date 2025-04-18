@@ -21,8 +21,7 @@ an experience customized for their taste, and different players in the same mult
 
 ### Where do I get a YAML file?
 
-You can customize your options by visiting the 
-[Paper Mario The Thousand Year Door Options Page](/games/Paper%20Mario%20The%20Thousand%20Year%20Door/player-options)
+Once you've installed the apworld, you can generate a yaml using the `Generate Template Options` button in the ArchipelagoLauncher. It can be found in `Players/Templates` after you have done so.
 
 ## Joining a MultiWorld Game
 

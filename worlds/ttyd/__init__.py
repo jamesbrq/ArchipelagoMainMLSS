@@ -150,7 +150,6 @@ class TTYDWorld(World):
         return change
 
     def generate_output(self, output_directory: str) -> None:
-        visualize_regions(self.multiworld.get_region("Menu", self.player), "my_world.puml")
         patch = TTYDProcedurePatch(player=self.player, player_name=self.multiworld.player_name[self.player])
         write_files(self, patch)
         rom_path = os.path.join(

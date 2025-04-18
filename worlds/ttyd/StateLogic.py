@@ -45,14 +45,6 @@ def great_tree(state, player):
 def glitzville(state, player):
     return state.has("Blimp Ticket", player)
 
-
-def twilight_town(state, player):
-    return ((state.has("Paper Curse", player) and westside(state, player)) if state.has("Yoshi", player) else
-            (ultra_boots(state, player) and (ultra_hammer(state, player)
-            or state.has("Bobbery", player) or tube_curse(state, player)
-            or (state.has("Paper Curse", player) and state.has("Contact Lens", player)))))
-
-
 def twilight_trail(state, player):
     return tube_curse(state, player)
 

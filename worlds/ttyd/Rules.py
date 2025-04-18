@@ -581,7 +581,7 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
         "Twilight Trail Fallen Tree: Star Piece 1":
             lambda state: StateLogic.tube_curse(state, world.player),
         "Twilight Trail Fallen Tree: Star Piece 2":
-            lambda state: StateLogic.tube_curse(state, world.player),
+            lambda state: StateLogic.tube_curse(state, world.player) and state.has("Flurrie", world.player),
         "Twilight Trail Dark Woods First Room: 10 Coins":
             lambda state: StateLogic.tube_curse(state, world.player) and state.has("Flurrie", world.player),
         "Twilight Trail Dark Woods First Room: Earthquake":

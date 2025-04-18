@@ -220,6 +220,7 @@ async def ttyd_sync_task(ctx: TTYDContext):
                     if not ctx.auth:
                         ctx.auth = read_string(PLAYER_NAME, 0x10)
                         if not ctx.auth:
+                            logger.info(f"Name Read: {read_string(PLAYER_NAME, 0x10)}")
                             ctx.auth = None
                             logger.info("No slot name was detected. Please load the correct ROM.")
                             ctx.dolphin_connected = False

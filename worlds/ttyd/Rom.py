@@ -41,7 +41,7 @@ class TTYDPatchExtension(APPatchExtension):
         caller.dol.data.seek(0xEB6B6)
         caller.dol.data.write(int.to_bytes(seed_options["starting_coins"], 2, "big"))
         caller.dol.data.seek(0x1888)
-        caller.dol.data.write(caller.get_file("US.bin"))
+        caller.dol.data.write(pkgutil.get_data(__name__, "data/US.bin"))
         caller.dol.data.seek(0x6CE38)
         caller.dol.data.write(int.to_bytes(0x4BF94A50, 4, "big"))
         #for key, value in tubu_dt.items():
@@ -50,8 +50,8 @@ class TTYDPatchExtension(APPatchExtension):
         caller.iso.add_new_directory("files/mod")
         caller.iso.add_new_directory("files/mod/subrels")
         for file in [file for file in rel_filepaths if file != "mod"]:
-            caller.iso.add_new_file(f"files/mod/subrels/{file}.rel", io.BytesIO(caller.get_file(f"{file}.rel")))
-        caller.iso.add_new_file("files/mod/mod.rel", io.BytesIO(caller.get_file("mod.rel")))
+            caller.iso.add_new_file(f"files/mod/subrels/{file}.rel", io.BytesIO(pkgutil.get_data(__name__, f"data/{file}.rel")))
+        caller.iso.add_new_file("files/mod/mod.rel", io.BytesIO(pkgutil.get_data(__name__, f"data/mod.rel")))
 
 
 
@@ -65,8 +65,8 @@ class TTYDPatchExtension(APPatchExtension):
 
     @staticmethod
     def patch_icon(caller: "TTYDProcedurePatch") -> None:
-        icon_patch = caller.get_file("icon.bsdiff4")
-        bin_patch = caller.get_file("icon_bin.bsdiff4")
+        icon_patch = pkgutil.get_data(__name__, f"data/icon.bsdiff4")
+        bin_patch = pkgutil.get_data(__name__, f"data/icon_bin.bsdiff4")
         icon_file = caller.iso.read_file_data("files/icon.tpl")
         bin_file = caller.iso.read_file_data("files/icon.bin")
         icon_file.seek(0)
@@ -180,11 +180,6 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
     }
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))
-    patch.write_file("US.bin", pkgutil.get_data(__name__, "data/US.bin"))
-    for path in rel_filepaths:
-        patch.write_file(f"{path}.rel", pkgutil.get_data(__name__, f"data/{path}.rel"))
-    patch.write_file("icon.bsdiff4", pkgutil.get_data(__name__, "data/icon.bsdiff4"))
-    patch.write_file("icon_bin.bsdiff4", pkgutil.get_data(__name__, "data/icon_bin.bsdiff4"))
 
 def locations_to_dict(locations: Iterable[Location]) -> Dict[str, Tuple]:
     return {location.name: (location.item.code, location.item.player) if location.item is not None else (0, 0)
