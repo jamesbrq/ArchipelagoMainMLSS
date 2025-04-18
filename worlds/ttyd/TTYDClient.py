@@ -136,7 +136,7 @@ class TTYDContext(CommonContext):
         index = dolphin.read_word(RECEIVED_INDEX)
         for i in range(index, len(self.items_received)):
             dolphin.write_word(RECEIVED_ITEM, get_rom_item_id(self.items_received[i]))
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.2)
             dolphin.write_word(RECEIVED_INDEX, i + 1)
 
     async def check_ttyd_locations(self):
@@ -157,6 +157,7 @@ class TTYDContext(CommonContext):
                 await self.send_msgs([{"cmd": 'LocationChecks', "locations": locations_to_send}])
         except Exception as e:
             logger.error(traceback.format_exc())
+
     def save_loaded(self) -> bool:
         value = dolphin.read_byte(0x80003228)
         return value > 0

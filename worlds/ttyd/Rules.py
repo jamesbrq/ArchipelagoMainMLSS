@@ -528,6 +528,8 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
             lambda state: state.has("Paper Curse", world.player),
         "Rogueport Sewers Town: Shine Sprite":
             lambda state: StateLogic.ultra_boots(state, world.player),
+        "Rogueport Sewers Town: Star Piece 3":
+            lambda state: StateLogic.super_boots(state, world.player),
         "Rogueport Sewers West Entrance: Flower Saver P":
             lambda state: StateLogic.ultra_boots(state, world.player),
         "Rogueport Sewers Spania Room: Defend Plus":

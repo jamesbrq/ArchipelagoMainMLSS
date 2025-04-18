@@ -118,7 +118,7 @@ class TTYDWorld(World):
                     freq = 1
                 filler_items += [item.itemName for _ in range(freq)]
 
-        remaining = len(all_locations) - len(required_items) - 9
+        remaining = len(all_locations) - len(required_items) - len(self.disabled_locations) - 9
         for i in range(remaining):
             filler_item_name = self.multiworld.random.choice(filler_items)
             item = self.create_item(filler_item_name)
