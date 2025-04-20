@@ -208,7 +208,7 @@ class TTYDWorld(World):
 
         self.multiworld.random.shuffle(self.limited_items)
         self.multiworld.random.shuffle(self.limited_chapter_locations)
-        fill_restrictive(self.multiworld, self.limited_state, self.limited_chapter_locations, self.limited_items, single_player_placement=True, lock=True, swap=True)
+        fill_restrictive(self.multiworld, self.limited_state, self.limited_chapter_locations, self.limited_items, single_player_placement=True, lock=True)
 
     def set_rules(self) -> None:
         set_rules(self)

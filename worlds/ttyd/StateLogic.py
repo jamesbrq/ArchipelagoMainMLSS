@@ -110,3 +110,6 @@ def sewer_westside(state, player):
 
 def sewer_westside_ground(state, player):
     return (state.has("Contact Lens", player) and state.has("Paper Curse", player)) or state.has("Bobbery", player) or tube_curse(state, player) or ultra_hammer(state, player)
+
+def key_any(state, player):
+    return state.has("Red Key", player) or state.has("Blue Key", player)

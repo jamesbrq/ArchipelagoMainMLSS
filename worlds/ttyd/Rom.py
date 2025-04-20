@@ -22,8 +22,11 @@ class TTYDPatchExtension(APPatchExtension):
     @staticmethod
     def patch_mod(caller: "TTYDProcedurePatch") -> None:
         seed_options = json.loads(caller.get_file("options.json").decode("utf-8"))
+        name_length = min(len(seed_options["player_name"]), 0x10)
+        caller.dol.data.seek(0x1FF)
+        caller.dol.data.write(name_length.to_bytes(1, "big"))
         caller.dol.data.seek(0x200)
-        caller.dol.data.write(seed_options["player_name"].encode("utf-8")[0:16])
+        caller.dol.data.write(seed_options["player_name"].encode("utf-8")[0:name_length])
         caller.dol.data.seek(0x210)
         caller.dol.data.write(seed_options["seed"].encode("utf-8")[0:16])
         caller.dol.data.seek(0x220)

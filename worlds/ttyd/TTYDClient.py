@@ -14,6 +14,7 @@ from worlds.ttyd.Items import items_by_id, item_type_dict
 
 RECEIVED_INDEX = 0x803DB860
 RECEIVED_ITEM = 0x803DB864
+NAME_LENGTH = 0x800031FF
 PLAYER_NAME = 0x80003200
 SEED = 0x80003210
 GP_BASE = 0x803DAC18
@@ -219,9 +220,10 @@ async def ttyd_sync_task(ctx: TTYDContext):
             else:
                 try:
                     if not ctx.auth:
-                        ctx.auth = read_string(PLAYER_NAME, 0x10)
+                        name_length = dolphin.read_byte(NAME_LENGTH)
+                        ctx.auth = dolphin.read_bytes(PLAYER_NAME, name_length).decode()
                         if not ctx.auth:
-                            logger.info(f"Name Read: {read_string(PLAYER_NAME, 0x10)}")
+                            logger.info(f"Name Read: {dolphin.read_bytes(PLAYER_NAME, name_length).decode()}")
                             ctx.auth = None
                             logger.info("No slot name was detected. Please load the correct ROM.")
                             ctx.dolphin_connected = False

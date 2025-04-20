@@ -142,89 +142,91 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
             lambda state: state.has("Yoshi", world.player) and state.has("Flurrie", world.player)
                           and StateLogic.super_hammer(state, world.player),
         "Great Tree Red/Blue Cages: Star Piece":
-            lambda state: state.has("Blue Key", world.player) and StateLogic.super_boots(state, world.player),
+            lambda state: StateLogic.key_any(state, world.player) and StateLogic.super_boots(state, world.player),
         "Great Tree Entrance: Puni Orb":
             lambda state: state.has("Red Key", world.player),
         "Great Tree Bubble Room: Shine Sprite":
-            lambda state: state.has("Red Key", world.player) and state.has("Puni Orb", world.player),
+            lambda state: StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player),
         "Great Tree Bubble Room: Thunder Rage":
-            lambda state: state.has("Red Key", world.player) and state.has("Puni Orb", world.player),
+            lambda state: StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player),
         "Great Tree Zigzag Room: Coin":
-            lambda state: state.has("Red Key", world.player) and state.has("Puni Orb", world.player),
+            lambda state: StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player),
         "Great Tree Zigzag Room: Damage Dodge P":
-            lambda state: state.has("Red Key", world.player) and state.has("Puni Orb", world.player),
+            lambda state: StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player),
         "Great Tree Zigzag Room: Star Piece":
-            lambda state: state.has("Red Key", world.player) and state.has("Puni Orb", world.player),
+            lambda state: StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player),
         "Great Tree Shop: Honey Syrup":
-            lambda state: state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
+            lambda state: StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player)
                           and state.has("Flurrie", world.player),
         "Great Tree Shop: HP Drain":
-            lambda state: state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
+            lambda state: StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player)
                           and state.has("Flurrie", world.player),
         "Great Tree Shop: Ice Storm":
-            lambda state: state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
+            lambda state: StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player)
                           and state.has("Flurrie", world.player),
         "Great Tree Shop: Mini Mr.Mini":
-            lambda state: state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
+            lambda state: StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player)
                           and state.has("Flurrie", world.player),
         "Great Tree Shop: Mushroom":
-            lambda state: state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
+            lambda state: StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player)
                           and state.has("Flurrie", world.player),
         "Great Tree Shop: Mystery":
-            lambda state: state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
+            lambda state: StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player)
                           and state.has("Flurrie", world.player),
         "Great Tree Blue Key Room: Blue Key":
-            lambda state: state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
+            lambda state: StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player)
                           and state.has("Flurrie", world.player),
         "Great Tree Super Boots Room: Super Boots":
-            lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
-                           and state.has("Flurrie", world.player) and state.has("Blue Key", world.player)),
+            lambda state: StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player),
         "Great Tree 100-Puni Pedestal: Coin":
             lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
-                           and state.has("Flurrie", world.player) and state.has("Blue Key", world.player)),
+                           and state.has("Flurrie", world.player) and state.has("Blue Key", world.player)
+                           and StateLogic.super_boots(state, world.player)),
         "Great Tree 100-Puni Pedestal: Star Piece":
             lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
-                           and state.has("Flurrie", world.player) and state.has("Blue Key", world.player)),
+                           and state.has("Flurrie", world.player) and state.has("Blue Key", world.player)
+                           and StateLogic.super_boots(state, world.player)),
         "Great Tree Fake Pedestal: Star Piece":
             lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
                            and state.has("Flurrie", world.player) and state.has("Blue Key", world.player)),
         "Great Tree Entrance: Emerald Star":
             lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
                            and state.has("Flurrie", world.player) and state.has("Blue Key", world.player)
-                           and state.has("Koops", world.player)),
+                           and state.has("Koops", world.player) and StateLogic.super_boots(state, world.player)),
         "Great Tree Elevator Pedestal: Mushroom":
             lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
                            and state.has("Flurrie", world.player) and state.has("Blue Key", world.player)
-                           and state.has("Koops", world.player)),
+                           and state.has("Koops", world.player) and StateLogic.super_boots(state, world.player)),
         "Great Tree Escape Ambush Room: Star Piece":
             lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
                            and state.has("Flurrie", world.player) and state.has("Blue Key", world.player)
-                           and state.has("Koops", world.player)),
+                           and state.has("Koops", world.player) and StateLogic.super_boots(state, world.player)),
         "Great Tree Pool Room: Dizzy Dial":
             lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
                            and state.has("Flurrie", world.player) and state.has("Blue Key", world.player)
-                           and state.has("Koops", world.player)),
+                           and state.has("Koops", world.player) and StateLogic.super_boots(state, world.player)),
         "Great Tree Pool Room: Shine Sprite":
             lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
                            and state.has("Flurrie", world.player) and state.has("Blue Key", world.player)
-                           and state.has("Koops", world.player)),
+                           and state.has("Koops", world.player) and StateLogic.super_boots(state, world.player)),
         "Great Tree Pool Room: Shrink Stomp":
             lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
                            and state.has("Flurrie", world.player) and state.has("Blue Key", world.player)
-                           and state.has("Koops", world.player)),
+                           and state.has("Koops", world.player) and StateLogic.super_boots(state, world.player)),
         "Great Tree Lower Duplex: Coin":
             lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
                            and state.has("Flurrie", world.player) and state.has("Blue Key", world.player)
                            and StateLogic.super_boots(state, world.player)),
         "Great Tree Middle Duplex: Shine Sprite":
-            lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
+            lambda state: (StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player)
                            and state.has("Flurrie", world.player) and state.has("Plane Curse", world.player)),
         "Great Tree Blue Key Room: Charge":
-            lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
-                           and state.has("Flurrie", world.player) and StateLogic.super_boots(state, world.player)),
+            lambda state: (StateLogic.key_any(state, world.player) and state.has("Puni Orb", world.player)
+                           and StateLogic.super_boots(state, world.player)
+                           and (state.has("Yoshi", world.player) or state.has("Koops", world.player))),
         "Great Tree Blue Key Room: Shine Sprite":
-            lambda state: (state.has("Red Key", world.player) and state.has("Puni Orb", world.player)
-                           and state.has("Flurrie", world.player) and StateLogic.super_boots(state, world.player)),
+            lambda state: (state.has("Red Key", world.player ) and state.has("Puni Orb", world.player)
+                          and StateLogic.super_boots(state, world.player)),
         "Great Tree 10-Puni Pedestal: Star Piece":
             lambda state: StateLogic.super_boots(state, world.player),
         "Hooktail's Castle Drawbridge: HP Plus":
@@ -316,7 +318,8 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
         "Keelhaul Key Jungle Bridge: Ice Power":
             lambda state: state.has("Yoshi", world.player) and state.has("Paper Curse", world.player),
         "Keelhaul Key Jungle Winding Climb: Jammin' Jelly":
-            lambda state: state.has("Yoshi", world.player) or StateLogic.ultra_boots(state, world.player),
+            lambda state: state.has("Yoshi", world.player) and (StateLogic.ultra_boots(state, world.player)
+                          or StateLogic.super_hammer(state, world.player) or state.has("Bobbery", world.player)),
         "Keelhaul Key Jungle Winding Climb: Shine Sprite":
             lambda state: state.has("Yoshi", world.player) or StateLogic.ultra_boots(state, world.player),
         "Keelhaul Key Grotto Entrance: Bobbery":
