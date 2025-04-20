@@ -97,7 +97,7 @@ def pit_westside_ground(state, player):
 
 
 def palace(state, player, chapters: int):
-    return ttyd(state, player) and state.has("stars", player, chapters)
+    return ttyd(state, player) and state.has("required_stars", player, chapters)
 
 
 def riddle_tower(state, player):

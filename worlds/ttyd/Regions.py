@@ -66,6 +66,8 @@ def get_region_connections_dict(world: "TTYDWorld") -> dict[tuple[str, str], typ
             lambda state: StateLogic.ultra_boots(state, world.player),
         ("Rogueport Sewers", "Pit of 100 Trials"):
             lambda state: StateLogic.pit(state, world.player),
+        ("Rogueport", "Shadow Queen"):
+            lambda state: StateLogic.palace(state, world.player, world.options.chapter_clears.value),
         ("Rogueport", "Palace of Shadow"):
             lambda state: StateLogic.palace(state, world.player, world.options.chapter_clears.value),
         ("Palace of Shadow", "Palace of Shadow (Post-Riddle Tower)"):
@@ -110,17 +112,7 @@ def get_region_connections_dict(world: "TTYDWorld") -> dict[tuple[str, str], typ
     }
 
 
-def create_regions(world: "TTYDWorld", excluded_regions: set[str] = None):
-    """
-    Create regions for the world, excluding any regions in the excluded_regions set.
-
-    Args:
-        world: The game world object
-        excluded_regions: Set of region names to exclude
-    """
-    if excluded_regions is None:
-        excluded_regions = set()
-
+def create_regions(world: "TTYDWorld"):
     # Create menu region (always included)
     menu_region = Region("Menu", world.player, world.multiworld)
     world.multiworld.regions.append(menu_region)
@@ -128,16 +120,14 @@ def create_regions(world: "TTYDWorld", excluded_regions: set[str] = None):
     # Create other regions from dictionary, excluding any in excluded_regions
     regions_dict = get_regions_dict()
     for name, locations in regions_dict.items():
-        if name not in excluded_regions:
+        if name not in world.excluded_regions:
             create_region(world, name, locations)
+        else:
+            world.disabled_locations.update([loc.name for loc in locations if loc.name not in world.disabled_locations])
 
 
-def connect_regions(world: "TTYDWorld", excluded_regions: set[str] = None):
-    """
-    Connect regions for the world, excluding any connections that involve excluded regions.
-    """
-    if excluded_regions is None:
-        excluded_regions = set()
+def connect_regions(world: "TTYDWorld"):
+
 
     connections_dict = get_region_connections_dict(world)
     names: typing.Dict[str, int] = {}
@@ -145,7 +135,9 @@ def connect_regions(world: "TTYDWorld", excluded_regions: set[str] = None):
     # Connect regions based on the connections dictionary, excluding any with excluded regions
     for (source, target), rule in connections_dict.items():
         # Skip connections where either the source or target is in excluded_regions
-        if source in excluded_regions or target in excluded_regions:
+        if source in world.excluded_regions or target in world.excluded_regions:
+            continue
+        if source == "Rogueport" and target == "Shadow Queen" and not world.options.palace_skip:
             continue
 
         # Verify that both regions exist before trying to connect them

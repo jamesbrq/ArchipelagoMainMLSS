@@ -36,6 +36,8 @@ class TTYDPatchExtension(APPatchExtension):
         caller.dol.data.write((1).to_bytes(1, "big"))
         caller.dol.data.seek(0x224)
         caller.dol.data.write((0x80003230).to_bytes(4, "big"))
+        caller.dol.data.seek(0x229)
+        caller.dol.data.write(seed_options["palace_skip"].to_bytes(1, "big"))
         caller.dol.data.seek(0x230)
         caller.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
         caller.dol.data.seek(0xEB6B6)
@@ -177,6 +179,7 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "starting_partner": world.options.starting_partner.value,
         "chapter_clears": world.options.chapter_clears.value,
         "starting_coins": world.options.starting_coins.value,
+        "palace_skip": world.options.palace_skip.value,
     }
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))
