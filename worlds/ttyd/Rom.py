@@ -23,6 +23,7 @@ class TTYDPatchExtension(APPatchExtension):
     def patch_mod(caller: "TTYDProcedurePatch") -> None:
         seed_options = json.loads(caller.get_file("options.json").decode("utf-8"))
         name_length = min(len(seed_options["player_name"]), 0x10)
+        palace_skip = seed_options.get("palace_skip", None)
         caller.dol.data.seek(0x1FF)
         caller.dol.data.write(name_length.to_bytes(1, "big"))
         caller.dol.data.seek(0x200)
@@ -39,8 +40,9 @@ class TTYDPatchExtension(APPatchExtension):
         caller.dol.data.write((1).to_bytes(1, "big"))
         caller.dol.data.seek(0x224)
         caller.dol.data.write((0x80003230).to_bytes(4, "big"))
-        caller.dol.data.seek(0x229)
-        caller.dol.data.write(seed_options["palace_skip"].to_bytes(1, "big"))
+        if palace_skip is not None:
+            caller.dol.data.seek(0x229)
+            caller.dol.data.write(seed_options["palace_skip"].to_bytes(1, "big"))
         caller.dol.data.seek(0x230)
         caller.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
         caller.dol.data.seek(0xEB6B6)

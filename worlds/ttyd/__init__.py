@@ -223,6 +223,9 @@ class TTYDWorld(World):
         self.limited_state.collect(item)
         self.get_location(location).place_locked_item(item)
 
+    def get_filler_item_name(self) -> str:
+        return self.random.choice(list(filter(lambda item: item.classification == ItemClassification.filler, itemList))).itemName
+
     def collect(self, state: "CollectionState", item: "Item") -> bool:
         change = super().collect(state, item)
         if change:

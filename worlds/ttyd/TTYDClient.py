@@ -221,7 +221,10 @@ async def ttyd_sync_task(ctx: TTYDContext):
                 try:
                     if not ctx.auth:
                         name_length = dolphin.read_byte(NAME_LENGTH)
-                        ctx.auth = dolphin.read_bytes(PLAYER_NAME, name_length).decode()
+                        if name_length == 0:
+                            ctx.auth = read_string(PLAYER_NAME, 0x10)
+                        else:
+                            ctx.auth = dolphin.read_bytes(PLAYER_NAME, name_length).decode()
                         if not ctx.auth:
                             logger.info(f"Name Read: {dolphin.read_bytes(PLAYER_NAME, name_length).decode()}")
                             ctx.auth = None
