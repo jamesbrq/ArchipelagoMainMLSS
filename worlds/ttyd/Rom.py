@@ -3,15 +3,13 @@ import json
 import pkgutil
 import bsdiff4
 
-from gclib.gcm import GCM
-from gclib.dol import DOL
 from typing import TYPE_CHECKING, Dict, Tuple, Iterable
 from BaseClasses import Location, ItemClassification
-from settings import get_settings
 from worlds.Files import APProcedurePatch, APTokenMixin, APPatchExtension, AutoPatchExtensionRegister
 from .Items import items_by_id, ItemData, item_type_dict
 from .Locations import locationName_to_data
-from .Data import Rels, shop_items, tubu_dt, item_prices, rel_filepaths
+from .Data import Rels, shop_items, item_prices, rel_filepaths
+from .TTYDPatcher import TTYDPatcher
 
 if TYPE_CHECKING:
     from . import TTYDWorld
@@ -24,58 +22,58 @@ class TTYDPatchExtension(APPatchExtension):
         seed_options = json.loads(caller.get_file("options.json").decode("utf-8"))
         name_length = min(len(seed_options["player_name"]), 0x10)
         palace_skip = seed_options.get("palace_skip", None)
-        caller.dol.data.seek(0x1FF)
-        caller.dol.data.write(name_length.to_bytes(1, "big"))
-        caller.dol.data.seek(0x200)
-        caller.dol.data.write(seed_options["player_name"].encode("utf-8")[0:name_length])
-        caller.dol.data.seek(0x210)
-        caller.dol.data.write(seed_options["seed"].encode("utf-8")[0:16])
-        caller.dol.data.seek(0x220)
-        caller.dol.data.write(seed_options["chapter_clears"].to_bytes(1, "big"))
-        caller.dol.data.seek(0x221)
-        caller.dol.data.write(seed_options["starting_partner"].to_bytes(1, "big"))
-        caller.dol.data.seek(0x222)
-        caller.dol.data.write(seed_options["yoshi_color"].to_bytes(1, "big"))
-        caller.dol.data.seek(0x223)
-        caller.dol.data.write((1).to_bytes(1, "big"))
-        caller.dol.data.seek(0x224)
-        caller.dol.data.write((0x80003230).to_bytes(4, "big"))
+        caller.patcher.dol.data.seek(0x1FF)
+        caller.patcher.dol.data.write(name_length.to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x200)
+        caller.patcher.dol.data.write(seed_options["player_name"].encode("utf-8")[0:name_length])
+        caller.patcher.dol.data.seek(0x210)
+        caller.patcher.dol.data.write(seed_options["seed"].encode("utf-8")[0:16])
+        caller.patcher.dol.data.seek(0x220)
+        caller.patcher.dol.data.write(seed_options["chapter_clears"].to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x221)
+        caller.patcher.dol.data.write(seed_options["starting_partner"].to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x222)
+        caller.patcher.dol.data.write(seed_options["yoshi_color"].to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x223)
+        caller.patcher.dol.data.write((1).to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x224)
+        caller.patcher.dol.data.write((0x80003230).to_bytes(4, "big"))
         if palace_skip is not None:
-            caller.dol.data.seek(0x229)
-            caller.dol.data.write(seed_options["palace_skip"].to_bytes(1, "big"))
-        caller.dol.data.seek(0x230)
-        caller.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
-        caller.dol.data.seek(0xEB6B6)
-        caller.dol.data.write(int.to_bytes(seed_options["starting_coins"], 2, "big"))
-        caller.dol.data.seek(0x1888)
-        caller.dol.data.write(pkgutil.get_data(__name__, "data/US.bin"))
-        caller.dol.data.seek(0x6CE38)
-        caller.dol.data.write(int.to_bytes(0x4BF94A50, 4, "big"))
+            caller.patcher.dol.data.seek(0x229)
+            caller.patcher.dol.data.write(seed_options["palace_skip"].to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x230)
+        caller.patcher.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
+        caller.patcher.dol.data.seek(0xEB6B6)
+        caller.patcher.dol.data.write(int.to_bytes(seed_options["starting_coins"], 2, "big"))
+        caller.patcher.dol.data.seek(0x1888)
+        caller.patcher.dol.data.write(pkgutil.get_data(__name__, "data/US.bin"))
+        caller.patcher.dol.data.seek(0x6CE38)
+        caller.patcher.dol.data.write(int.to_bytes(0x4BF94A50, 4, "big"))
         #for key, value in tubu_dt.items():
-            #caller.dol.data.seek(key)
-            #caller.dol.data.write(value.to_bytes(2, "big"))
-        caller.iso.add_new_directory("files/mod")
-        caller.iso.add_new_directory("files/mod/subrels")
+            #caller.patcher.dol.data.seek(key)
+            #caller.patcher.dol.data.write(value.to_bytes(2, "big"))
+        caller.patcher.iso.add_new_directory("files/mod")
+        caller.patcher.iso.add_new_directory("files/mod/subrels")
         for file in [file for file in rel_filepaths if file != "mod"]:
-            caller.iso.add_new_file(f"files/mod/subrels/{file}.rel", io.BytesIO(pkgutil.get_data(__name__, f"data/{file}.rel")))
-        caller.iso.add_new_file("files/mod/mod.rel", io.BytesIO(pkgutil.get_data(__name__, f"data/mod.rel")))
+            caller.patcher.iso.add_new_file(f"files/mod/subrels/{file}.rel", io.BytesIO(pkgutil.get_data(__name__, f"data/{file}.rel")))
+        caller.patcher.iso.add_new_file("files/mod/mod.rel", io.BytesIO(pkgutil.get_data(__name__, f"data/mod.rel")))
 
 
 
     @staticmethod
     def close_iso(caller: "TTYDProcedurePatch") -> None:
-        for rel in caller.rels.keys():
-            caller.iso.changed_files[get_rel_path(rel)] = caller.rels[rel]
-        caller.iso.changed_files["sys/main.dol"] = caller.dol.data
-        for _,_ in caller.iso.export_disc_to_iso_with_changed_files(caller.file_path):
+        for rel in caller.patcher.rels.keys():
+            caller.patcher.iso.changed_files[get_rel_path(rel)] = caller.patcher.rels[rel]
+        caller.patcher.iso.changed_files["sys/main.dol"] = caller.patcher.dol.data
+        for _,_ in caller.patcher.iso.export_disc_to_iso_with_changed_files(caller.file_path):
             continue
 
     @staticmethod
     def patch_icon(caller: "TTYDProcedurePatch") -> None:
         icon_patch = pkgutil.get_data(__name__, f"data/icon.bsdiff4")
         bin_patch = pkgutil.get_data(__name__, f"data/icon_bin.bsdiff4")
-        icon_file = caller.iso.read_file_data("files/icon.tpl")
-        bin_file = caller.iso.read_file_data("files/icon.bin")
+        icon_file = caller.patcher.iso.read_file_data("files/icon.tpl")
+        bin_file = caller.patcher.iso.read_file_data("files/icon.bin")
         icon_file.seek(0)
         original_icon_data = icon_file.read()
         bin_file.seek(0)
@@ -84,8 +82,8 @@ class TTYDPatchExtension(APPatchExtension):
         patched_bin_data = bsdiff4.patch(original_bin_data, bin_patch)
         new_icon_file = io.BytesIO(patched_icon_data)
         new_bin_file = io.BytesIO(patched_bin_data)
-        caller.iso.changed_files["files/icon.tpl"] = new_icon_file
-        caller.iso.changed_files["files/icon.bin"] = new_bin_file
+        caller.patcher.iso.changed_files["files/icon.tpl"] = new_icon_file
+        caller.patcher.iso.changed_files["files/icon.bin"] = new_bin_file
 
 
     @staticmethod
@@ -113,21 +111,21 @@ class TTYDPatchExtension(APPatchExtension):
                 else:
                     for i, offset in enumerate(data.offset):
                         if "30 Coins" in data.name and i == 1:
-                            caller.rels[Rels.pik].seek(offset)
-                            caller.rels[Rels.pik].write(item_data.rom_id.to_bytes(4, "big"))
+                            caller.patcher.rels[Rels.pik].seek(offset)
+                            caller.patcher.rels[Rels.pik].write(item_data.rom_id.to_bytes(4, "big"))
                             continue
-                        caller.rels[data.rel].seek(offset)
-                        caller.rels[data.rel].write(item_data.rom_id.to_bytes(4, "big"))
+                        caller.patcher.rels[data.rel].seek(offset)
+                        caller.patcher.rels[data.rel].write(item_data.rom_id.to_bytes(4, "big"))
                         if data.id in shop_items:
-                            caller.rels[data.rel].seek(offset + 4)
+                            caller.patcher.rels[data.rel].seek(offset + 4)
                             if item_data.rom_id == 0x71:
-                                caller.rels[data.rel].write(int.to_bytes(20, 4, "big"))
+                                caller.patcher.rels[data.rel].write(int.to_bytes(20, 4, "big"))
                             else:
-                                caller.rels[data.rel].write(int.to_bytes(item_prices.get(item_data.code, 10), 4, "big"))
-        for rel in caller.rels.keys():
-            caller.iso.changed_files[get_rel_path(rel)] = caller.rels[rel]
-        caller.iso.changed_files["sys/main.dol"] = caller.dol.data
-        for _,_ in caller.iso.export_disc_to_iso_with_changed_files(caller.file_path):
+                                caller.patcher.rels[data.rel].write(int.to_bytes(item_prices.get(item_data.code, 10), 4, "big"))
+        for rel in caller.patcher.rels.keys():
+            caller.patcher.iso.changed_files[get_rel_path(rel)] = caller.patcher.rels[rel]
+        caller.patcher.iso.changed_files["sys/main.dol"] = caller.patcher.dol.data
+        for _,_ in caller.patcher.iso.export_disc_to_iso_with_changed_files(caller.file_path):
             continue
 
 def get_rel_path(rel: Rels):
@@ -140,9 +138,7 @@ class TTYDProcedurePatch(APProcedurePatch, APTokenMixin):
     patch_file_ending = ".apttyd"
     result_file_ending = ".iso"
     file_path: str = ""
-    rels: Dict[Rels, io.BytesIO] = {}
-    iso: GCM
-    dol: DOL
+    patcher: "TTYDPatcher"
 
     procedure = [
         ("patch_mod", []),
@@ -152,15 +148,7 @@ class TTYDProcedurePatch(APProcedurePatch, APTokenMixin):
     ]
 
     def patch(self, target) -> None:
-        self.iso = GCM(get_settings().ttyd_options.rom_file)
-        self.iso.read_entire_disc()
-        self.dol = DOL()
-        self.dol.read(self.iso.read_file_data("sys/main.dol"))
-        for rel in Rels:
-            if rel == Rels.dol:
-                continue
-            path = get_rel_path(rel)
-            self.rels[rel] = self.iso.read_file_data(path)
+        self.patcher = TTYDPatcher()
         self.file_path = target
         self.read()
         patch_extender = AutoPatchExtensionRegister.get_handler(self.game)

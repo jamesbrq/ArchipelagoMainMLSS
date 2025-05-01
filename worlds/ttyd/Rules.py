@@ -502,14 +502,16 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
                           and StateLogic.tube_curse(state, world.player),
         "Riverside Station Ultra Boots Room: Ultra Boots":
             lambda state: state.has("Station Key 1", world.player) and state.has("Station Key 2", world.player)
-                          and StateLogic.tube_curse(state, world.player),
+                          and StateLogic.tube_curse(state, world.player) and state.has("Flurrie", world.player),
         "Riverside Station Goomba Room: Shine Sprite":
             lambda state: (state.has("Station Key 1", world.player) and state.has("Station Key 2", world.player)
                            and StateLogic.tube_curse(state, world.player)
-                           and (StateLogic.ultra_boots(state, world.player) or state.has("Koops", world.player))),
+                           and (StateLogic.ultra_boots(state, world.player) or state.has("Koops", world.player))
+                           and state.has("Flurrie", world.player)),
         "Riverside Station Ultra Boots Room: Elevator Key":
             lambda state: (state.has("Station Key 1", world.player) and state.has("Station Key 2", world.player)
-                           and StateLogic.tube_curse(state, world.player) and StateLogic.ultra_boots(state, world.player)),
+                           and StateLogic.tube_curse(state, world.player) and StateLogic.ultra_boots(state, world.player)
+                           and state.has("Flurrie", world.player)),
         "Riverside Station Clockwork Room: Star Piece":
             lambda state: state.has("Station Key 1", world.player) and StateLogic.tube_curse(state, world.player),
         "Riverside Station Clockwork Room: Station Key 2":

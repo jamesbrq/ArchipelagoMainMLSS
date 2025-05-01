@@ -102,6 +102,7 @@ class TTYDContext(CommonContext):
     async def server_auth(self, password_requested: bool = False):
         if password_requested and not self.password:
             await super(TTYDContext, self).server_auth(password_requested)
+        await self.get_username()
         await self.send_connect()
 
     def on_package(self, cmd: str, args: dict):
@@ -207,6 +208,8 @@ async def ttyd_sync_task(ctx: TTYDContext):
                             continue
                         ctx.seed_verified = True
                     if not ctx.save_loaded():
+                        logger.info("Waiting for player to be in game...")
+                        logger.info(f"Debug: {dolphin.read_byte(0x80003228)}")
                         await asyncio.sleep(1)
                         continue
                     await ctx.receive_items()
@@ -218,26 +221,8 @@ async def ttyd_sync_task(ctx: TTYDContext):
                     dolphin.un_hook()
                     ctx.dolphin_connected = False
             else:
-                try:
-                    if not ctx.auth:
-                        name_length = dolphin.read_byte(NAME_LENGTH)
-                        if name_length == 0:
-                            ctx.auth = read_string(PLAYER_NAME, 0x10)
-                        else:
-                            ctx.auth = dolphin.read_bytes(PLAYER_NAME, name_length).decode()
-                        if not ctx.auth:
-                            logger.info(f"Name Read: {dolphin.read_bytes(PLAYER_NAME, name_length).decode()}")
-                            ctx.auth = None
-                            logger.info("No slot name was detected. Please load the correct ROM.")
-                            ctx.dolphin_connected = False
-                            dolphin.un_hook()
-                            await asyncio.sleep(3)
-                            continue
-                    await ctx.server_auth()
-                    await asyncio.sleep(0.1)
-                except Exception as e:
-                    dolphin.un_hook()
-                    ctx.dolphin_connected = False
+                logger.info("Waiting for connection to server...")
+                await asyncio.sleep(3)
         else:
             try:
                 logger.info("Attempting to connect to Dolphin...")
@@ -248,7 +233,6 @@ async def ttyd_sync_task(ctx: TTYDContext):
                     await ctx.disconnect()
                     await asyncio.sleep(3)
                     continue
-
                 logger.info("Dolphin connected")
                 ctx.dolphin_connected = True
             except Exception as e:
