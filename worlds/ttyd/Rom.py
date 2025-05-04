@@ -122,11 +122,6 @@ class TTYDPatchExtension(APPatchExtension):
                                 caller.patcher.rels[data.rel].write(int.to_bytes(20, 4, "big"))
                             else:
                                 caller.patcher.rels[data.rel].write(int.to_bytes(item_prices.get(item_data.code, 10), 4, "big"))
-        for rel in caller.patcher.rels.keys():
-            caller.patcher.iso.changed_files[get_rel_path(rel)] = caller.patcher.rels[rel]
-        caller.patcher.iso.changed_files["sys/main.dol"] = caller.patcher.dol.data
-        for _,_ in caller.patcher.iso.export_disc_to_iso_with_changed_files(caller.file_path):
-            continue
 
 def get_rel_path(rel: Rels):
     return f'files/rel/{rel.value}.rel'
