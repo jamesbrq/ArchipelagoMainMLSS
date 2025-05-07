@@ -24,7 +24,7 @@ class PitItems(Choice):
     option_all = 2
     default = 1
 
-class LimitChapterLogic(Toggle):
+class LimitChapterLogic():
     """
     Progression items will only appear in required chapters, and in common areas. You will not need to
     check the chapters that are out of logic whatsoever. You can still visit them for local items (badges, consumables, etc) if you want or need to.
@@ -43,6 +43,12 @@ class PalaceSkip(Toggle):
     Entering the Thousand-Year door will take you straight to Grodus.
     """
     display_name = "Palace Skip"
+
+class OpenWestside(Toggle):
+    """
+    Rogueport Westside is open from the start.
+    """
+    display_name = "Open West Side"
 
 class StartingCoins(Range):
     """
@@ -65,6 +71,7 @@ class StartingPartner(Choice):
     option_flurrie = 5
     option_vivian = 6
     option_ms_mowz = 7
+    option_random_partner = 8
     default = 1
 
 class YoshiColor(Choice):
@@ -79,6 +86,7 @@ class YoshiColor(Choice):
     option_pink = 4
     option_black = 5
     option_white = 6
+    option_random_color = 7
     default = 0
 
 class YoshiName(FreeText):
@@ -99,6 +107,7 @@ class TTYDOptions(PerGameCommonOptions):
     limit_chapter_logic: LimitChapterLogic
     limit_chapter_eight: LimitChapterEight
     palace_skip: PalaceSkip
+    open_westside: OpenWestside
     starting_coins: StartingCoins
     starting_partner: StartingPartner
     yoshi_color: YoshiColor

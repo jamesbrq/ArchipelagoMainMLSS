@@ -487,19 +487,17 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
                            and StateLogic.ultra_hammer(state, world.player) and state.has("Plane Curse", world.player)),
         "Riverside Station Tube Mode Maze: Dried Shroom":
             lambda state: state.has("Station Key 1", world.player) and state.has("Station Key 2", world.player)
-                          and StateLogic.tube_curse(state, world.player),
+                          and StateLogic.tube_curse(state, world.player) and state.has("Flurrie", world.player),
         "Riverside Station Tube Mode Maze: P-Up D-Down":
             lambda state: state.has("Station Key 1", world.player) and state.has("Station Key 2", world.player)
-                          and StateLogic.tube_curse(state, world.player),
+                          and StateLogic.tube_curse(state, world.player) and state.has("Flurrie", world.player),
         "Riverside Station Back Exterior: HP Plus":
             lambda state: state.has("Station Key 1", world.player) and state.has("Station Key 2",world.player)
                           and StateLogic.tube_curse(state, world.player),
         "Riverside Station Back Exterior: Shine Sprite":
-            lambda state: state.has("Station Key 1", world.player) and state.has("Station Key 2", world.player)
-                          and StateLogic.tube_curse(state, world.player),
+            lambda state: state.has("Station Key 1", world.player) and state.has("Station Key 2", world.player),
         "Riverside Station Back Exterior: Thunder Rage":
-            lambda state: state.has("Station Key 1", world.player) and state.has("Station Key 2", world.player)
-                          and StateLogic.tube_curse(state, world.player),
+            lambda state: state.has("Station Key 1", world.player) and state.has("Station Key 2", world.player),
         "Riverside Station Ultra Boots Room: Ultra Boots":
             lambda state: state.has("Station Key 1", world.player) and state.has("Station Key 2", world.player)
                           and StateLogic.tube_curse(state, world.player) and state.has("Flurrie", world.player),

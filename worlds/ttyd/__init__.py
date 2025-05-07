@@ -113,6 +113,10 @@ class TTYDWorld(World):
             self.disabled_locations.update(location.name for location in pit if "Pit of 100 Trials" in location.name)
         if self.options.palace_skip:
             self.excluded_regions.update(["Palace of Shadow", "Palace of Shadow (Post-Riddle Tower)"])
+        if self.options.starting_partner == StartingPartner.option_random_partner:
+            self.options.starting_partner.value = self.random.randint(0, 7)
+        if self.options.yoshi_color == YoshiColor.option_random_color:
+            self.options.yoshi_color.value = self.random.randint(0, 6)
 
     def create_regions(self) -> None:
         create_regions(self)
