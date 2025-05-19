@@ -24,7 +24,7 @@ class PitItems(Choice):
     option_all = 2
     default = 1
 
-class LimitChapterLogic():
+class LimitChapterLogic(Toggle):
     """
     Progression items will only appear in required chapters, and in common areas. You will not need to
     check the chapters that are out of logic whatsoever. You can still visit them for local items (badges, consumables, etc) if you want or need to.
