@@ -50,6 +50,12 @@ class OpenWestside(Toggle):
     """
     display_name = "Open West Side"
 
+class PermanentPeekaboo(Toggle):
+    """
+    The Peekaboo badge is always active, even when not equipped.
+    """
+    display_name = "Permanent Peekaboo"
+
 class StartingCoins(Range):
     """
     How many coins you start with.
@@ -108,6 +114,7 @@ class TTYDOptions(PerGameCommonOptions):
     limit_chapter_eight: LimitChapterEight
     palace_skip: PalaceSkip
     open_westside: OpenWestside
+    permanent_peekaboo: PermanentPeekaboo
     starting_coins: StartingCoins
     starting_partner: StartingPartner
     yoshi_color: YoshiColor

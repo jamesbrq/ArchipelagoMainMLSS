@@ -24,6 +24,7 @@ class TTYDPatchExtension(APPatchExtension):
         name_length = min(len(seed_options["player_name"]), 0x10)
         palace_skip = seed_options.get("palace_skip", None)
         open_westside = seed_options.get("westside", None)
+        peekaboo = seed_options.get("peekaboo", None)
         caller.patcher.dol.data.seek(0x1FF)
         caller.patcher.dol.data.write(name_length.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x200)
@@ -42,10 +43,13 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write((0x80003230).to_bytes(4, "big"))
         if palace_skip is not None:
             caller.patcher.dol.data.seek(0x229)
-            caller.patcher.dol.data.write(seed_options["palace_skip"].to_bytes(1, "big"))
+            caller.patcher.dol.data.write(palace_skip.to_bytes(1, "big"))
         if open_westside is not None:
             caller.patcher.dol.data.seek(0x22A)
-            caller.patcher.dol.data.write(seed_options["westside"].to_bytes(1, "big"))
+            caller.patcher.dol.data.write(open_westside.to_bytes(1, "big"))
+        if peekaboo is not None:
+            caller.patcher.dol.data.seek(0x22B)
+            caller.patcher.dol.data.write(peekaboo.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x230)
         caller.patcher.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
@@ -173,7 +177,8 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "chapter_clears": world.options.chapter_clears.value,
         "starting_coins": world.options.starting_coins.value,
         "palace_skip": world.options.palace_skip.value,
-        "westside": world.options.open_westside.value
+        "westside": world.options.open_westside.value,
+        "peekaboo": world.options.permanent_peekaboo.value
     }
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))
