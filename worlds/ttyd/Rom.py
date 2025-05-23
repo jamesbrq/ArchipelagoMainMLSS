@@ -25,6 +25,7 @@ class TTYDPatchExtension(APPatchExtension):
         palace_skip = seed_options.get("palace_skip", None)
         open_westside = seed_options.get("westside", None)
         peekaboo = seed_options.get("peekaboo", None)
+        intermissions = seed_options.get("intermissions", None)
         caller.patcher.dol.data.seek(0x1FF)
         caller.patcher.dol.data.write(name_length.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x200)
@@ -50,6 +51,9 @@ class TTYDPatchExtension(APPatchExtension):
         if peekaboo is not None:
             caller.patcher.dol.data.seek(0x22B)
             caller.patcher.dol.data.write(peekaboo.to_bytes(1, "big"))
+        if intermissions is not None:
+            caller.patcher.dol.data.seek(0x22C)
+            caller.patcher.dol.data.write(intermissions.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x230)
         caller.patcher.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
@@ -178,7 +182,8 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "starting_coins": world.options.starting_coins.value,
         "palace_skip": world.options.palace_skip.value,
         "westside": world.options.open_westside.value,
-        "peekaboo": world.options.permanent_peekaboo.value
+        "peekaboo": world.options.permanent_peekaboo.value,
+        "intermissions": world.options.disable_intermissions.value
     }
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))

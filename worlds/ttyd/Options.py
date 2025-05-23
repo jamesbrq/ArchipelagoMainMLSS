@@ -56,6 +56,13 @@ class PermanentPeekaboo(Toggle):
     """
     display_name = "Permanent Peekaboo"
 
+class DisableIntermissions(Toggle):
+    """
+    After obtaining a crystal star, mario will stay in the bosses room,
+    and the sequence will be updated past the intermission.
+    """
+    display_name = "Disable Intermissions"
+
 class StartingCoins(Range):
     """
     How many coins you start with.
@@ -113,6 +120,7 @@ class TTYDOptions(PerGameCommonOptions):
     limit_chapter_logic: LimitChapterLogic
     limit_chapter_eight: LimitChapterEight
     palace_skip: PalaceSkip
+    disable_intermissions: DisableIntermissions
     open_westside: OpenWestside
     permanent_peekaboo: PermanentPeekaboo
     starting_coins: StartingCoins
