@@ -52,6 +52,7 @@ def get_region_connections_dict(world: "TTYDWorld") -> dict[tuple[str, str], typ
     """
     return {
         ("Menu", "Rogueport"): None,
+        ("Menu", "Rogueport (Westside)"): None,
         ("Rogueport", "Rogueport Sewers"): None,
         ("Rogueport", "Rogueport Sewers Westside"):
             lambda state: StateLogic.sewer_westside(state, world.player),
@@ -138,6 +139,8 @@ def connect_regions(world: "TTYDWorld"):
         if source in world.excluded_regions or target in world.excluded_regions:
             continue
         if source == "Rogueport" and target == "Shadow Queen" and not world.options.palace_skip:
+            continue
+        if source == "Menu" and target == "Rogueport (Westside)" and not world.options.open_westside:
             continue
 
         # Verify that both regions exist before trying to connect them
