@@ -72,8 +72,7 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
             lambda state: state.has("Autograph", world.player) and state.has("Blanket", world.player)
                           and state.has("Ragged Diary", world.player) and state.has("Vivian", world.player),
         "Excess Express Storage Car: Ragged Diary":
-            lambda state: state.has("Autograph", world.player) and state.has("Vivian", world.player)
-                          and (state.has("Paper Curse", world.player) or StateLogic.ultra_boots(state, world.player)),
+            lambda state: state.has("Paper Curse", world.player) or StateLogic.ultra_boots(state, world.player),
         "Excess Express Front Passenger Car: Vital Paper":
             lambda state: (state.has("Autograph", world.player) and state.has("Vivian", world.player)
                            and state.has("Ragged Diary", world.player) and state.has("Blanket", world.player)),
