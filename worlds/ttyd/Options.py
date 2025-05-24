@@ -63,6 +63,33 @@ class DisableIntermissions(Toggle):
     """
     display_name = "Disable Intermissions"
 
+class StartingHP(Range):
+    """
+    How much health you start with.
+    """
+    display_name = "Starting HP"
+    range_start = 1
+    range_end = 100
+    default = 10
+
+class StartingFP(Range):
+    """
+    How much flower points you start with.
+    """
+    display_name = "Starting FP"
+    range_start = 0
+    range_end = 100
+    default = 5
+
+class StartingBP(Range):
+    """
+    How many badge points you start with.
+    """
+    display_name = "Starting BP"
+    range_start = 0
+    range_end = 99
+    default = 3
+
 class StartingCoins(Range):
     """
     How many coins you start with.
@@ -123,6 +150,9 @@ class TTYDOptions(PerGameCommonOptions):
     disable_intermissions: DisableIntermissions
     open_westside: OpenWestside
     permanent_peekaboo: PermanentPeekaboo
+    starting_hp: StartingHP
+    starting_fp: StartingFP
+    starting_bp: StartingBP
     starting_coins: StartingCoins
     starting_partner: StartingPartner
     yoshi_color: YoshiColor

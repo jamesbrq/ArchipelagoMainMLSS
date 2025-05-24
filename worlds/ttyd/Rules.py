@@ -138,9 +138,6 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
         "Glitzville Arena: Gold Star":
             lambda state: state.has("Yoshi", world.player) and state.has("Flurrie", world.player)
                           and StateLogic.super_hammer(state, world.player),
-        "Glitzville Promoter's Office: Star Piece 2":
-            lambda state: state.has("Yoshi", world.player) and state.has("Flurrie", world.player)
-                          and StateLogic.super_hammer(state, world.player),
         "Great Tree Red/Blue Cages: Star Piece":
             lambda state: (state.has("Blue Key", world.player) or state.has("Paper Curse", world.player)) and StateLogic.super_boots(state, world.player),
         "Great Tree Entrance: Puni Orb":

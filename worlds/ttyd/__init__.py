@@ -1,8 +1,8 @@
 import logging
 import os
-import typing
 
 from Fill import fast_fill, fill_restrictive
+from typing import List, Dict, ClassVar, Any
 from settings import UserFilePath, Group
 from BaseClasses import Tutorial, ItemClassification, CollectionState, Item
 from worlds.AutoWorld import WebWorld, World
@@ -34,7 +34,7 @@ components.append(
 
 class TTYDWebWorld(WebWorld):
     theme = 'partyTime'
-    bug_report_page = "https://github.com/jamesbrq/ArchipelagoMLSS/issues"
+    bug_report_page = "https://github.com/jamesbrq/ArchipelagoTTYD/issues"
     tutorials = [
         Tutorial(
             tutorial_name='Setup Guide',
@@ -74,19 +74,19 @@ class TTYDWorld(World):
 
     options_dataclass = TTYDOptions
     options: TTYDOptions
-    settings: typing.ClassVar[TTYDSettings]
+    settings: ClassVar[TTYDSettings]
     item_name_to_id = {name: data.code for name, data in item_table.items()}
     location_name_to_id = {loc_data.name: loc_data.id for loc_data in all_locations}
     required_client_version = (0, 6, 0)
     disabled_locations: set
     excluded_regions: set
-    items: typing.List[TTYDItem]
-    pit_items: typing.List[TTYDItem]
-    required_chapters: typing.List[int]
-    limited_chapters: typing.List[int]
-    limited_chapter_locations: typing.List[TTYDLocation]
+    items: List[TTYDItem]
+    pit_items: List[TTYDItem]
+    required_chapters: List[int]
+    limited_chapters: List[int]
+    limited_chapter_locations: List[TTYDLocation]
     limited_item_names: set
-    limited_items: typing.List[TTYDItem]
+    limited_items: List[TTYDItem]
 
     def generate_early(self) -> None:
         self.disabled_locations = set()
@@ -230,6 +230,17 @@ class TTYDWorld(World):
     def set_rules(self) -> None:
         set_rules(self)
         self.multiworld.completion_condition[self.player] = lambda state: state.has("Victory", self.player)
+
+    def fill_slot_data(self) -> Dict[str, Any]:
+        return {
+            "chapter_clears": self.options.chapter_clears.value,
+            "pit_items": self.options.pit_items.value,
+            "limit_chapter_logic": self.options.limit_chapter_logic.value,
+            "limit_chapter_eight": self.options.limit_chapter_eight.value,
+            "palace_skip": self.options.palace_skip.value,
+            "yoshi_color": self.options.yoshi_color.value,
+            "westside": self.options.open_westside.value
+        }
 
     def create_item(self, name: str) -> TTYDItem:
         item = item_table.get(name, ItemData(None, name, ItemClassification.progression))
