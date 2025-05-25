@@ -29,6 +29,7 @@ class TTYDPatchExtension(APPatchExtension):
         starting_hp = seed_options.get("starting_hp", None)
         starting_fp = seed_options.get("starting_fp", None)
         starting_bp = seed_options.get("starting_bp", None)
+        full_run_bar = seed_options.get("full_run_bar", None)
         caller.patcher.dol.data.seek(0x1FF)
         caller.patcher.dol.data.write(name_length.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x200)
@@ -44,7 +45,7 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.seek(0x223)
         caller.patcher.dol.data.write((1).to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x224)
-        caller.patcher.dol.data.write((0x80003230).to_bytes(4, "big"))
+        caller.patcher.dol.data.write((0x80003240).to_bytes(4, "big"))
         if palace_skip is not None:
             caller.patcher.dol.data.seek(0x229)
             caller.patcher.dol.data.write(palace_skip.to_bytes(1, "big"))
@@ -66,7 +67,10 @@ class TTYDPatchExtension(APPatchExtension):
         if starting_bp is not None:
             caller.patcher.dol.data.seek(0x22F)
             caller.patcher.dol.data.write(starting_bp.to_bytes(1, "big"))
-        caller.patcher.dol.data.seek(0x230)
+        if full_run_bar is not None:
+            caller.patcher.dol.data.seek(0x230)
+            caller.patcher.dol.data.write(full_run_bar.to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x240)
         caller.patcher.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
         caller.patcher.dol.data.write(int.to_bytes(seed_options["starting_coins"], 2, "big"))
@@ -198,7 +202,8 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "intermissions": world.options.disable_intermissions.value,
         "starting_hp": world.options.starting_hp.value,
         "starting_fp": world.options.starting_fp.value,
-        "starting_bp": world.options.starting_bp.value
+        "starting_bp": world.options.starting_bp.value,
+        "full_run_bar": world.options.full_run_bar.value
     }
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))

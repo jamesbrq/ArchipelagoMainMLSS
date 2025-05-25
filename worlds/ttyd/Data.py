@@ -442,7 +442,7 @@ location_gsw_info = {
     78780532: (GSWType.GSW, 1706, 21),
     78780533: (GSWType.GSWF, 5560, 1),
     78780534: (GSWType.GSWF, 5652, 1),
-    78780535: (GSWType.GSW, 1706, 19),
+    78780535: (GSWType.GSWF, 6116, 1),
     78780536: (GSWType.GSW, 1720, 2),
     78780537: (GSWType.GSWF, 3745, 1),
     78780538: (GSWType.GSWF, 5653, 1),

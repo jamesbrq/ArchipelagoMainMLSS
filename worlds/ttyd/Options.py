@@ -56,6 +56,12 @@ class PermanentPeekaboo(Toggle):
     """
     display_name = "Permanent Peekaboo"
 
+class FullRunBar(Toggle):
+    """
+    The run bar in battle always starts at 100 percent.
+    """
+    display_name = "Full Run Bar"
+
 class DisableIntermissions(Toggle):
     """
     After obtaining a crystal star, mario will stay in the bosses room,
@@ -150,6 +156,7 @@ class TTYDOptions(PerGameCommonOptions):
     disable_intermissions: DisableIntermissions
     open_westside: OpenWestside
     permanent_peekaboo: PermanentPeekaboo
+    full_run_bar: FullRunBar
     starting_hp: StartingHP
     starting_fp: StartingFP
     starting_bp: StartingBP
