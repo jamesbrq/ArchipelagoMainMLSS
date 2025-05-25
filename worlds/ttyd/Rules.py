@@ -526,7 +526,7 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
                            and StateLogic.ultra_boots(state, world.player) and state.has("Elevator Key", world.player)
                            and state.has("Plane Curse", world.player) and StateLogic.super_hammer(state, world.player)),
         "Rogueport Sewers Boggly Woods Pipe: Star Piece":
-            lambda state: StateLogic.super_boots(state, world.player) and state.has("Paper Curse", world.player),
+            lambda state: StateLogic.super_boots(state, world.player) and (state.has("Paper Curse", world.player) or StateLogic.super_hammer(state, world.player)),
         "Rogueport Sewers Boggly Woods Pipe: Damage Dodge":
             lambda state: state.has("Paper Curse", world.player),
         "Rogueport Sewers Town: Shine Sprite":
