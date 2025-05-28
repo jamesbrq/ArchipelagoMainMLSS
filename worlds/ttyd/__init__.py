@@ -6,14 +6,14 @@ from typing import List, Dict, ClassVar, Any
 from settings import UserFilePath, Group
 from BaseClasses import Tutorial, ItemClassification, CollectionState, Item
 from worlds.AutoWorld import WebWorld, World
-from .Data import starting_partners, limit_eight, stars, chapter_items, limited_location_ids
+from .Data import starting_partners, limit_eight, stars, chapter_items, limited_location_ids, limit_pit
 from .Locations import all_locations, location_table, pit, location_id_to_name, TTYDLocation, locationName_to_data, \
-    palace, riddle_tower
+    palace, riddle_tower, tattlesanity_region
 from .Options import TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight
 from .Items import TTYDItem, itemList, item_frequencies, item_table, ItemData
 from .Regions import create_regions, connect_regions
 from .Rom import TTYDProcedurePatch, write_files
-from .Rules import set_rules
+from .Rules import set_rules, get_tattle_rules_dict, set_tattle_rules
 from worlds.LauncherComponents import Component, SuffixIdentifier, Type, components, launch_subprocess
 
 
@@ -84,7 +84,7 @@ class TTYDWorld(World):
     pit_items: List[TTYDItem]
     required_chapters: List[int]
     limited_chapters: List[int]
-    limited_chapter_locations: List[TTYDLocation]
+    limited_chapter_locations: set
     limited_item_names: set
     limited_items: List[TTYDItem]
 
@@ -95,7 +95,7 @@ class TTYDWorld(World):
         self.pit_items = []
         self.required_chapters = []
         self.limited_chapters = []
-        self.limited_chapter_locations = []
+        self.limited_chapter_locations = set()
         self.limited_item_names = set()
         self.limited_items = []
         if self.options.limit_chapter_eight and self.options.palace_skip:
@@ -113,6 +113,10 @@ class TTYDWorld(World):
             self.disabled_locations.update(location.name for location in pit if "Pit of 100 Trials" in location.name)
         if self.options.palace_skip:
             self.excluded_regions.update(["Palace of Shadow", "Palace of Shadow (Post-Riddle Tower)"])
+        if not self.options.tattlesanity:
+            self.excluded_regions.update(["Tattlesanity"])
+        if self.options.tattlesanity and self.options.disable_intermissions:
+            self.disabled_locations.update(["Tattle: Lord Crump"])
         if self.options.starting_partner == StartingPartner.option_random_partner:
             self.options.starting_partner.value = self.random.randint(0, 7)
         if self.options.yoshi_color == YoshiColor.option_random_color:
@@ -122,7 +126,9 @@ class TTYDWorld(World):
         create_regions(self)
         connect_regions(self)
         for chapter in self.limited_chapters:
-            self.limited_chapter_locations += [self.multiworld.get_location(location_id_to_name[location], self.player) for location in limited_location_ids[chapter - 1]]
+            self.limited_chapter_locations.update([self.get_location(location_id_to_name[location]) for location in limited_location_ids[chapter - 1]])
+        if self.options.tattlesanity:
+            self.limit_tattle_locations()
         self.lock_item("Rogueport Center: Goombella", starting_partners[self.options.starting_partner.value - 1])
         self.lock_item("Hooktail's Castle Hooktail's Room: Diamond Star", "Diamond Star")
         self.lock_item("Great Tree Entrance: Emerald Star", "Emerald Star")
@@ -139,6 +145,25 @@ class TTYDWorld(World):
                 elif "Palace Key" in location.name:
                     self.lock_item(location.name, "Palace Key")
             self.lock_item("Palace of Shadow Gloomtail Room: Star Key", "Star Key")
+
+
+    def limit_tattle_locations(self):
+        for location_name, locations in get_tattle_rules_dict().items():
+            if location_name in self.disabled_locations:
+                continue
+            if self.options.limit_chapter_eight and len(locations) == 0:
+                self.limited_chapter_locations.add(self.get_location(location_name))
+                continue
+            enabled_locations = [location for location in locations if location_id_to_name[location] not in self.disabled_locations]
+            if len(enabled_locations) == 0:
+                continue
+            if self.options.pit_items != PitItems.option_all:
+                if all(location in limit_pit for location in enabled_locations):
+                    self.limited_chapter_locations.add(self.get_location(location_name))
+            if self.options.limit_chapter_logic:
+                if all(self.get_location(location_id_to_name[location]) in self.limited_chapter_locations for location in enabled_locations):
+                    self.limited_chapter_locations.add(self.get_location(location_name))
+
 
 
     def create_items(self) -> None:
@@ -188,6 +213,8 @@ class TTYDWorld(World):
                 freq = item_frequencies.get(item.itemName)
                 if freq is None:
                     freq = 1
+                if self.options.tattlesanity:
+                    freq += 2
                 filler_items += [item.itemName for _ in range(freq)]
 
         remaining = len(self.multiworld.get_unfilled_locations(self.player)) - added_items
@@ -224,11 +251,12 @@ class TTYDWorld(World):
         _ = [limited_state.collect(item, True) for item in self.multiworld.itempool]
         _ = [limited_state.collect(location.item, True) for location in self.get_locations() if location.item is not None]
         self.multiworld.random.shuffle(self.limited_items)
-        self.multiworld.random.shuffle(self.limited_chapter_locations)
-        fill_restrictive(self.multiworld, limited_state, self.limited_chapter_locations, self.limited_items, single_player_placement=True, lock=True)
+        self.multiworld.random.shuffle(list(self.limited_chapter_locations))
+        fill_restrictive(self.multiworld, limited_state, list(self.limited_chapter_locations), self.limited_items, single_player_placement=True, swap=True)
 
     def set_rules(self) -> None:
         set_rules(self)
+        set_tattle_rules(self)
         self.multiworld.completion_condition[self.player] = lambda state: state.has("Victory", self.player)
 
     def fill_slot_data(self) -> Dict[str, Any]:

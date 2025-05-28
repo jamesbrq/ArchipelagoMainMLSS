@@ -10,7 +10,7 @@ from CommonClient import ClientCommandProcessor, CommonContext, get_base_parser,
 import dolphin_memory_engine as dolphin
 
 from NetUtils import NetworkItem, ClientStatus
-from worlds.ttyd.Data import location_gsw_info
+from worlds.ttyd.Data import location_gsw_info, location_to_unit
 from worlds.ttyd.Items import items_by_id, item_type_dict
 
 RECEIVED_INDEX = 0x803DB860
@@ -159,6 +159,8 @@ class TTYDContext(CommonContext):
                 gsw_type, offset, value = gsw_info
                 if offset == 0:
                     continue
+                if 78780850 <= location <= 78780973:
+                    offset = 0x117A + location_to_unit[location][0]
                 if gsw_type.value == 0:
                     if gsw_check(offset) >= value:
                         locations_to_send.add(location)

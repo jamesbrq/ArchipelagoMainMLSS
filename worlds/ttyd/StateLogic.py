@@ -71,7 +71,8 @@ def riverside(state, player):
 
 
 def poshley_heights(state, player):
-    return state.has("Station Key 1", player) and state.has("Elevator Key", player) and super_hammer(state, player)
+    return (state.has("Station Key 1", player) and state.has("Elevator Key", player)
+            and super_hammer(state, player) and ultra_boots(state, player))
 
 
 def fahr_outpost(state, player):
@@ -85,7 +86,7 @@ def moon(state, player):
 def ttyd(state, player):
     return (state.has("Plane Curse", player) or super_hammer(state, player)
             or (state.has("Flurrie", player) and (state.has("Bobbery", player) or tube_curse(state, player)
-                or (state.has("Contact Lens", player) and state.has("Paper Curse", player)))))
+            or (state.has("Contact Lens", player) and state.has("Paper Curse", player)))))
 
 
 def pit(state, player):

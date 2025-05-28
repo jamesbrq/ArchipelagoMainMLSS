@@ -24,6 +24,13 @@ class PitItems(Choice):
     option_all = 2
     default = 1
 
+class TattleSanityOption(Toggle):
+    """
+    Creates a location for every enemy being tattled.
+    All key items can possibly be placed in these locations.
+    """
+    display_name = "Tattlesanity"
+
 class LimitChapterLogic(Toggle):
     """
     Progression items will only appear in required chapters, and in common areas. You will not need to
@@ -149,6 +156,7 @@ class YoshiName(FreeText):
 class TTYDOptions(PerGameCommonOptions):
     start_inventory_from_pool: StartInventoryPool
     chapter_clears: ChapterClears
+    tattlesanity: TattleSanityOption
     pit_items: PitItems
     limit_chapter_logic: LimitChapterLogic
     limit_chapter_eight: LimitChapterEight
