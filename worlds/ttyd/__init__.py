@@ -231,7 +231,7 @@ class TTYDWorld(World):
             for i in range(10):
                 self.pit_items.append(self.items.pop())
 
-        if self.limited_chapters:
+        if len(self.limited_chapter_locations) > 0:
             self.multiworld.random.shuffle(self.items)
             for _ in range(len(self.limited_chapter_locations) - len(self.limited_items)):
                 self.limited_items.append(self.items.pop())
@@ -267,7 +267,8 @@ class TTYDWorld(World):
             "limit_chapter_eight": self.options.limit_chapter_eight.value,
             "palace_skip": self.options.palace_skip.value,
             "yoshi_color": self.options.yoshi_color.value,
-            "westside": self.options.open_westside.value
+            "westside": self.options.open_westside.value,
+            "tattlesanity": self.options.tattlesanity.value
         }
 
     def create_item(self, name: str) -> TTYDItem:
