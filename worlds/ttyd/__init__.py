@@ -118,9 +118,9 @@ class TTYDWorld(World):
         if self.options.tattlesanity and self.options.disable_intermissions:
             self.disabled_locations.update(["Tattle: Lord Crump"])
         if self.options.starting_partner == StartingPartner.option_random_partner:
-            self.options.starting_partner.value = self.random.randint(0, 7)
+            self.options.starting_partner.value = self.random.randint(1, 7)
         if self.options.yoshi_color == YoshiColor.option_random_color:
-            self.options.yoshi_color.value = self.random.randint(0, 6)
+            self.options.yoshi_color.value = self.random.randint(1, 7)
 
     def create_regions(self) -> None:
         create_regions(self)
@@ -266,7 +266,7 @@ class TTYDWorld(World):
             "limit_chapter_logic": self.options.limit_chapter_logic.value,
             "limit_chapter_eight": self.options.limit_chapter_eight.value,
             "palace_skip": self.options.palace_skip.value,
-            "yoshi_color": self.options.yoshi_color.value,
+            "yoshi_color": self.options.yoshi_color.value - 1,
             "westside": self.options.open_westside.value,
             "tattlesanity": self.options.tattlesanity.value
         }

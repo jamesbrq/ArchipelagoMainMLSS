@@ -27,12 +27,13 @@ class TTYDPatchExtension(APPatchExtension):
         open_westside = seed_options.get("westside", None)
         peekaboo = seed_options.get("peekaboo", None)
         intermissions = seed_options.get("intermissions", None)
-        starting_hp = seed_options.get("starting_hp", None)
-        starting_fp = seed_options.get("starting_fp", None)
-        starting_bp = seed_options.get("starting_bp", None)
+        starting_hp = seed_options.get("starting_hp", 10)
+        starting_fp = seed_options.get("starting_fp", 5)
+        starting_bp = seed_options.get("starting_bp", 3)
         full_run_bar = seed_options.get("full_run_bar", None)
         required_chapters = seed_options.get("required_chapters", None)
         tattlesanity = seed_options.get("tattlesanity", None)
+        fast_travel = seed_options.get("fast_travel", None)
         caller.patcher.dol.data.seek(0x1FF)
         caller.patcher.dol.data.write(name_length.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x200)
@@ -80,6 +81,9 @@ class TTYDPatchExtension(APPatchExtension):
         if tattlesanity is not None:
             caller.patcher.dol.data.seek(0x238)
             caller.patcher.dol.data.write(tattlesanity.to_bytes(1, "big"))
+        if fast_travel is not None:
+            caller.patcher.dol.data.seek(0x239)
+            caller.patcher.dol.data.write(fast_travel.to_bytes(1, "big"))
 
         caller.patcher.dol.data.seek(0x240)
         caller.patcher.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
@@ -89,9 +93,6 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write(pkgutil.get_data(__name__, "data/US.bin"))
         caller.patcher.dol.data.seek(0x6CE38)
         caller.patcher.dol.data.write(int.to_bytes(0x4BF94A50, 4, "big"))
-        #for key, value in tubu_dt.items():
-            #caller.patcher.dol.data.seek(key)
-            #caller.patcher.dol.data.write(value.to_bytes(2, "big"))
         caller.patcher.iso.add_new_directory("files/mod")
         caller.patcher.iso.add_new_directory("files/mod/subrels")
         for file in [file for file in rel_filepaths if file != "mod"]:
@@ -222,7 +223,8 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "starting_bp": world.options.starting_bp.value,
         "full_run_bar": world.options.full_run_bar.value,
         "required_chapters": world.required_chapters,
-        "tattlesanity": world.options.tattlesanity.value
+        "tattlesanity": world.options.tattlesanity.value,
+        "fast_travel": world.options.fast_travel.value
     }
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))
