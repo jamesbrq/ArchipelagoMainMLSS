@@ -10,7 +10,7 @@ from CommonClient import ClientCommandProcessor, CommonContext, get_base_parser,
 import dolphin_memory_engine as dolphin
 
 from NetUtils import NetworkItem, ClientStatus
-from worlds.ttyd.Data import location_gsw_info, location_to_unit
+from worlds.ttyd.Data import location_gsw_info
 from worlds.ttyd.Items import items_by_id, item_type_dict
 
 RECEIVED_INDEX = 0x803DB860
@@ -27,7 +27,11 @@ SHOP_ITEM_OFFSET = 0x2F
 SHOP_ITEM_PURCHASED = 0xD7
 
 def read_string(address: int, length: int):
-    return dolphin.read_bytes(address, length).decode().strip("\0")
+    try:
+        return dolphin.read_bytes(address, length).decode().strip("\0")
+    except Exception as e:
+        logger.error(f"Error reading string from address {hex(address)}: {e}")
+        return ""
 
 def get_rom_item_id(item: NetworkItem):
     item = item_type_dict[items_by_id[item.item].itemName]
@@ -143,7 +147,7 @@ class TTYDContext(CommonContext):
             return
         index = dolphin.read_word(RECEIVED_INDEX)
         items = min(len(self.items_received) - index, 255)
-        if items == 0:
+        if items <= 0:
             return
         item_ids = [get_rom_item_id(self.items_received[i]) for i in range(index, index + items)]
         packed_data = struct.pack(f'>{len(item_ids)}H', *item_ids)
@@ -213,7 +217,6 @@ async def ttyd_sync_task(ctx: TTYDContext):
                     if not ctx.seed_verified:
                         logger.info("Checking ROM seed...")
                         seed = read_string(SEED, 0x10)
-                        logger.info(ctx.seed_name)
                         if seed not in ctx.seed_name:
                             await ctx.disconnect()
                             logger.info("ROM Seed does not match Room seed. Please make sure you are using the correct patch.")
@@ -240,8 +243,10 @@ async def ttyd_sync_task(ctx: TTYDContext):
                         await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
                     await asyncio.sleep(.5)
                 except Exception as e:
+                    logger.info(traceback.format_exc())
                     dolphin.un_hook()
                     ctx.dolphin_connected = False
+                    await asyncio.sleep(1)
             else:
                 await asyncio.sleep(1)
         else:
