@@ -176,6 +176,7 @@ class TTYDWorld(World):
             test_items[item.itemName] = 0
         required_items = []
         precollected = [item for item in itemList if item in self.multiworld.precollected_items]
+        precollected += item_table[starting_partners[self.options.starting_partner.value - 1]]
         added_items = 0
         for chapter in self.limited_chapters:
             self.limited_item_names.update(chapter_items[chapter])

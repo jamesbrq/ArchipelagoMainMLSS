@@ -146,7 +146,6 @@ class TTYDPatchExtension(APPatchExtension):
                         logger.error(f"Item {item_data.itemName} not found in item_type_dict")
                 if data.rel == Rels.dol:
                     if "Tattle" in location_name:
-                        logger.info(f"Writing Tattle item {item_data.itemName} to DOL")
                         for unit_id in location_to_unit[location_table[location_name]]:
                             logger.info(f"Writing Tattle item {item_data.itemName} to unit {unit_id}")
                             caller.patcher.dol.data.seek(0xB00 + ((unit_id - 1) * 2))

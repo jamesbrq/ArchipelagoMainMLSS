@@ -1065,7 +1065,7 @@ location_to_unit = {
     78780950: [0xab],  # Tattle: Bonetail -> unit_boss_zonbaba
     78780951: [0x40],  # Tattle: Rawk Hawk -> unit_boss_champion
     78780952: [0x41],  # Tattle: Macho Grubba -> unit_boss_macho_gance
-    78780953: [0x4d],  # Tattle: Doopliss -> unit_boss_rampell
+    78780953: [0x4D, 0x4E, 0x4F],  # Tattle: Doopliss -> unit_boss_rampell
     78780954: [0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62],  # Tattle: Cortez -> unit_boss_cortez
     78780955: [0x6b, 0x6E, 0x6D, 0x6C, 0x6F],  # Tattle: Smorg -> unit_boss_moamoa
     78780956: [0x1c, 0x64, 0x65, 0x66],  # Tattle: X-Naut -> unit_gundan_zako
