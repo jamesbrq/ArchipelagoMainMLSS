@@ -60,9 +60,9 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
         "Boggly Woods Outside Great Tree: FP Plus":
             lambda state: StateLogic.super_boots(state, world.player),
         "Great Tree Entrance: Mystic Egg":
-            lambda state: state.has("Emerald Star", world.player),
+            lambda state: state.can_reach("Great Tree Entrance: Emerald Star", "Location", world.player),
         "Great Tree Red Key Room: Mushroom":
-            lambda state: state.has("Emerald Star", world.player),
+            lambda state: state.can_reach("Great Tree Entrance: Emerald Star", "Location", world.player),
         "Keelhaul Key Grotto Entrance: Wedding Ring":
             lambda state: state.has("Yoshi", world.player),
         "Creepy Steeple Main Hall: Steeple Key":
@@ -528,7 +528,7 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
         "Riverside Station Ultra Boots Room: Elevator Key":
             lambda state: (state.has("Station Key 1", world.player) and state.has("Station Key 2", world.player)
                            and StateLogic.tube_curse(state, world.player) and StateLogic.ultra_boots(state, world.player)
-                           and state.has("Flurrie", world.player)),
+                           and state.has("Flurrie", world.player) and state.has("Yoshi", world.player)),
         "Riverside Station Clockwork Room: Star Piece":
             lambda state: state.has("Station Key 1", world.player) and StateLogic.tube_curse(state, world.player),
         "Riverside Station Clockwork Room: Station Key 2":

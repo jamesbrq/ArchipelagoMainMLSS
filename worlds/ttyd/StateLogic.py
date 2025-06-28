@@ -67,7 +67,7 @@ def excess_express(state, player):
 
 
 def riverside(state, player):
-    return state.has("Vivian", player) and state.has("Autograph", player) and state.has("Ragged Diary", player) and state.has("Blanket", player) and state.has("Vital Paper", player) and state.has("Train Ticket", player)
+    return state.has("Vivian", player) and state.has("Autograph", player) and state.has("Ragged Diary", player) and state.has("Blanket", player) and state.has("Vital Paper", player)
 
 
 def poshley_heights(state, player):
@@ -75,7 +75,7 @@ def poshley_heights(state, player):
 
 
 def fahr_outpost(state, player):
-    return ultra_hammer(state, player) and ((state.has("Yoshi", player) and (state.has("Bobbery", player) or state.has("Paper Curse", player))) or ultra_boots(state, player))
+    return ultra_hammer(state, player) and ((state.can_reach("Rogueport Sewers Westside Ground", "Region", player) and ultra_boots(state, player)) or (state.can_reach("Rogueport Sewers Westside", "Region", player) and state.has("Yoshi", player)))
 
 
 def moon(state, player):

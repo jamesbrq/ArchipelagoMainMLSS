@@ -83,6 +83,13 @@ class FastTravel(Toggle):
     """
     display_name = "Fast Travel"
 
+class AlwaysSucceedConditions(Toggle):
+    """
+    Enable this to make it so the battle condition in fights in the Glitz Pit
+    will always be fulfilled, regardless of their actual fulfillment.
+    """
+    display_name = "Always Succeed Conditions"
+
 class StartingHP(Range):
     """
     How much health you start with.
@@ -170,6 +177,7 @@ class TTYDOptions(PerGameCommonOptions):
     palace_skip: PalaceSkip
     disable_intermissions: DisableIntermissions
     fast_travel: FastTravel
+    succeed_conditions: AlwaysSucceedConditions
     open_westside: OpenWestside
     permanent_peekaboo: PermanentPeekaboo
     full_run_bar: FullRunBar

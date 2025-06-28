@@ -34,6 +34,7 @@ class TTYDPatchExtension(APPatchExtension):
         required_chapters = seed_options.get("required_chapters", None)
         tattlesanity = seed_options.get("tattlesanity", None)
         fast_travel = seed_options.get("fast_travel", None)
+        succeed_conditions = seed_options.get("succeed_conditions", None)
         caller.patcher.dol.data.seek(0x1FF)
         caller.patcher.dol.data.write(name_length.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x200)
@@ -84,7 +85,9 @@ class TTYDPatchExtension(APPatchExtension):
         if fast_travel is not None:
             caller.patcher.dol.data.seek(0x239)
             caller.patcher.dol.data.write(fast_travel.to_bytes(1, "big"))
-
+        if succeed_conditions is not None:
+            caller.patcher.dol.data.seek(0x23A)
+            caller.patcher.dol.data.write(succeed_conditions.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x240)
         caller.patcher.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
@@ -223,7 +226,8 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "full_run_bar": world.options.full_run_bar.value,
         "required_chapters": world.required_chapters,
         "tattlesanity": world.options.tattlesanity.value,
-        "fast_travel": world.options.fast_travel.value
+        "fast_travel": world.options.fast_travel.value,
+        "succeed_conditions": world.options.succeed_conditions.value
     }
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))

@@ -739,8 +739,7 @@ tattlesanity_region: typing.List[LocationData] = [
     LocationData("Tattle: Bald Cleft", 78780926, Rels.dol, []),  # Tattle Log #77
     LocationData("Tattle: Hyper Bald Cleft", 78780927, Rels.dol, []),  # Tattle Log #78
     LocationData("Tattle: Cleft", 78780928, Rels.dol, []),  # Tattle Log #79
-    LocationData("Tattle: Iron Cleft (Red)", 78780929, Rels.dol, []),  # Tattle Log #80
-    LocationData("Tattle: Iron Cleft (Green)", 78780930, Rels.dol, []),  # Tattle Log #81
+    LocationData("Tattle: Iron Cleft", 78780929, Rels.dol, []),  # Tattle Log #80
     LocationData("Tattle: Hyper Cleft", 78780931, Rels.dol, []),  # Tattle Log #82
     LocationData("Tattle: Moon Cleft", 78780932, Rels.dol, []),  # Tattle Log #83
     LocationData("Tattle: Bristle", 78780933, Rels.dol, []),  # Tattle Log #84

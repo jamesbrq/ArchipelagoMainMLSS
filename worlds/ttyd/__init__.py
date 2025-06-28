@@ -6,7 +6,8 @@ from typing import List, Dict, ClassVar, Any
 from settings import UserFilePath, Group
 from BaseClasses import Tutorial, ItemClassification, CollectionState, Item
 from worlds.AutoWorld import WebWorld, World
-from .Data import starting_partners, limit_eight, stars, chapter_items, limited_location_ids, limit_pit
+from .Data import starting_partners, limit_eight, stars, chapter_items, limited_location_ids, limit_pit, \
+    pit_exclusive_tattle_stars_required
 from .Locations import all_locations, location_table, pit, location_id_to_name, TTYDLocation, locationName_to_data, \
     palace, riddle_tower, tattlesanity_region
 from .Options import TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight
@@ -148,7 +149,12 @@ class TTYDWorld(World):
 
 
     def limit_tattle_locations(self):
+        for stars_required, locations in pit_exclusive_tattle_stars_required.items():
+            if stars_required > len(self.required_chapters):
+                self.limited_chapter_locations.update([self.get_location(location) for location in locations])
         for location_name, locations in get_tattle_rules_dict().items():
+            if all([location_id_to_name[location] in self.disabled_locations for location in locations]):
+                self.disabled_locations.add(location_name)
             if location_name in self.disabled_locations:
                 continue
             if self.options.limit_chapter_eight and len(locations) == 0:
@@ -164,8 +170,6 @@ class TTYDWorld(World):
                 if all(self.get_location(location_id_to_name[location]) in self.limited_chapter_locations for location in enabled_locations):
                     self.limited_chapter_locations.add(self.get_location(location_name))
 
-
-
     def create_items(self) -> None:
         # First add in all progression items
         self.items = []
@@ -176,7 +180,7 @@ class TTYDWorld(World):
             test_items[item.itemName] = 0
         required_items = []
         precollected = [item for item in itemList if item in self.multiworld.precollected_items]
-        precollected += item_table[starting_partners[self.options.starting_partner.value - 1]]
+        precollected += [item_table[starting_partners[self.options.starting_partner.value - 1]]]
         added_items = 0
         for chapter in self.limited_chapters:
             self.limited_item_names.update(chapter_items[chapter])
@@ -249,11 +253,11 @@ class TTYDWorld(World):
         if self.pit_items:
             fast_fill(self.multiworld, self.pit_items, [self.multiworld.get_location(location.name, self.player) for location in pit if "Pit of 100 Trials" in location.name])
         limited_state = CollectionState(self.multiworld)
-        _ = [limited_state.collect(item, True) for item in self.multiworld.itempool]
-        _ = [limited_state.collect(location.item, True) for location in self.get_locations() if location.item is not None]
+        _ = [limited_state.collect(item) for item in self.multiworld.itempool]
+        _ = [limited_state.collect(location.item) for location in self.get_locations() if location.item is not None and location.item.name not in stars]
         self.multiworld.random.shuffle(self.limited_items)
         self.multiworld.random.shuffle(list(self.limited_chapter_locations))
-        fill_restrictive(self.multiworld, limited_state, list(self.limited_chapter_locations), self.limited_items, single_player_placement=True, swap=True)
+        fill_restrictive(self.multiworld, limited_state, list(self.limited_chapter_locations), self.limited_items, single_player_placement=True, lock=True, swap=True)
 
     def set_rules(self) -> None:
         set_rules(self)
