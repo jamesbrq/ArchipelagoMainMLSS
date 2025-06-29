@@ -282,7 +282,7 @@ class TTYDWorld(World):
             "limit_chapter_logic": self.options.limit_chapter_logic.value,
             "limit_chapter_eight": self.options.limit_chapter_eight.value,
             "palace_skip": self.options.palace_skip.value,
-            "yoshi_color": self.options.yoshi_color.value - 1,
+            "yoshi_color": self.options.yoshi_color.value,
             "westside": self.options.open_westside.value,
             "tattlesanity": self.options.tattlesanity.value
         }
