@@ -161,7 +161,7 @@ class TTYDWorld(World):
     def limit_tattle_locations(self):
         for stars_required, locations in pit_exclusive_tattle_stars_required.items():
             if stars_required > len(self.required_chapters):
-                self.limited_chapter_locations.update([self.get_location(location) for location in locations])
+                self.limited_chapter_locations.update([self.get_location(location) for location in locations if location not in self.disabled_locations])
         for location_name, locations in get_tattle_rules_dict().items():
             if location_name in self.disabled_locations:
                 continue
