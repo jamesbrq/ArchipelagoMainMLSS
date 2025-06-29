@@ -121,7 +121,7 @@ class TTYDWorld(World):
         if self.options.starting_partner == StartingPartner.option_random_partner:
             self.options.starting_partner.value = self.random.randint(1, 7)
         if self.options.yoshi_color == YoshiColor.option_random_color:
-            self.options.yoshi_color.value = self.random.randint(1, 7)
+            self.options.yoshi_color.value = self.random.randint(0, 6)
         if self.options.tattlesanity:
             extra_disabled = [location.name for name, locations in get_regions_dict().items()
                 if name in self.excluded_regions for location in locations]

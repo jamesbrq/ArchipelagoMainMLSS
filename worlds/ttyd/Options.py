@@ -146,15 +146,15 @@ class YoshiColor(Choice):
     Select the color of your Yoshi partner.
     """
     display_name = "Yoshi Color"
-    option_green = 1
-    option_red = 2
-    option_blue = 3
-    option_orange = 4
-    option_pink = 5
-    option_black = 6
-    option_white = 7
-    option_random_color = 8
-    default = 1
+    option_green = 0
+    option_red = 1
+    option_blue = 2
+    option_orange = 3
+    option_pink = 4
+    option_black = 5
+    option_white = 6
+    option_random_color = 7
+    default = 0
 
 class YoshiName(FreeText):
     """

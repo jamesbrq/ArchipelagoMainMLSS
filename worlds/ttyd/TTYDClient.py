@@ -224,6 +224,7 @@ async def ttyd_sync_task(ctx: TTYDContext):
                             await asyncio.sleep(3)
                             continue
                         ctx.seed_verified = True
+                        logger.info("ROM Seed verified successfully.")
                     if not ctx.save_loaded():
                         await asyncio.sleep(0.5)
                         continue
