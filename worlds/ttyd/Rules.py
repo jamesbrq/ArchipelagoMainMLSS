@@ -1,7 +1,7 @@
 import typing
 from typing import Any
 from worlds.generic.Rules import add_rule
-from . import StateLogic, location_id_to_name
+from . import StateLogic, location_id_to_name, tattlesanity_region
 
 if typing.TYPE_CHECKING:
     from . import TTYDWorld
@@ -13,10 +13,13 @@ def set_rules(world: "TTYDWorld"):
             add_rule(world.multiworld.get_location(location, world.player), rule)
 
 def set_tattle_rules(world: "TTYDWorld"):
+    for location in tattlesanity_region:
+        if location.name in world.disabled_locations:
+            continue
+        add_rule(world.get_location(location.name), lambda state: state.has("Goombella", world.player))
     for location_name, locations in get_tattle_rules_dict().items():
         if location_name in world.disabled_locations:
             continue
-        add_rule(world.get_location(location_name), lambda state: state.has("Goombella", world.player))
         if len(locations) == 0:
             # Require access to Shadow Queen
             extra_condition = lambda state: state.can_reach("Shadow Queen", "Location", world.player)
@@ -794,13 +797,13 @@ def get_tattle_rules_dict() -> dict[str, typing.List[int]]:
         "Tattle: Hyper Bald Cleft": [78780267],
         "Tattle: Bob-omb": [78780267, 78780640],
         "Tattle: Swooper": [78780287, 78780436],
-        "Tattle: Iron Cleft (Red)": [78780267],
-        "Tattle: Iron Cleft (Green)": [78780267],
+        "Tattle: Iron Cleft": [78780267],
         "Tattle: Red Spike Top": [78780296],
         "Tattle: Shady Koopa": [78780296, 78780641],
         "Tattle: Shady Paratroopa": [78780296],
         "Tattle: Green Fuzzy": [78780296, 78780470],
         "Tattle: Flower Fuzzy": [78780296, 78780470],
+        "Tattle: Magikoopa": [78780511],
         "Tattle: Red Magikoopa": [78780296],
         "Tattle: White Magikoopa": [78780296],
         "Tattle: Green Magikoopa": [78780296],
@@ -809,6 +812,7 @@ def get_tattle_rules_dict() -> dict[str, typing.List[int]]:
         "Tattle: Fire Bro": [78780296],
         "Tattle: Dark Craw": [78780296, 78780644],
         "Tattle: Red Chomp": [78780296, 78780643],
+        "Tattle: Koopatrol": [78780511],
         "Tattle: Dark Koopatrol": [78780296, 78780645],
         "Tattle: Rawk Hawk": [78780295],
         "Tattle: Macho Grubba": [78780287],

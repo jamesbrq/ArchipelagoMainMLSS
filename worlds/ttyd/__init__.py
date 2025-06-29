@@ -12,7 +12,7 @@ from .Locations import all_locations, location_table, pit, location_id_to_name, 
     palace, riddle_tower, tattlesanity_region
 from .Options import TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight
 from .Items import TTYDItem, itemList, item_frequencies, item_table, ItemData
-from .Regions import create_regions, connect_regions
+from .Regions import create_regions, connect_regions, get_regions_dict
 from .Rom import TTYDProcedurePatch, write_files
 from .Rules import set_rules, get_tattle_rules_dict, set_tattle_rules
 from worlds.LauncherComponents import Component, SuffixIdentifier, Type, components, launch_subprocess
@@ -122,6 +122,16 @@ class TTYDWorld(World):
             self.options.starting_partner.value = self.random.randint(1, 7)
         if self.options.yoshi_color == YoshiColor.option_random_color:
             self.options.yoshi_color.value = self.random.randint(1, 7)
+        if self.options.tattlesanity:
+            extra_disabled = [location.name for name, locations in get_regions_dict().items()
+                if name in self.excluded_regions for location in locations]
+            for location_name, locations in get_tattle_rules_dict().items():
+                if len(locations) == 0:
+                    if "Palace of Shadow (Post-Riddle Tower)" in self.excluded_regions:
+                        self.disabled_locations.update([location_name])
+                else:
+                    if all([location_id_to_name[location] in self.disabled_locations or location_id_to_name[location] in extra_disabled for location in locations]):
+                        self.disabled_locations.update([location_name])
 
     def create_regions(self) -> None:
         create_regions(self)
@@ -153,8 +163,6 @@ class TTYDWorld(World):
             if stars_required > len(self.required_chapters):
                 self.limited_chapter_locations.update([self.get_location(location) for location in locations])
         for location_name, locations in get_tattle_rules_dict().items():
-            if all([location_id_to_name[location] in self.disabled_locations for location in locations]):
-                self.disabled_locations.add(location_name)
             if location_name in self.disabled_locations:
                 continue
             if self.options.limit_chapter_eight and len(locations) == 0:
@@ -167,6 +175,9 @@ class TTYDWorld(World):
                 if all(location in limit_pit for location in enabled_locations):
                     self.limited_chapter_locations.add(self.get_location(location_name))
             if self.options.limit_chapter_logic:
+                if len(locations) == 1 and locations[0] == 78780511:
+                    if 5 in self.limited_chapters:
+                        self.limited_chapter_locations.add(self.get_location(location_name))
                 if all(self.get_location(location_id_to_name[location]) in self.limited_chapter_locations for location in enabled_locations):
                     self.limited_chapter_locations.add(self.get_location(location_name))
 

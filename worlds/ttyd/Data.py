@@ -703,8 +703,7 @@ location_gsw_info = {
     78780926: (GSWType.GSWF, 4551, 1),   # Tattle: Bald Cleft
     78780927: (GSWType.GSWF, 4552, 1),   # Tattle: Hyper Bald Cleft
     78780928: (GSWType.GSWF, 4553, 1),   # Tattle: Cleft
-    78780929: (GSWType.GSWF, 4554, 1),   # Tattle: Iron Cleft (Red)
-    78780930: (GSWType.GSWF, 4555, 1),   # Tattle: Iron Cleft (Green)
+    78780929: (GSWType.GSWF, 4554, 1),   # Tattle: Iron Cleft
     78780931: (GSWType.GSWF, 4556, 1),   # Tattle: Hyper Cleft
     78780932: (GSWType.GSWF, 4557, 1),   # Tattle: Moon Cleft
     78780933: (GSWType.GSWF, 4558, 1),   # Tattle: Bristle
