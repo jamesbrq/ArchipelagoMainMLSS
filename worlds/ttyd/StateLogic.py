@@ -67,7 +67,7 @@ def excess_express(state, player):
 
 
 def riverside(state, player):
-    return state.has("Vivian", player) and state.has("Autograph", player) and state.has("Ragged Diary", player) and state.has("Blanket", player) and state.has("Vital Paper", player)
+    return state.has("Vivian", player) and state.has("Autograph", player) and state.has("Ragged Diary", player) and state.has("Blanket", player) and state.has("Vital Paper", player) and state.has("Train Ticket", player)
 
 
 def poshley_heights(state, player):
