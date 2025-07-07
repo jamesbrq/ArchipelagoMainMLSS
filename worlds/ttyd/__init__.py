@@ -88,6 +88,7 @@ class TTYDWorld(World):
     limited_chapter_locations: set
     limited_item_names: set
     limited_items: List[TTYDItem]
+    limited_state: CollectionState = None
 
     def generate_early(self) -> None:
         self.disabled_locations = set()
@@ -186,9 +187,7 @@ class TTYDWorld(World):
         self.items = []
         self.pit_items = []
         self.limited_items = []
-        test_items = {}
-        for item in itemList:
-            test_items[item.itemName] = 0
+        self.limited_state = CollectionState(self.multiworld)
         required_items = []
         precollected = [item for item in itemList if item in self.multiworld.precollected_items]
         precollected += [item_table[starting_partners[self.options.starting_partner.value - 1]]]
@@ -202,14 +201,14 @@ class TTYDWorld(World):
         for itemName in required_items:
             if itemName in ["Star Key", "Palace Key", "Palace Key (Riddle Tower)"] and self.options.palace_skip:
                 continue
+            item = self.create_item(itemName)
+            self.limited_state.collect(item)
             if itemName in self.limited_item_names:
                 if itemName not in ["Star Key", "Palace Key", "Palace Key (Riddle Tower)"]:
-                    self.limited_items.append(self.create_item(itemName))
-                    test_items[itemName] += 1
+                    self.limited_items.append(item)
                     added_items += 1
             else:
-                self.multiworld.itempool.append(self.create_item(itemName))
-                test_items[itemName] += 1
+                self.multiworld.itempool.append(item)
                 added_items += 1
 
         useful_items = []
@@ -218,7 +217,6 @@ class TTYDWorld(World):
             useful_items += [item.itemName for _ in range(freq)]
         for itemName in useful_items:
             self.items.append(self.create_item(itemName))
-            test_items[itemName] += 1
             added_items += 1
 
 
@@ -236,7 +234,6 @@ class TTYDWorld(World):
         remaining = len(self.multiworld.get_unfilled_locations(self.player)) - added_items
         for i in range(remaining):
             filler_item_name = self.multiworld.random.choice(filler_items)
-            test_items[filler_item_name] += 1
             item = self.create_item(filler_item_name)
             self.items.append(item)
             filler_items.remove(filler_item_name)
@@ -255,20 +252,12 @@ class TTYDWorld(World):
         for item in self.items:
             self.multiworld.itempool.append(item)
 
-        for name, item in test_items.items():
-            if item_table[name].progression == ItemClassification.progression:
-                if item > item_frequencies.get(name, 1):
-                    raise Exception(f"Item {name} is in the item pool {item} times, but should only be in {item_frequencies.get(name, 1)} times.")
-
     def pre_fill(self) -> None:
         if self.pit_items:
             fast_fill(self.multiworld, self.pit_items, [self.multiworld.get_location(location.name, self.player) for location in pit if "Pit of 100 Trials" in location.name])
-        limited_state = CollectionState(self.multiworld)
-        _ = [limited_state.collect(item) for item in self.multiworld.itempool]
-        _ = [limited_state.collect(location.item) for location in self.get_locations() if location.item is not None and location.item.name not in stars]
         self.multiworld.random.shuffle(self.limited_items)
         self.multiworld.random.shuffle(list(self.limited_chapter_locations))
-        fill_restrictive(self.multiworld, limited_state, list(self.limited_chapter_locations), self.limited_items, single_player_placement=True, lock=True, swap=True)
+        fill_restrictive(self.multiworld, self.limited_state, list(self.limited_chapter_locations), self.limited_items, single_player_placement=True, swap=True)
 
     def set_rules(self) -> None:
         set_rules(self)
