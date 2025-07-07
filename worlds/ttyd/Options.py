@@ -15,7 +15,7 @@ class PitItems(Choice):
     """
     This determines what type of items are in the Pit of 100 Trials.
     vanilla: The locations contain the same items as the original game, and the locations themselves will not be created.
-    filler: The locations contain random filler items.
+    filler: The locations will be marked as excluded.
     all: The locations can contain any item.
     """
     display_name = "Pit Items"

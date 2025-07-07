@@ -82,7 +82,6 @@ class TTYDWorld(World):
     disabled_locations: set
     excluded_regions: set
     items: List[TTYDItem]
-    pit_items: List[TTYDItem]
     required_chapters: List[int]
     limited_chapters: List[int]
     limited_chapter_locations: set
@@ -94,7 +93,6 @@ class TTYDWorld(World):
         self.disabled_locations = set()
         self.excluded_regions = set()
         self.items = []
-        self.pit_items = []
         self.required_chapters = []
         self.limited_chapters = []
         self.limited_chapter_locations = set()
@@ -113,6 +111,8 @@ class TTYDWorld(World):
             self.limited_chapters += [8]
         if self.options.pit_items == PitItems.option_vanilla:
             self.disabled_locations.update(location.name for location in pit if "Pit of 100 Trials" in location.name)
+        elif self.options.pit_items == PitItems.option_filler:
+            self.options.exclude_locations.value.update(location.name for location in pit if "Pit of 100 Trials" in location.name)
         if self.options.palace_skip:
             self.excluded_regions.update(["Palace of Shadow", "Palace of Shadow (Post-Riddle Tower)"])
         if not self.options.tattlesanity:
@@ -185,7 +185,6 @@ class TTYDWorld(World):
     def create_items(self) -> None:
         # First add in all progression items
         self.items = []
-        self.pit_items = []
         self.limited_items = []
         self.limited_state = CollectionState(self.multiworld)
         required_items = []
@@ -238,12 +237,6 @@ class TTYDWorld(World):
             self.items.append(item)
             filler_items.remove(filler_item_name)
 
-
-        if self.options.pit_items == PitItems.option_filler:
-            self.multiworld.random.shuffle(self.items)
-            for i in range(10):
-                self.pit_items.append(self.items.pop())
-
         if len(self.limited_chapter_locations) > 0:
             self.multiworld.random.shuffle(self.items)
             for _ in range(len(self.limited_chapter_locations) - len(self.limited_items)):
@@ -253,8 +246,6 @@ class TTYDWorld(World):
             self.multiworld.itempool.append(item)
 
     def pre_fill(self) -> None:
-        if self.pit_items:
-            fast_fill(self.multiworld, self.pit_items, [self.multiworld.get_location(location.name, self.player) for location in pit if "Pit of 100 Trials" in location.name])
         self.multiworld.random.shuffle(self.limited_items)
         self.multiworld.random.shuffle(list(self.limited_chapter_locations))
         fill_restrictive(self.multiworld, self.limited_state, list(self.limited_chapter_locations), self.limited_items, single_player_placement=True, swap=True)
