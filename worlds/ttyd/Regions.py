@@ -156,6 +156,13 @@ def connect_regions(world: "TTYDWorld"):
             continue
 
 
+def register_indirect_connections(world: "TTYDWorld"):
+    world.multiworld.register_indirect_condition(world.get_region("Rogueport Sewers Westside Ground"),
+                                                 world.get_entrance("Fahr Outpost"))
+    world.multiworld.register_indirect_condition(world.get_region("Rogueport Sewers Westside"),
+                                                 world.get_entrance("Fahr Outpost"))
+
+
 def create_region(world: "TTYDWorld", name: str, locations: list[LocationData]):
     """Create a region with the given name and locations."""
     reg = Region(name, world.player, world.multiworld)

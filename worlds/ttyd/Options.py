@@ -2,14 +2,40 @@ from Options import Range, StartInventoryPool, PerGameCommonOptions, Choice, Fre
 from dataclasses import dataclass
 
 
-class ChapterClears(Range):
+class Goal(Choice):
     """
-    This determines how many chapter clears are required to enter the Palace of Shadow.
+    This determines the goal of the game.
+    shadow_queen: Defeat the Shadow Queen.
+    crystal_stars: Collect a specified amount of Crystal Stars.
+    bonetail: Defeat Bonetail.
     """
-    display_name = "Required Chapter Clears"
+    display_name = "Goal"
+    option_shadow_queen = 0
+    option_crystal_stars = 1
+    option_bonetail = 2
+    default = 0
+
+
+class GoalStars(Range):
+    """
+    This determines how many crystal stars are required for the goal option crystal_stars.
+    This is only used if the goal option is set to crystal_stars.
+    """
+    display_name = "Goal Crystal Stars"
     range_start = 0
     range_end = 7
     default = 7
+
+
+class PalaceStars(Range):
+    """
+    This determines how many Crystal Stars are required to enter the Palace of Shadow.
+    """
+    display_name = "Palace Crystal Stars"
+    range_start = 0
+    range_end = 7
+    default = 7
+
 
 class PitItems(Choice):
     """
@@ -24,12 +50,14 @@ class PitItems(Choice):
     option_all = 2
     default = 1
 
+
 class TattleSanityOption(Toggle):
     """
     Creates a location for every enemy being tattled.
     All key items can possibly be placed in these locations.
     """
     display_name = "Tattlesanity"
+
 
 class LimitChapterLogic(Toggle):
     """
@@ -38,6 +66,7 @@ class LimitChapterLogic(Toggle):
     """
     display_name = "Limit Chapter Logic"
 
+
 class LimitChapterEight(Toggle):
     """
     All chapter 8 keys items will be placed in vanilla locations.
@@ -45,11 +74,13 @@ class LimitChapterEight(Toggle):
     """
     display_name = "Limit Chapter 8"
 
+
 class PalaceSkip(Toggle):
     """
     Entering the Thousand-Year door will take you straight to Grodus.
     """
     display_name = "Palace Skip"
+
 
 class OpenWestside(Toggle):
     """
@@ -57,17 +88,20 @@ class OpenWestside(Toggle):
     """
     display_name = "Open West Side"
 
+
 class PermanentPeekaboo(Toggle):
     """
     The Peekaboo badge is always active, even when not equipped.
     """
     display_name = "Permanent Peekaboo"
 
+
 class FullRunBar(Toggle):
     """
     The run bar in battle always starts at 100 percent.
     """
     display_name = "Full Run Bar"
+
 
 class DisableIntermissions(Toggle):
     """
@@ -76,6 +110,7 @@ class DisableIntermissions(Toggle):
     """
     display_name = "Disable Intermissions"
 
+
 class FastTravel(Toggle):
     """
     Enable this to gain the ability to warp to any area you have visited from the map
@@ -83,12 +118,14 @@ class FastTravel(Toggle):
     """
     display_name = "Fast Travel"
 
+
 class AlwaysSucceedConditions(Toggle):
     """
     Enable this to make it so the battle condition in fights in the Glitz Pit
     will always be fulfilled, regardless of their actual fulfillment.
     """
     display_name = "Always Succeed Conditions"
+
 
 class StartingHP(Range):
     """
@@ -99,6 +136,7 @@ class StartingHP(Range):
     range_end = 100
     default = 10
 
+
 class StartingFP(Range):
     """
     How much flower points you start with.
@@ -107,6 +145,7 @@ class StartingFP(Range):
     range_start = 0
     range_end = 100
     default = 5
+
 
 class StartingBP(Range):
     """
@@ -117,6 +156,7 @@ class StartingBP(Range):
     range_end = 99
     default = 3
 
+
 class StartingCoins(Range):
     """
     How many coins you start with.
@@ -125,6 +165,7 @@ class StartingCoins(Range):
     range_start = 0
     range_end = 999
     default = 100
+
 
 class StartingPartner(Choice):
     """
@@ -141,6 +182,7 @@ class StartingPartner(Choice):
     option_random_partner = 8
     default = 1
 
+
 class YoshiColor(Choice):
     """
     Select the color of your Yoshi partner.
@@ -156,6 +198,7 @@ class YoshiColor(Choice):
     option_random_color = 7
     default = 0
 
+
 class YoshiName(FreeText):
     """
     Set the name of your Yoshi partner.
@@ -165,11 +208,12 @@ class YoshiName(FreeText):
     default = "Yoshi"
 
 
-
 @dataclass
 class TTYDOptions(PerGameCommonOptions):
     start_inventory_from_pool: StartInventoryPool
-    chapter_clears: ChapterClears
+    goal: Goal
+    goal_stars: GoalStars
+    palace_stars: PalaceStars
     tattlesanity: TattleSanityOption
     pit_items: PitItems
     limit_chapter_logic: LimitChapterLogic

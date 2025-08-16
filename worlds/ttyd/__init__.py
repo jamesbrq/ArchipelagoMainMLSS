@@ -10,7 +10,7 @@ from .Data import starting_partners, limit_eight, stars, chapter_items, limited_
     pit_exclusive_tattle_stars_required
 from .Locations import all_locations, location_table, pit, location_id_to_name, TTYDLocation, locationName_to_data, \
     palace, riddle_tower, tattlesanity_region
-from .Options import TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight
+from .Options import TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight, Goal
 from .Items import TTYDItem, itemList, item_frequencies, item_table, ItemData
 from .Regions import create_regions, connect_regions, get_regions_dict
 from .Rom import TTYDProcedurePatch, write_files
@@ -103,7 +103,7 @@ class TTYDWorld(World):
                             f"Disabling the Limit Chapter 8 option due to incompatibility.")
             self.options.limit_chapter_eight.value = LimitChapterEight.option_false
         chapters = [i for i in range(1, 8)]
-        for i in range(self.options.chapter_clears.value):
+        for i in range((self.options.palace_stars.value if self.options.goal != Goal.option_crystal_stars else self.options.goal_stars.value)):
             self.required_chapters.append(chapters.pop(self.multiworld.random.randint(0, len(chapters) - 1)))
         if self.options.limit_chapter_logic:
             self.limited_chapters += chapters
@@ -137,6 +137,7 @@ class TTYDWorld(World):
     def create_regions(self) -> None:
         create_regions(self)
         connect_regions(self)
+        register_indirect_connections(self)
         for chapter in self.limited_chapters:
             self.limited_chapter_locations.update([self.get_location(location_id_to_name[location]) for location in limited_location_ids[chapter - 1]])
         if self.options.tattlesanity:
@@ -253,11 +254,18 @@ class TTYDWorld(World):
     def set_rules(self) -> None:
         set_rules(self)
         set_tattle_rules(self)
-        self.multiworld.completion_condition[self.player] = lambda state: state.has("Victory", self.player)
+        if self.options.goal == Goal.option_shadow_queen:
+            self.multiworld.completion_condition[self.player] = lambda state: state.has("Victory", self.player)
+        elif self.options.goal == Goal.option_crystal_stars:
+            self.multiworld.completion_condition[self.player] = lambda state: state.has("stars", self.player, self.options.goal_stars.value)
+        else:
+            self.multiworld.completion_condition[self.player] = lambda state: state.can_reach("Pit of 100 Trials Floor 100: Return Postage", "Location", self.player)
 
     def fill_slot_data(self) -> Dict[str, Any]:
         return {
-            "chapter_clears": self.options.chapter_clears.value,
+            "goal": self.options.goal.value,
+            "goal_stars": self.options.goal_stars.value,
+            "chapter_clears": self.options.palace_stars.value, # TODO: Update name to palace_stars once ready to deprecate
             "pit_items": self.options.pit_items.value,
             "limit_chapter_logic": self.options.limit_chapter_logic.value,
             "limit_chapter_eight": self.options.limit_chapter_eight.value,
