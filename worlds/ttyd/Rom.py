@@ -214,7 +214,7 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "yoshi_name": world.options.yoshi_name.value,
         "yoshi_color": world.options.yoshi_color.value,
         "starting_partner": world.options.starting_partner.value,
-        "chapter_clears": world.options.chapter_clears.value,
+        "chapter_clears": world.options.palace_stars.value, # TODO: rename this option
         "starting_coins": world.options.starting_coins.value,
         "palace_skip": world.options.palace_skip.value,
         "westside": world.options.open_westside.value,

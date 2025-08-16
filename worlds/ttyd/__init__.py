@@ -12,7 +12,7 @@ from .Locations import all_locations, location_table, pit, location_id_to_name, 
     palace, riddle_tower, tattlesanity_region
 from .Options import TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight, Goal
 from .Items import TTYDItem, itemList, item_frequencies, item_table, ItemData
-from .Regions import create_regions, connect_regions, get_regions_dict
+from .Regions import create_regions, connect_regions, get_regions_dict, register_indirect_connections
 from .Rom import TTYDProcedurePatch, write_files
 from .Rules import set_rules, get_tattle_rules_dict, set_tattle_rules
 from worlds.LauncherComponents import Component, SuffixIdentifier, Type, components, launch_subprocess
@@ -272,7 +272,8 @@ class TTYDWorld(World):
             "palace_skip": self.options.palace_skip.value,
             "yoshi_color": self.options.yoshi_color.value,
             "westside": self.options.open_westside.value,
-            "tattlesanity": self.options.tattlesanity.value
+            "tattlesanity": self.options.tattlesanity.value,
+            "disable_intermissions": self.options.disable_intermissions.value,
         }
 
     def create_item(self, name: str) -> TTYDItem:
