@@ -102,6 +102,10 @@ class TTYDWorld(World):
             logging.warning(f"{self.player_name}'s has enabled both Palace Skip and Limit Chapter 8. "
                             f"Disabling the Limit Chapter 8 option due to incompatibility.")
             self.options.limit_chapter_eight.value = LimitChapterEight.option_false
+        if self.options.goal == Goal.option_crystal_stars and self.options.palace_stars > self.options.goal_stars:
+            logging.warning(f"{self.player_name}'s has more palace stars required than goal stars. "
+                            f"Reducing number of stars required to enter the palace of shadow for accessibility.")
+            self.options.palace_stars.value = self.options.goal_stars.value
         chapters = [i for i in range(1, 8)]
         for i in range((self.options.palace_stars.value if self.options.goal != Goal.option_crystal_stars else self.options.goal_stars.value)):
             self.required_chapters.append(chapters.pop(self.multiworld.random.randint(0, len(chapters) - 1)))
@@ -117,6 +121,8 @@ class TTYDWorld(World):
             self.excluded_regions.update(["Palace of Shadow", "Palace of Shadow (Post-Riddle Tower)"])
         if not self.options.tattlesanity:
             self.excluded_regions.update(["Tattlesanity"])
+        if self.options.goal != Goal.option_shadow_queen:
+            self.excluded_regions.update(["Shadow Queen"])
         if self.options.tattlesanity and self.options.disable_intermissions:
             self.disabled_locations.update(["Tattle: Lord Crump"])
         if self.options.starting_partner == StartingPartner.option_random_partner:
@@ -150,7 +156,8 @@ class TTYDWorld(World):
         self.lock_item("Pirate's Grotto Cortez' Hoard: Sapphire Star", "Sapphire Star")
         self.lock_item("Poshley Heights Sanctum Altar: Garnet Star", "Garnet Star")
         self.lock_item("X-Naut Fortress Boss Room: Crystal Star", "Crystal Star")
-        self.lock_item("Shadow Queen", "Victory")
+        if self.options.goal == Goal.option_shadow_queen:
+            self.lock_item("Shadow Queen", "Victory")
         if self.options.limit_chapter_eight:
             for location in [location for location in palace + riddle_tower if "Palace Key" in location.name]:
                 if "Palace Key (Riddle Tower)" in location.name:
