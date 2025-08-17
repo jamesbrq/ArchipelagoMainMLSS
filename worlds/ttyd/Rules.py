@@ -1,7 +1,9 @@
 import typing
 from typing import Any
 from worlds.generic.Rules import add_rule
-from . import StateLogic, location_id_to_name, tattlesanity_region
+from . import StateLogic, location_id_to_name, tattlesanity_region, Goal, PitItems, limit_pit, \
+    pit_exclusive_tattle_stars_required
+from .Options import PalaceSkip
 
 if typing.TYPE_CHECKING:
     from . import TTYDWorld
@@ -22,15 +24,24 @@ def set_tattle_rules(world: "TTYDWorld"):
             continue
         if len(locations) == 0:
             # Require access to Shadow Queen
-            extra_condition = lambda state: state.can_reach("Shadow Queen", "Location", world.player)
+            if world.options.palace_skip == PalaceSkip.option_true and world.options.goal != Goal.option_shadow_queen:
+                extra_condition = lambda state: state.has("stars", world.player, world.options.palace_stars)
+            elif world.options.goal == Goal.option_shadow_queen:
+                extra_condition = lambda state: state.can_reach("Shadow Queen", "Location", world.player)
+            else:
+                extra_condition = lambda state: state.can_reach("Palace of Shadow Final Staircase: Ultra Shroom", "Location", world.player)
         else:
             # Require access to any of the listed locations
+            if world.options.pit_items != PitItems.option_all and location_name not in pit_exclusive_tattle_stars_required:
+                locations = [loc for loc in locations if loc not in limit_pit]
+                if len(locations) == 0:
+                    continue
             valid_locations = [
                 location_id_to_name[loc] for loc in locations
                 if location_id_to_name[loc] not in world.disabled_locations
             ]
-            if "Bowser" in location_name:
-                valid_locations.append("Shadow Queen")
+            if len(valid_locations) == 0:
+                continue
             extra_condition = lambda state, locs=valid_locations: any(
                 state.can_reach(loc, "Location", world.player) for loc in locs
             )
@@ -861,7 +872,7 @@ def get_tattle_rules_dict() -> dict[str, typing.List[int]]:
         "Tattle: Sir Grodus": [],
         "Tattle: Grodus X": [],
         "Tattle: Kammy Koopa": [],
-        "Tattle: Bowser": [78780296],
+        "Tattle: Bowser": [],
         "Tattle: Shadow Queen": [],
         "Tattle: Gloomba": [78780638],
         "Tattle: Paragloomba": [78780639],

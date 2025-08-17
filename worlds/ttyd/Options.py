@@ -82,6 +82,14 @@ class PalaceSkip(Toggle):
     display_name = "Palace Skip"
 
 
+class ShadowSkip(Toggle):
+    """
+    Skips most of the shadow queens cutscenes.
+    This does not change any of the fights.
+    """
+    display_name = "Shadow Queen Cutscene Skip"
+
+
 class OpenWestside(Toggle):
     """
     Rogueport Westside is open from the start.
@@ -219,6 +227,7 @@ class TTYDOptions(PerGameCommonOptions):
     limit_chapter_logic: LimitChapterLogic
     limit_chapter_eight: LimitChapterEight
     palace_skip: PalaceSkip
+    shadow_skip: ShadowSkip
     disable_intermissions: DisableIntermissions
     fast_travel: FastTravel
     succeed_conditions: AlwaysSucceedConditions
