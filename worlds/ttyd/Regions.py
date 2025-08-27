@@ -3,7 +3,7 @@ import typing
 from BaseClasses import Region
 from .Locations import (TTYDLocation, rogueport, sewers, sewers_westside, sewers_westside_ground, petal_left,
                         petal_right, hooktails_castle, boggly_woods, great_tree, glitzville, twilight_trail,
-                        twilight_town, creepy_steeple, keelhaul_key, pirates_grotto, excess_express, riverside,
+                        twilight_town_region, creepy_steeple, keelhaul_key, pirates_grotto, excess_express, riverside,
                         poshley_heights, fahr_outpost, xnaut_fortress, palace, pit, rogueport_westside, riddle_tower,
                         shadow_queen, LocationData, tattlesanity_region)
 from . import StateLogic
@@ -28,7 +28,7 @@ def get_regions_dict() -> dict[str, list[LocationData]]:
         "Boggly Woods": boggly_woods,
         "Great Tree": great_tree,
         "Glitzville": glitzville,
-        "Twilight Town": twilight_town,
+        "Twilight Town": twilight_town_region,
         "Twilight Trail": twilight_trail,
         "Creepy Steeple": creepy_steeple,
         "Keelhaul Key": keelhaul_key,
@@ -84,7 +84,7 @@ def get_region_connections_dict(world: "TTYDWorld") -> dict[tuple[str, str], typ
         ("Rogueport", "Keelhaul Key"):
             lambda state: StateLogic.keelhaul_key(state, world.player),
         ("Keelhaul Key", "Pirate's Grotto"):
-            lambda state: StateLogic.pirates_grottos(state, world.player),
+            lambda state: StateLogic.pirates_grotto(state, world.player),
         ("Rogueport", "Rogueport (Westside)"):
             lambda state: StateLogic.westside(state, world.player),
         ("Rogueport (Westside)", "Glitzville"):

@@ -361,7 +361,7 @@ glitzville: typing.List[LocationData] = [
     LocationData("Glitzville Storage Back Room: Star Piece", 78780299, Rels.tou, [0x3F3DC])
 ]
 
-twilight_town: typing.List[LocationData] = [
+twilight_town_region: typing.List[LocationData] = [
     LocationData("Twilight Town Leftside: Coin", 78780300, Rels.usu, [0xBC7C]),
     LocationData("Twilight Town Leftside: Peachy Peach", 78780301, Rels.usu, [0xAEF8]),
     LocationData("Twilight Town Leftside: Star Piece 1", 78780302, Rels.usu, [0xBC18]),
@@ -791,7 +791,7 @@ shadow_queen: typing.List[LocationData] = [
 
 all_locations: typing.List[LocationData] = (rogueport + rogueport_westside + sewers + sewers_westside + sewers_westside_ground +
                                             petal_left + petal_right + hooktails_castle + boggly_woods +
-                                            great_tree + glitzville + twilight_town + twilight_trail + creepy_steeple +
+                                            great_tree + glitzville + twilight_town_region + twilight_trail + creepy_steeple +
                                             keelhaul_key + pirates_grotto + excess_express + riverside + poshley_heights +
                                             fahr_outpost + xnaut_fortress + palace + riddle_tower + pit + shadow_queen + tattlesanity_region)
 

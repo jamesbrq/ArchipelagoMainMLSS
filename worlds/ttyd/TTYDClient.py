@@ -244,7 +244,7 @@ async def ttyd_sync_task(ctx: TTYDContext):
                         if not ctx.finished_game and gsw_check(1708) >= 18:
                             await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
                     elif ctx.slot_data["goal"] == 1: # Crystal Stars
-                        if not ctx.finished_game and dolphin.read_byte(0x8000323A) >= ctx.slot_data["goal_stars"]:
+                        if not ctx.finished_game and dolphin.read_byte(0x8000323B) >= ctx.slot_data["goal_stars"]:
                             await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
                     else:
                         if not ctx.finished_game and gswf_check(5085):

@@ -1,4 +1,4 @@
-from Options import Range, StartInventoryPool, PerGameCommonOptions, Choice, FreeText, TextChoice, Toggle
+from Options import Range, StartInventoryPool, PerGameCommonOptions, Choice, FreeText, Toggle
 from dataclasses import dataclass
 
 
@@ -82,12 +82,12 @@ class PalaceSkip(Toggle):
     display_name = "Palace Skip"
 
 
-class ShadowSkip(Toggle):
+class CutsceneSkip(Toggle):
     """
-    Skips most of the shadow queens cutscenes.
-    This does not change any of the fights.
+    Skips some of the longer cutscenes in the game,
+    such as the Shadow Queen cutscene, Fahr Outpost Cannon etc.
     """
-    display_name = "Shadow Queen Cutscene Skip"
+    display_name = "Skip Cutscenes"
 
 
 class OpenWestside(Toggle):
@@ -227,7 +227,7 @@ class TTYDOptions(PerGameCommonOptions):
     limit_chapter_logic: LimitChapterLogic
     limit_chapter_eight: LimitChapterEight
     palace_skip: PalaceSkip
-    shadow_skip: ShadowSkip
+    cutscene_skip: CutsceneSkip
     disable_intermissions: DisableIntermissions
     fast_travel: FastTravel
     succeed_conditions: AlwaysSucceedConditions
