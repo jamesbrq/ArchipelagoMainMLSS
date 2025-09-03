@@ -123,6 +123,8 @@ class TTYDWorld(World):
             self.excluded_regions.update(["Tattlesanity"])
         if self.options.goal != Goal.option_shadow_queen:
             self.excluded_regions.update(["Shadow Queen"])
+            if self.options.tattlesanity:
+                self.disabled_locations.update(["Tattle: Shadow Queen"])
         if self.options.tattlesanity and self.options.disable_intermissions:
             self.disabled_locations.update(["Tattle: Lord Crump"])
         if self.options.starting_partner == StartingPartner.option_random_partner:
