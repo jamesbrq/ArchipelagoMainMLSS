@@ -36,6 +36,8 @@ class TTYDPatchExtension(APPatchExtension):
         fast_travel = seed_options.get("fast_travel", None)
         succeed_conditions = seed_options.get("succeed_conditions", None)
         cutscene_skip = seed_options.get("cutscene_skip", None)
+        experience_multiplier = seed_options.get("experience_multiplier", 1)
+        starting_level = seed_options.get("starting_level", 1)
         caller.patcher.dol.data.seek(0x1FF)
         caller.patcher.dol.data.write(name_length.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x200)
@@ -92,6 +94,10 @@ class TTYDPatchExtension(APPatchExtension):
         if cutscene_skip is not None:
             caller.patcher.dol.data.seek(0x23C)
             caller.patcher.dol.data.write(cutscene_skip.to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x23D)
+        caller.patcher.dol.data.write(experience_multiplier.to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x23E)
+        caller.patcher.dol.data.write(starting_level.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x240)
         caller.patcher.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
@@ -232,7 +238,9 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "tattlesanity": world.options.tattlesanity.value,
         "fast_travel": world.options.fast_travel.value,
         "succeed_conditions": world.options.succeed_conditions.value,
-        "cutscene_skip": world.options.cutscene_skip.value
+        "cutscene_skip": world.options.cutscene_skip.value,
+        "experience_multiplier": world.options.experience_multiplier.value,
+        "starting_level": world.options.starting_level.value
     }
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))

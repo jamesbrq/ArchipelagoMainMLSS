@@ -188,6 +188,7 @@ itemList: typing.List[ItemData] = [
     ItemData(77772167, "Simplifier", ItemClassification.filler),
     ItemData(77772168, "Skull Gem", ItemClassification.progression),
     ItemData(77772169, "Sleepy Sheep", ItemClassification.filler),
+    ItemData(77772219, "Sleepy Stomp", ItemClassification.filler),
     ItemData(77772170, "Slow Go", ItemClassification.filler),
     ItemData(77772171, "Slow Shroom", ItemClassification.filler),
     ItemData(77772172, "Soft Stomp", ItemClassification.filler),

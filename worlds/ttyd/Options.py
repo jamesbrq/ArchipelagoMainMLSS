@@ -135,6 +135,16 @@ class AlwaysSucceedConditions(Toggle):
     display_name = "Always Succeed Conditions"
 
 
+class ExperienceMultiplier(Range):
+    """
+    Multiplies the experience you gain from battles.
+    """
+    display_name = "Experience Multiplier"
+    range_start = 0
+    range_end = 10
+    default = 1
+
+
 class StartingHP(Range):
     """
     How much health you start with.
@@ -163,6 +173,16 @@ class StartingBP(Range):
     range_start = 0
     range_end = 99
     default = 3
+
+
+class StartingLevel(Range):
+    """
+    What level you start at.
+    """
+    display_name = "Starting Level"
+    range_start = 1
+    range_end = 99
+    default = 1
 
 
 class StartingCoins(Range):
@@ -234,10 +254,12 @@ class TTYDOptions(PerGameCommonOptions):
     open_westside: OpenWestside
     permanent_peekaboo: PermanentPeekaboo
     full_run_bar: FullRunBar
+    experience_multiplier: ExperienceMultiplier
     starting_hp: StartingHP
     starting_fp: StartingFP
     starting_bp: StartingBP
     starting_coins: StartingCoins
+    starting_level: StartingLevel
     starting_partner: StartingPartner
     yoshi_color: YoshiColor
     yoshi_name: YoshiName

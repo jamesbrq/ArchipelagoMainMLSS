@@ -102,19 +102,21 @@ class TTYDWorld(World):
             logging.warning(f"{self.player_name}'s has enabled both Palace Skip and Limit Chapter 8. "
                             f"Disabling the Limit Chapter 8 option due to incompatibility.")
             self.options.limit_chapter_eight.value = LimitChapterEight.option_false
-        if self.options.goal == Goal.option_crystal_stars and self.options.palace_stars > self.options.goal_stars:
+        if self.options.goal == Goal.option_bonetail and self.options.goal_stars < 5:
+            logging.warning(f"{self.player_name}'s has Bonetail as the goal with less than 5 stars required. "
+                            f"Increasing number of goal stars to 5 for accessibility.")
+            self.options.goal_stars.value = 5
+        if self.options.goal != Goal.option_shadow_queen and self.options.palace_stars > self.options.goal_stars:
             logging.warning(f"{self.player_name}'s has more palace stars required than goal stars. "
                             f"Reducing number of stars required to enter the palace of shadow for accessibility.")
             self.options.palace_stars.value = self.options.goal_stars.value
         chapters = [i for i in range(1, 8)]
-        for i in range((self.options.palace_stars.value if self.options.goal != Goal.option_crystal_stars else self.options.goal_stars.value)):
+        for i in range((self.options.palace_stars.value if self.options.goal == Goal.option_shadow_queen else self.options.goal_stars.value)):
             self.required_chapters.append(chapters.pop(self.multiworld.random.randint(0, len(chapters) - 1)))
         if self.options.limit_chapter_logic:
             self.limited_chapters += chapters
         if self.options.limit_chapter_eight:
             self.limited_chapters += [8]
-        if self.options.pit_items == PitItems.option_vanilla:
-            self.disabled_locations.update(location.name for location in pit if "Pit of 100 Trials" in location.name)
         elif self.options.pit_items == PitItems.option_filler:
             self.options.exclude_locations.value.update(location.name for location in pit if "Pit of 100 Trials" in location.name)
         if self.options.palace_skip:
@@ -167,6 +169,17 @@ class TTYDWorld(World):
                 elif "Palace Key" in location.name:
                     self.lock_item(location.name, "Palace Key")
             self.lock_item("Palace of Shadow Gloomtail Room: Star Key", "Star Key")
+        if self.options.pit_items == PitItems.option_vanilla:
+            self.lock_item("Pit of 100 Trials Floor 10: Sleepy Stomp", "Sleepy Stomp")
+            self.lock_item("Pit of 100 Trials Floor 20: Fire Drive", "Fire Drive")
+            self.lock_item("Pit of 100 Trials Floor 30: Zap Tap", "Zap Tap")
+            self.lock_item("Pit of 100 Trials Floor 40: Pity Flower", "Pity Flower")
+            self.lock_item("Pit of 100 Trials Floor 50: Strange Sack", "Strange Sack")
+            self.lock_item("Pit of 100 Trials Floor 60: Double Dip", "Double Dip")
+            self.lock_item("Pit of 100 Trials Floor 70: Double Dip P", "Double Dip P")
+            self.lock_item("Pit of 100 Trials Floor 80: Bump Attack", "Bump Attack")
+            self.lock_item("Pit of 100 Trials Floor 90: Lucky Day", "Lucky Day")
+            self.lock_item("Pit of 100 Trials Floor 100: Return Postage", "Return Postage")
 
 
     def limit_tattle_locations(self):
@@ -198,8 +211,10 @@ class TTYDWorld(World):
         self.limited_items = []
         self.limited_state = CollectionState(self.multiworld)
         required_items = []
-        precollected = [item for item in itemList if item in self.multiworld.precollected_items]
-        precollected += [item_table[starting_partners[self.options.starting_partner.value - 1]]]
+        precollected = [item for item in itemList if item in self.multiworld.precollected_items[self.player]]
+        for item in self.multiworld.precollected_items[self.player]:
+            self.limited_state.collect(item, prevent_sweep=True)
+        self.limited_state.collect(self.create_item(starting_partners[self.options.starting_partner.value - 1]), prevent_sweep=True)
         added_items = 0
         for chapter in self.limited_chapters:
             self.limited_item_names.update(chapter_items[chapter])
