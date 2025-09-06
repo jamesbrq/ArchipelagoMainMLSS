@@ -1,4 +1,4 @@
-from Options import Range, StartInventoryPool, PerGameCommonOptions, Choice, FreeText, Toggle
+from Options import Range, StartInventoryPool, PerGameCommonOptions, Choice, FreeText, Toggle, DeathLink
 from dataclasses import dataclass
 
 
@@ -238,6 +238,7 @@ class YoshiName(FreeText):
 
 @dataclass
 class TTYDOptions(PerGameCommonOptions):
+    death_link: DeathLink
     start_inventory_from_pool: StartInventoryPool
     goal: Goal
     goal_stars: GoalStars

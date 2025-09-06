@@ -9,11 +9,10 @@ from worlds.Files import APProcedurePatch, APTokenMixin, APPatchExtension, AutoP
 from .Items import items_by_id, ItemData, item_type_dict
 from .Locations import locationName_to_data, location_table
 from .Data import Rels, shop_items, item_prices, rel_filepaths, location_to_unit
-from .StateLogic import westside
 from .TTYDPatcher import TTYDPatcher
 
 if TYPE_CHECKING:
-    from . import TTYDWorld, location_id_to_name
+    from . import TTYDWorld
 
 
 class TTYDPatchExtension(APPatchExtension):

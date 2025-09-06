@@ -1,7 +1,7 @@
 import logging
 import os
 
-from Fill import fast_fill, fill_restrictive
+from Fill import fill_restrictive
 from typing import List, Dict, ClassVar, Any
 from settings import UserFilePath, Group
 from BaseClasses import Tutorial, ItemClassification, CollectionState, Item
