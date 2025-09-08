@@ -5,15 +5,12 @@
 - Dolphin Emulator: [Dolphin Emulator Releases](https://dolphin-emu.org/download/?ref=btn)
 - Archipelago: [Latest releases](https://github.com/ArchipelagoMW/Archipelago/releases)
 - TTYD APWorld: [Latest releases](https://github.com/jamesbrq/ArchipelagoTTYD/releases)
-- A US copy of Paper Mario The Thousand Year Door. (EU and JP versions are not supported at this time)
+- A US copy of Paper Mario The Thousand Year Door in .iso format. (EU and JP versions are not supported at this time)
 	- This can not be a .ciso or .nkit.iso (or nkit.rvz) file as the data will not be structured properly
 
 ## Installing the APWorld
 
 Place the TTYD apworld in the `custom_worlds` folder of your Archipelago installation. You will only need one copy of this file, specifically in `custom_worlds`.
-Please also check the latest release for the `lib.zip` file, place the entire `gclib` folder found in `lib.zip` into the `lib` folder of your archipelago installation.
-This is required for the world to work. NOTE: The `gclib` step only needs to ever be done one time, 
-if you update the apworld then you do not need to update the `gclib` folder.
 
 ## Dolphin Configuration
 
