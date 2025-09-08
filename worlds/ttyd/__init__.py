@@ -234,8 +234,9 @@ class TTYDWorld(World):
 
         useful_items = []
         for item in [item for item in itemList if item.progression == ItemClassification.useful]:
-            freq = item_frequencies.get(item.itemName, 1)
-            useful_items += [item.itemName for _ in range(freq)]
+            if item.itemName != starting_partners[self.options.starting_partner.value - 1]:
+                freq = item_frequencies.get(item.itemName, 1)
+                useful_items += [item.itemName for _ in range(freq)]
         for itemName in useful_items:
             self.items.append(self.create_item(itemName))
             added_items += 1
