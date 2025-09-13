@@ -329,7 +329,7 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
         "Hooktail's Castle Up Arrow Room: Up Arrow":
             lambda state: ((state.has("Yoshi", world.player) or state.has("Plane Curse", world.player))
                            and state.has("Koops", world.player) and state.has("Castle Key", world.player, 1)
-                           and state.has("Bobbery", world.player)),
+                           and state.has("Bobbery", world.player) and state.has("Paper Curse", world.player)),
         "Keelhaul Key Landing Site: Star Piece":
             lambda state: StateLogic.super_boots(state, world.player),
         "Keelhaul Key Jungle Winding Climb: Coin 2":
