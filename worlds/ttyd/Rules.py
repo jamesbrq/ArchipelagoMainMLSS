@@ -1,4 +1,5 @@
 import typing
+
 from typing import Any
 from worlds.generic.Rules import add_rule
 from . import StateLogic, location_id_to_name, tattlesanity_region, Goal, PitItems, limit_pit, \

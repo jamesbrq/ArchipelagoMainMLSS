@@ -2,6 +2,7 @@ import io
 import json
 import pkgutil
 import bsdiff4
+import random
 
 from typing import TYPE_CHECKING, Dict, Tuple, Iterable
 from BaseClasses import Location, ItemClassification
@@ -37,12 +38,15 @@ class TTYDPatchExtension(APPatchExtension):
         cutscene_skip = seed_options.get("cutscene_skip", None)
         experience_multiplier = seed_options.get("experience_multiplier", 1)
         starting_level = seed_options.get("starting_level", 1)
+        music = seed_options.get("music", 0)
+        block_visibility = seed_options.get("block_visibility", 0)
+        random.seed(seed_options["seed"] + seed_options["player"])
         caller.patcher.dol.data.seek(0x1FF)
         caller.patcher.dol.data.write(name_length.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x200)
         caller.patcher.dol.data.write(seed_options["player_name"].encode("utf-8")[0:name_length])
         caller.patcher.dol.data.seek(0x210)
-        caller.patcher.dol.data.write(seed_options["seed"].encode("utf-8")[0:16])
+        caller.patcher.dol.data.write(seed_options["seed_name"].encode("utf-8")[0:16])
         caller.patcher.dol.data.seek(0x220)
         caller.patcher.dol.data.write(seed_options["chapter_clears"].to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x221)
@@ -97,6 +101,12 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write(experience_multiplier.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x23E)
         caller.patcher.dol.data.write(starting_level.to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x241)
+        caller.patcher.dol.data.write(music.to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x242)
+        caller.patcher.dol.data.write(block_visibility.to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x244)
+        caller.patcher.dol.data.write(random.randbytes(4))
         caller.patcher.dol.data.seek(0x260)
         caller.patcher.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
@@ -217,7 +227,8 @@ class TTYDProcedurePatch(APProcedurePatch, APTokenMixin):
 
 def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
     options_dict = {
-        "seed": world.multiworld.seed_name,
+        "seed": world.multiworld.seed,
+        "seed_name": world.multiworld.seed_name,
         "player": world.player,
         "player_name": world.multiworld.player_name[world.player],
         "yoshi_name": world.options.yoshi_name.value,
@@ -239,7 +250,9 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "succeed_conditions": world.options.succeed_conditions.value,
         "cutscene_skip": world.options.cutscene_skip.value,
         "experience_multiplier": world.options.experience_multiplier.value,
-        "starting_level": world.options.starting_level.value
+        "starting_level": world.options.starting_level.value,
+        "music": world.options.music_settings.value,
+        "block_visibility": world.options.block_visibility.value
     }
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))
