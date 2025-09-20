@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 class TTYDPatchExtension(APPatchExtension):
-    game = "Paper Mario The Thousand Year Door"
+    game = "Paper Mario: The Thousand-Year Door"
 
     @staticmethod
     def patch_mod(caller: "TTYDProcedurePatch") -> None:
@@ -38,6 +38,7 @@ class TTYDPatchExtension(APPatchExtension):
         cutscene_skip = seed_options.get("cutscene_skip", None)
         experience_multiplier = seed_options.get("experience_multiplier", 1)
         starting_level = seed_options.get("starting_level", 1)
+        first_attack = seed_options.get("first_attack", None)
         music = seed_options.get("music", 0)
         block_visibility = seed_options.get("block_visibility", 0)
         random.seed(seed_options["seed"] + seed_options["player"])
@@ -105,6 +106,9 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write(music.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x242)
         caller.patcher.dol.data.write(block_visibility.to_bytes(1, "big"))
+        if first_attack is not None:
+            caller.patcher.dol.data.seek(0x243)
+            caller.patcher.dol.data.write(first_attack.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x244)
         caller.patcher.dol.data.write(random.randbytes(4))
         caller.patcher.dol.data.seek(0x260)
@@ -196,7 +200,7 @@ def get_rel_path(rel: Rels):
 
 
 class TTYDProcedurePatch(APProcedurePatch, APTokenMixin):
-    game = "Paper Mario The Thousand Year Door"
+    game = "Paper Mario: The Thousand-Year Door"
     hash = "4b1a5897d89d9e74ec7f630eefdfd435"
     patch_file_ending = ".apttyd"
     result_file_ending = ".iso"
@@ -251,6 +255,7 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "cutscene_skip": world.options.cutscene_skip.value,
         "experience_multiplier": world.options.experience_multiplier.value,
         "starting_level": world.options.starting_level.value,
+        "first_attack": world.options.zero_bp_first_attack.value
         "music": world.options.music_settings.value,
         "block_visibility": world.options.block_visibility.value
     }

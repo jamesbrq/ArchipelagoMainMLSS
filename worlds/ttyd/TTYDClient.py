@@ -95,7 +95,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
 
 class TTYDContext(CommonContext):
     command_processor = TTYDCommandProcessor
-    game = "Paper Mario The Thousand Year Door"
+    game = "Paper Mario: The Thousand-Year Door"
     items_handling = 0b101
     dolphin_connected: bool = False
     seed_verified: bool = False

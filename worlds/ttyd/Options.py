@@ -135,6 +135,13 @@ class AlwaysSucceedConditions(Toggle):
     display_name = "Always Succeed Conditions"
 
 
+class ZeroBPFirstAttack(Toggle):
+    """
+    The First Attack badge costs 0 BP, just like the remake.
+    """
+    display_name = "0 BP First Attack"
+
+
 class MusicSettings(Choice):
     """
     Choose in-game music settings.
@@ -281,6 +288,7 @@ class TTYDOptions(PerGameCommonOptions):
     open_westside: OpenWestside
     permanent_peekaboo: PermanentPeekaboo
     full_run_bar: FullRunBar
+    zero_bp_first_attack: ZeroBPFirstAttack
     music_settings: MusicSettings
     block_visibility: BlockVisibility
     experience_multiplier: ExperienceMultiplier

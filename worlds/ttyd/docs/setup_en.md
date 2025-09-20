@@ -1,11 +1,11 @@
-# Setup Guide for Paper Mario The Thousand Year Door Archipelago
+# Setup Guide for Paper Mario: The Thousand-Year Door Archipelago
 
 ## Required Software
 
 - Dolphin Emulator: [Dolphin Emulator Releases](https://dolphin-emu.org/download/?ref=btn)
 - Archipelago: [Latest releases](https://github.com/ArchipelagoMW/Archipelago/releases)
 - TTYD APWorld: [Latest releases](https://github.com/jamesbrq/ArchipelagoTTYD/releases)
-- A US copy of Paper Mario The Thousand Year Door in .iso format. (EU and JP versions are not supported at this time)
+- A US copy of Paper Mario: The Thousand-Year Door in .iso format. (EU and JP versions are not supported at this time)
 	- This can not be a .ciso or .nkit.iso (or nkit.rvz) file as the data will not be structured properly
 
 ## Installing the APWorld
@@ -34,7 +34,7 @@ an experience customized for their taste, and different players in the same mult
 ### Where do I get a YAML file?
 
 Once you've installed the apworld, you can generate a yaml using the `Generate Template Options` button in the ArchipelagoLauncher. 
-It can be found in `Players/Templates` after you have done so. The name of the file will be `Paper Mario The Thousand Year Door.yaml`
+It can be found in `Players/Templates` after you have done so. The name of the file will be `Paper Mario: The Thousand-Year Door.yaml`
 
 If the `.yaml` file is missing in your `Players/Templates` folder, then please go through the apworld installation steps again,
 and double check that everything was done correctly.
@@ -66,3 +66,5 @@ Any `.zip` file you generate can be uploaded [here](https://archipelago.gg/uploa
 
 To connect the client to the multiserver simply put `<address>:<port>` on the textfield on top and press enter (if the
 server uses password, type in the bottom textfield `/connect <address>:<port> [password]`)
+
+_Note for Mac users: Due to additional security hardening that Apple added to MacOS, the steps from [here](https://github.com/aldelaro5/dolphin-memory-engine?tab=readme-ov-file#macos-code-signing) relating to Code Signing must be performed. Not doing so will prevent your Archipelago Client from connecting to the game appropriately._

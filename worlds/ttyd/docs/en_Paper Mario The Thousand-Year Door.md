@@ -1,4 +1,4 @@
-# Paper Mario The Thousand Year Door
+# Paper Mario: The Thousand-Year Door
 
 ## Where is the options page?
 
@@ -15,7 +15,7 @@ The game has been changed to an open-world style as opposed to the linear style 
 
 Other Features such as Turbo through textboxes (Hold B) and Warping to Rogueport from anywhere (a new Key Item called the Return Pipe you'll start with) have been added for convenience.
 
-## What is the goal of Paper Mario The Thousand Year Door when randomized?
+## What is the goal of Paper Mario: The Thousand-Year Door when randomized?
 
 Defeat the Shadow Queen in the Palace of Shadow. This requires you to beat a certain number of chapters as well as clear through the palace of shadow.
 
@@ -38,7 +38,7 @@ Items that can be shuffled:
 - All currency items (Coins, Star Pieces, Shine Sprites)
 
 
-## What does another world's item look like in Paper Mario The Thousand Year Door?
+## What does another world's item look like in Paper Mario: The Thousand-Year Door?
 
 Items will show up as the AP Logo if they are from another world and will be named AP Item.
 
