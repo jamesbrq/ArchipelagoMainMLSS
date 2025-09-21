@@ -288,7 +288,7 @@ class TTYDOptions(PerGameCommonOptions):
     open_westside: OpenWestside
     permanent_peekaboo: PermanentPeekaboo
     full_run_bar: FullRunBar
-    zero_bp_first_attack: ZeroBPFirstAttack
+    first_attack: ZeroBPFirstAttack
     music_settings: MusicSettings
     block_visibility: BlockVisibility
     experience_multiplier: ExperienceMultiplier

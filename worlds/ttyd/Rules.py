@@ -597,7 +597,7 @@ def get_rules_dict(world: "TTYDWorld") -> dict[str, Any]:
             lambda state: ((StateLogic.ttyd(state, world.player) and state.has("Paper Mode", world.player)
                             and state.has("Plane Mode", world.player)) or
                            (StateLogic.pit(state, world.player) and state.has("Paper Mode", world.player))),
-        "Rogueport Sewers Thousand Year Door: Star Piece":
+        "Rogueport Sewers Thousand-Year Door: Star Piece":
             lambda state: StateLogic.ttyd(state, world.player) and StateLogic.super_boots(state, world.player),
         "Twilight Town Leftside: Vivian":
             lambda state: state.has("Superbombomb", world.player),
