@@ -1,8 +1,6 @@
 import io
 import json
-import os
 import pkgutil
-import tempfile
 
 import bsdiff4
 import random
