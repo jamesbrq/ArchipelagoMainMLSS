@@ -140,7 +140,7 @@ itemList: typing.List[ItemData] = [
     ItemData(77772113, "Mega Rush", ItemClassification.useful),
     ItemData(77772114, "Mega Rush P", ItemClassification.useful),
     ItemData(77772227, "Meteor Meal", ItemClassification.filler),
-    ItemData(77772115, "Mini Mr.Mini", ItemClassification.filler),
+    ItemData(77772115, "Mini Mr. Mini", ItemClassification.filler),
     ItemData(77772116, "Money Money", ItemClassification.useful),
     ItemData(77772117, "Moon Stone", ItemClassification.progression),
     ItemData(77772118, "Mr. Softener", ItemClassification.filler),
