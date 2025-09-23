@@ -1,5 +1,5 @@
 from enum import Enum
-
+from BaseClasses import ItemClassification
 
 class Rels(Enum):
     aaa = "aaa"
@@ -743,6 +743,7 @@ item_prices = {
     77772027: 30,  # Charge - 30 buy price
     77772028: 40,  # Charge P - 40 buy price
     77772029: 40,  # Chill Out - 40 buy price
+    77772221: 30,  # Choco Cake
     77772030: 30,  # Chuckola Cola
     77772031: 50,  # Close Call - 50 buy price
     77772032: 50,  # Close Call P - 50 buy price
@@ -750,6 +751,7 @@ item_prices = {
     77772034: 30,  # Cog
     77772036: 30,  # Contact Lens
     77772037: 30,  # Cookbook
+    77772223: 15,  # Couple's Cake
     77772038: 4,  # Courage Shell
     77772039: 30,  # Crystal Star
     77772040: 80,  # Damage Dodge - 80 buy price
@@ -761,6 +763,7 @@ item_prices = {
     77772046: 50,  # Double Dip - 50 buy price
     77772047: 50,  # Double Dip P - 50 buy price
     77772048: 20,  # Double Pain - 20 buy price
+    77772224: 8,  # Dried Bouquet
     77772049: 1,  # Dried Shroom
     77772051: 10,  # Earth Quake
     77772052: 30,  # Elevator Key (Station)
@@ -799,9 +802,11 @@ item_prices = {
     77772085: 80,  # Happy Heart P - 80 buy price
     77772086: 50,  # Head Rattle - 50 buy price
     77772087: 50,  # Heart Finder - 50 buy price
+    77772225: 15,  # Honey Shroom
     77772088: 5,  # Honey Syrup
     77772089: 4,  # Horsetail
     77772090: 8,  # Hot Dog
+    77772226: 8,  # Hot Sauce
     77772091: 10,  # HP Drain
     77772092: 50,  # HP Drain (Badge) - 50 buy price
     77772093: 50,  # HP Drain P - 50 buy price
@@ -825,6 +830,7 @@ item_prices = {
     77772112: 10,  # Maple Syrup
     77772113: 30,  # Mega Rush - 30 buy price
     77772114: 30,  # Mega Rush P - 30 buy price
+    77772227: 40, # Meteor Meal
     77772115: 10,  # Mini Mr. Mini
     77772116: 90,  # Money Money - 90 buy price
     77772117: 30,  # Moon Stone
@@ -883,6 +889,7 @@ item_prices = {
     77772219: 50,  # Sleepy Stomp
     77772170: 10,  # Slow Go - 10 buy price
     77772171: 15,  # Slow Shroom
+    77772228: 15,  # Snow Bunny
     77772172: 40,  # Soft Stomp - 40 buy price
     77772173: 12,  # Space Food
     77772174: 80,  # Spike Shield - 80 buy price
@@ -923,6 +930,8 @@ item_prices = {
     77772212: 50,  # Whacka Bump
     77772213: 30,  # Yoshi
     77772214: 50,  # Zap Tap - 50 buy price
+    77772229: 40,  # Zess Dynamite
+    77772230: 50,  # Zess Special
 }
 
 location_to_unit = {
@@ -1235,4 +1244,11 @@ pit_exclusive_tattle_stars_required = {
         "Tattle: Bob-ulk",
         "Tattle: Bonetail"
     ]
+}
+
+classification_to_color = {
+    ItemClassification.filler: "00d6d6",
+    ItemClassification.useful: "6d8be8",
+    ItemClassification.progression: "af99ef",
+    ItemClassification.trap: "fa8072",
 }

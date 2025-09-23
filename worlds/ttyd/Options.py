@@ -22,7 +22,7 @@ class GoalStars(Range):
     This is only used if the goal option is set to crystal_stars.
     """
     display_name = "Goal Crystal Stars"
-    range_start = 0
+    range_start = 1
     range_end = 7
     default = 7
 
