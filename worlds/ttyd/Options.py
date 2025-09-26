@@ -1,4 +1,5 @@
-from Options import Range, StartInventoryPool, PerGameCommonOptions, Choice, FreeText, Toggle, DeathLink
+from Options import Range, StartInventoryPool, PerGameCommonOptions, Choice, FreeText, Toggle, DeathLink, \
+    DefaultOnToggle
 from dataclasses import dataclass
 
 
@@ -57,6 +58,21 @@ class TattleSanityOption(Toggle):
     All key items can possibly be placed in these locations.
     """
     display_name = "Tattlesanity"
+
+
+class Panelsanity(DefaultOnToggle):
+    """
+    Star Piece panels will be randomized.
+    """
+    display_name = "Star Piece Panels"
+
+
+class Shopsanity(DefaultOnToggle):
+    """
+    Shop items will be randomized.
+    This includes only regular shops.
+    """
+    display_name = "Shopsanity"
 
 
 class LimitChapterLogic(Toggle):
@@ -277,6 +293,8 @@ class TTYDOptions(PerGameCommonOptions):
     goal_stars: GoalStars
     palace_stars: PalaceStars
     tattlesanity: TattleSanityOption
+    panelsanity: Panelsanity
+    shopsanity: Shopsanity
     pit_items: PitItems
     limit_chapter_logic: LimitChapterLogic
     limit_chapter_eight: LimitChapterEight

@@ -1,17 +1,17 @@
 import logging
 import os
 
-from Fill import fill_restrictive
-from typing import List, Dict, ClassVar, Any
+from Fill import fill_restrictive, fast_fill
+from typing import List, Dict, ClassVar, Any, Set
 from settings import UserFilePath, Group
-from BaseClasses import Tutorial, ItemClassification, CollectionState, Item
+from BaseClasses import Tutorial, ItemClassification, CollectionState, Item, Location
 from worlds.AutoWorld import WebWorld, World
 from .Data import starting_partners, limit_eight, stars, chapter_items, limited_location_ids, limit_pit, \
     pit_exclusive_tattle_stars_required
-from .Locations import all_locations, location_table, pit, location_id_to_name, TTYDLocation, locationName_to_data, \
-    palace, riddle_tower, tattlesanity_region
+from .Locations import all_locations, location_table, location_id_to_name, TTYDLocation, locationName_to_data, \
+    get_locations_by_tags, get_vanilla_item_names, get_location_names, LocationData
 from .Options import TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight, Goal
-from .Items import TTYDItem, itemList, item_frequencies, item_table, ItemData
+from .Items import TTYDItem, itemList, item_table, ItemData
 from .Regions import create_regions, connect_regions, get_regions_dict, register_indirect_connections
 from .Rom import TTYDProcedurePatch, write_files
 from .Rules import set_rules, get_tattle_rules_dict, set_tattle_rules
@@ -76,7 +76,7 @@ class TTYDWorld(World):
     options_dataclass = TTYDOptions
     options: TTYDOptions
     settings: ClassVar[TTYDSettings]
-    item_name_to_id = {name: data.code for name, data in item_table.items()}
+    item_name_to_id = {name: data.id for name, data in item_table.items()}
     location_name_to_id = {loc_data.name: loc_data.id for loc_data in all_locations}
     required_client_version = (0, 6, 0)
     disabled_locations: set
@@ -84,7 +84,7 @@ class TTYDWorld(World):
     items: List[TTYDItem]
     required_chapters: List[int]
     limited_chapters: List[int]
-    limited_chapter_locations: set
+    limited_chapter_locations: Set[Location]
     limited_item_names: set
     limited_items: List[TTYDItem]
     limited_state: CollectionState = None
@@ -118,7 +118,7 @@ class TTYDWorld(World):
         if self.options.limit_chapter_eight:
             self.limited_chapters += [8]
         elif self.options.pit_items == PitItems.option_filler:
-            self.options.exclude_locations.value.update(location.name for location in pit if "Pit of 100 Trials" in location.name)
+            self.options.exclude_locations.value.update(location.name for location in get_locations_by_tags("pit_floor"))
         if self.options.palace_skip:
             self.excluded_regions.update(["Palace of Shadow", "Palace of Shadow (Post-Riddle Tower)"])
         if not self.options.tattlesanity:
@@ -153,33 +153,22 @@ class TTYDWorld(World):
         if self.options.tattlesanity:
             self.limit_tattle_locations()
         self.lock_item("Rogueport Center: Goombella", starting_partners[self.options.starting_partner.value - 1])
-        self.lock_item("Hooktail's Castle Hooktail's Room: Diamond Star", "Diamond Star")
-        self.lock_item("Great Tree Entrance: Emerald Star", "Emerald Star")
-        self.lock_item("Glitzville Arena: Gold Star", "Gold Star")
-        self.lock_item("Creepy Steeple Upper Room: Ruby Star", "Ruby Star")
-        self.lock_item("Pirate's Grotto Cortez' Hoard: Sapphire Star", "Sapphire Star")
-        self.lock_item("Poshley Heights Sanctum Altar: Garnet Star", "Garnet Star")
-        self.lock_item("X-Naut Fortress Boss Room: Crystal Star", "Crystal Star")
+        self.lock_vanilla_items(get_locations_by_tags("star"))
         if self.options.goal == Goal.option_shadow_queen:
             self.lock_item("Shadow Queen", "Victory")
         if self.options.limit_chapter_eight:
-            for location in [location for location in palace + riddle_tower if "Palace Key" in location.name]:
+            for location in [location for location in get_locations_by_tags("palace") + get_locations_by_tags("riddle_tower") if "Palace Key" in location.name]:
                 if "Palace Key (Tower)" in location.name:
                     self.lock_item(location.name, "Palace Key (Tower)")
                 elif "Palace Key" in location.name:
                     self.lock_item(location.name, "Palace Key")
             self.lock_item("Palace of Shadow Gloomtail Room: Star Key", "Star Key")
         if self.options.pit_items == PitItems.option_vanilla:
-            self.lock_item("Pit of 100 Trials Floor 10: Sleepy Stomp", "Sleepy Stomp")
-            self.lock_item("Pit of 100 Trials Floor 20: Fire Drive", "Fire Drive")
-            self.lock_item("Pit of 100 Trials Floor 30: Zap Tap", "Zap Tap")
-            self.lock_item("Pit of 100 Trials Floor 40: Pity Flower", "Pity Flower")
-            self.lock_item("Pit of 100 Trials Floor 50: Strange Sack", "Strange Sack")
-            self.lock_item("Pit of 100 Trials Floor 60: Double Dip", "Double Dip")
-            self.lock_item("Pit of 100 Trials Floor 70: Double Dip P", "Double Dip P")
-            self.lock_item("Pit of 100 Trials Floor 80: Bump Attack", "Bump Attack")
-            self.lock_item("Pit of 100 Trials Floor 90: Lucky Day", "Lucky Day")
-            self.lock_item("Pit of 100 Trials Floor 100: Return Postage", "Return Postage")
+            self.lock_vanilla_items(get_locations_by_tags("pit_floor"))
+        if not self.options.panelsanity:
+            self.lock_vanilla_items(get_locations_by_tags("panel"))
+        if not self.options.shopsanity:
+            self.lock_vanilla_items(get_locations_by_tags("shop"))
 
 
     def limit_tattle_locations(self):
@@ -216,15 +205,14 @@ class TTYDWorld(World):
         for chapter in self.limited_chapters:
             self.limited_item_names.update(chapter_items[chapter])
         for item in [item for item in itemList if item.progression == ItemClassification.progression]:
-            if item not in precollected and item.itemName != starting_partners[self.options.starting_partner.value - 1]:
-                freq = item_frequencies.get(item.itemName, 1)
-                required_items += [item.itemName for _ in range(freq)]
-        for itemName in required_items:
-            if itemName in ["Star Key", "Palace Key", "Palace Key (Tower)"] and self.options.palace_skip:
+            if item not in precollected and item.item_name != starting_partners[self.options.starting_partner.value - 1]:
+                required_items += [item.item_name for _ in range(item.frequency)]
+        for item_name in required_items:
+            if item_name in ["Star Key", "Palace Key", "Palace Key (Tower)"] and self.options.palace_skip:
                 continue
-            item = self.create_item(itemName)
-            if itemName in self.limited_item_names:
-                if itemName not in ["Star Key", "Palace Key", "Palace Key (Tower)"]:
+            item = self.create_item(item_name)
+            if item_name in self.limited_item_names:
+                if item_name not in ["Star Key", "Palace Key", "Palace Key (Tower)"]:
                     self.limited_items.append(item)
                     added_items += 1
             else:
@@ -234,11 +222,12 @@ class TTYDWorld(World):
 
         useful_items = []
         for item in [item for item in itemList if item.progression == ItemClassification.useful]:
-            if item.itemName != starting_partners[self.options.starting_partner.value - 1]:
-                freq = item_frequencies.get(item.itemName, 1)
-                useful_items += [item.itemName for _ in range(freq)]
-        for itemName in useful_items:
-            self.items.append(self.create_item(itemName))
+            if item.item_name != starting_partners[self.options.starting_partner.value - 1]:
+                useful_items += [item.item_name for _ in range(item.frequency)]
+        for item_name in useful_items:
+            if not self.options.panelsanity and "Star Piece" in item_name:
+                continue
+            self.items.append(self.create_item(item_name))
             added_items += 1
 
 
@@ -246,12 +235,12 @@ class TTYDWorld(World):
         filler_items = []
         for item in itemList:
             if item.progression == ItemClassification.filler:
-                freq = item_frequencies.get(item.itemName)
+                freq = item.frequency
                 if freq is None:
                     freq = 1
                 if self.options.tattlesanity:
                     freq += 2
-                filler_items += [item.itemName for _ in range(freq)]
+                filler_items += [item.item_name for _ in range(freq)]
 
         remaining = len(self.multiworld.get_unfilled_locations(self.player)) - added_items
         for i in range(remaining):
@@ -262,7 +251,7 @@ class TTYDWorld(World):
 
         if len(self.limited_chapter_locations) > 0:
             self.multiworld.random.shuffle(self.items)
-            for _ in range(len(self.limited_chapter_locations) - len(self.limited_items)):
+            for _ in range(len([location for location in self.limited_chapter_locations if location in self.multiworld.get_unfilled_locations(self.player)]) - len(self.limited_items)):
                 self.limited_items.append(self.items.pop())
 
         for item in self.items:
@@ -271,9 +260,14 @@ class TTYDWorld(World):
     def pre_fill(self) -> None:
         _ = [self.limited_state.collect(location.item, prevent_sweep=True) for location in self.get_locations() if
              location.item is not None and location.item.name not in stars]
-        self.multiworld.random.shuffle(self.limited_items)
-        self.multiworld.random.shuffle(list(self.limited_chapter_locations))
-        fill_restrictive(self.multiworld, self.limited_state, list(self.limited_chapter_locations), self.limited_items, single_player_placement=True, swap=True, lock=True)
+        for chapter in self.limited_chapters:
+            locations = [location for location in self.limited_chapter_locations if location.item is None and location.name in get_location_names(get_locations_by_tags(f"chapter_{chapter}"))]
+            progressive_items = [item for item in self.limited_items if item.name in chapter_items[chapter]]
+            self.limited_items = [item for item in self.limited_items if item.name not in chapter_items[chapter]]
+            self.multiworld.random.shuffle(progressive_items)
+            self.multiworld.random.shuffle(locations)
+            fill_restrictive(self.multiworld, self.limited_state, locations, progressive_items, single_player_placement=True, lock=True)
+        fast_fill(self.multiworld, self.limited_items, [location for location in self.limited_chapter_locations if location.item is None])
 
     def set_rules(self) -> None:
         set_rules(self)
@@ -303,16 +297,23 @@ class TTYDWorld(World):
         }
 
     def create_item(self, name: str) -> TTYDItem:
-        item = item_table.get(name, ItemData(None, name, ItemClassification.progression))
-        progression = (ItemClassification.useful if item.itemName == "Goombella" and not self.options.tattlesanity else item.progression)
-        return TTYDItem(item.itemName, progression, item.code, self.player)
+        item = item_table.get(name, ItemData(None, name, "progression"))
+        progression = (ItemClassification.useful if item.item_name == "Goombella" and not self.options.tattlesanity else item.progression)
+        return TTYDItem(item.item_name, progression, item.id, self.player)
 
     def lock_item(self, location: str, item_name: str):
         item = self.create_item(item_name)
         self.get_location(location).place_locked_item(item)
 
+    def lock_vanilla_items(self, locations: LocationData | List[LocationData]) -> None:
+        if isinstance(locations, LocationData):
+            locations = [locations]
+        vanilla_item_names = get_vanilla_item_names(locations)
+        for location in locations:
+            self.get_location(location.name).place_locked_item(self.create_item(vanilla_item_names.pop(0)))
+
     def get_filler_item_name(self) -> str:
-        return self.random.choice(list(filter(lambda item: item.progression == ItemClassification.filler, itemList))).itemName
+        return self.random.choice(list(filter(lambda item: item.progression == ItemClassification.filler, itemList))).item_name
 
     def collect(self, state: "CollectionState", item: "Item") -> bool:
         change = super().collect(state, item)
