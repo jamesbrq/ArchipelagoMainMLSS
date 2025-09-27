@@ -12,13 +12,13 @@ class LocationData:
     vanilla_item: int = 0x0
     tags: typing.List[str] = []
 
-    def __init__(self, name: str, id: int | None, rel: Rels, offsets: typing.List[int]=None, vanilla_item: int=0x0, tags=None):
+    def __init__(self, name: str, id: int | None, rel: Rels, offsets: typing.List[str]=None, vanilla_item: int=0x0, tags=None):
         if tags is None:
             tags = []
         self.name = name
         self.id = id
-        self.rel = rel
-        self.offset = [] if offsets is None else offsets
+        self.rel = Rels(rel)
+        self.offset = [int(offset, 16) for offset in offsets]
         self.vanilla_item = vanilla_item
         self.tags = tags
 

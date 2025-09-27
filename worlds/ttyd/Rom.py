@@ -6,11 +6,11 @@ import bsdiff4
 import random
 
 from typing import TYPE_CHECKING, Dict, Tuple, Iterable
-from BaseClasses import Location
+from BaseClasses import Location, ItemClassification
 from worlds.Files import APProcedurePatch, APTokenMixin, APPatchExtension, AutoPatchExtensionRegister
 from .Items import items_by_id, ItemData
 from .Locations import locationName_to_data, location_table, location_id_to_name
-from .Data import Rels, shop_items, item_prices, rel_filepaths, location_to_unit, shop_names
+from .Data import Rels, shop_items, item_prices, rel_filepaths, location_to_unit, shop_names, classification_to_color
 from .TTYDPatcher import TTYDPatcher
 
 if TYPE_CHECKING:
@@ -266,14 +266,25 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         location = world.get_location(location_id_to_name[shop_items[i]])
         player_name = world.multiworld.player_name[location.item.player] if location.item is not None else "Unknown Player"
         buffer.write(f"ap_{shop_names[i // 6]}_{i % 6}".encode('utf-8'))
-        buffer.write(b'\x00')  # null terminator
-        buffer.write(f"<col c00000ff>{player_name}</col> \n{location.item.name}".encode('utf-8'))  # Your empty string here
-        buffer.write(b'\x00')  # null terminator
+        buffer.write(b'\x00')
+        buffer.write(f"{player_name}'s\n<col {classification_to_color[get_base_classification(location.item.classification)]}ff>{location.item.name}</col>".encode('utf-8'))
+        buffer.write(b'\x00')
     buffer.write(b'\x00')  # null terminator for the end of the table
 
     patch.write_file("desc.txt", buffer.getvalue())
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))
+
+def get_base_classification(classification: ItemClassification = ItemClassification.filler) -> ItemClassification:
+    """Extract the primary classification for color mapping"""
+    if classification & ItemClassification.progression:
+        return ItemClassification.progression
+    elif classification & ItemClassification.trap:
+        return ItemClassification.trap
+    elif classification & ItemClassification.useful:
+        return ItemClassification.useful
+    else:
+        return ItemClassification.filler
 
 
 def locations_to_dict(locations: Iterable[Location]) -> Dict[str, Tuple]:
