@@ -10,8 +10,8 @@ from .Data import starting_partners, limit_eight, stars, chapter_items, limited_
     pit_exclusive_tattle_stars_required
 from .Locations import all_locations, location_table, location_id_to_name, TTYDLocation, locationName_to_data, \
     get_locations_by_tags, get_vanilla_item_names, get_location_names, LocationData
-from .Options import TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight, Goal
-from .Items import TTYDItem, itemList, item_table, ItemData
+from .Options import Piecesanity, TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight, Goal
+from .Items import TTYDItem, itemList, item_table, ItemData, items_by_id
 from .Regions import create_regions, connect_regions, get_regions_dict, register_indirect_connections
 from .Rom import TTYDProcedurePatch, write_files
 from .Rules import set_rules, get_tattle_rules_dict, set_tattle_rules
@@ -117,8 +117,6 @@ class TTYDWorld(World):
             self.limited_chapters += chapters
         if self.options.limit_chapter_eight:
             self.limited_chapters += [8]
-        elif self.options.pit_items == PitItems.option_filler:
-            self.options.exclude_locations.value.update(location.name for location in get_locations_by_tags("pit_floor"))
         if self.options.palace_skip:
             self.excluded_regions.update(["Palace of Shadow", "Palace of Shadow (Post-Riddle Tower)"])
         if not self.options.tattlesanity:
@@ -164,11 +162,15 @@ class TTYDWorld(World):
                     self.lock_item(location.name, "Palace Key")
             self.lock_item("Palace of Shadow Gloomtail Room: Star Key", "Star Key")
         if self.options.pit_items == PitItems.option_vanilla:
-            self.lock_vanilla_items(get_locations_by_tags("pit_floor"))
-        if not self.options.panelsanity:
-            self.lock_vanilla_items(get_locations_by_tags("panel"))
+            self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("pit_floor"))
+        if self.options.piecesanity == Piecesanity.option_vanilla:
+            self.lock_vanilla_items_remove_from_pool(get_locations_by_tags(["star_piece", "panel"]))
+        if self.options.piecesanity == Piecesanity.option_nonpanel_only:
+            self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("panel"))
         if not self.options.shopsanity:
-            self.lock_vanilla_items(get_locations_by_tags("shop"))
+            self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("shop"))
+        if self.options.pit_items == PitItems.option_filler:
+            self.lock_filler_items_remove_from_pool(get_locations_by_tags("pit_floor"))
 
 
     def limit_tattle_locations(self):
@@ -225,8 +227,6 @@ class TTYDWorld(World):
             if item.item_name != starting_partners[self.options.starting_partner.value - 1]:
                 useful_items += [item.item_name for _ in range(item.frequency)]
         for item_name in useful_items:
-            if not self.options.panelsanity and "Star Piece" in item_name:
-                continue
             self.items.append(self.create_item(item_name))
             added_items += 1
 
@@ -308,9 +308,24 @@ class TTYDWorld(World):
     def lock_vanilla_items(self, locations: LocationData | List[LocationData]) -> None:
         if isinstance(locations, LocationData):
             locations = [locations]
-        vanilla_item_names = get_vanilla_item_names(locations)
         for location in locations:
-            self.get_location(location.name).place_locked_item(self.create_item(vanilla_item_names.pop(0)))
+            self.get_location(location.name).place_locked_item(self.create_item(items_by_id[location.vanilla_item].item_name))
+            
+    def lock_vanilla_items_remove_from_pool(self, locations: LocationData | List[LocationData]) -> None:
+        if isinstance(locations, LocationData):
+            locations = [locations]
+        for location in locations:
+            items_by_id[location.vanilla_item].frequency = max(items_by_id[location.vanilla_item].frequency, 0)
+            self.get_location(location.name).place_locked_item(self.create_item(items_by_id[location.vanilla_item].item_name))
+
+    def lock_filler_items_remove_from_pool(self, locations: LocationData | List[LocationData]) -> None:
+        if isinstance(locations, LocationData):
+            locations = [locations]
+        for location in locations:
+            filler_item_name = self.get_filler_item_name()
+            items_by_id[item_table[filler_item_name].id].frequency = max(items_by_id[item_table[filler_item_name].id].frequency, 0)
+            self.get_location(location.name).place_locked_item(self.create_item(filler_item_name))
+
 
     def get_filler_item_name(self) -> str:
         return self.random.choice(list(filter(lambda item: item.progression == ItemClassification.filler, itemList))).item_name
