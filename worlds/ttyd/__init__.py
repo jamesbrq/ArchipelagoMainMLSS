@@ -127,10 +127,6 @@ class TTYDWorld(World):
                 self.disabled_locations.update(["Tattle: Shadow Queen"])
         if self.options.tattlesanity and self.options.disable_intermissions:
             self.disabled_locations.update(["Tattle: Lord Crump"])
-        if self.options.starting_partner == StartingPartner.option_random_partner:
-            self.options.starting_partner.value = self.random.randint(1, 7)
-        if self.options.yoshi_color == YoshiColor.option_random_color:
-            self.options.yoshi_color.value = self.random.randint(0, 6)
         if self.options.tattlesanity:
             extra_disabled = [location.name for name, locations in get_regions_dict().items()
                 if name in self.excluded_regions for location in locations]

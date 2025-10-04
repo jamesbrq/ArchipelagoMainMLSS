@@ -60,7 +60,7 @@ class TattleSanityOption(Toggle):
     display_name = "Tattlesanity"
 
 
-class Piecesanity(DefaultOnToggle):
+class Piecesanity(Choice):
     """
     Determines if Star Piece locations will be randomized.
     vanilla: Star Piece locations will remain in their original locations.
@@ -71,7 +71,7 @@ class Piecesanity(DefaultOnToggle):
     option_vanilla = 0
     option_nonpanel_only = 1
     option_all = 2
-    default = 2
+    default = 1
 
 
 class Shopsanity(DefaultOnToggle):
@@ -188,7 +188,7 @@ class BlockVisibility(Choice):
     display_name = "Block Visibility"
     option_normal = 0
     option_all_visible = 1
-    default = 0
+    default = 1
 
 
 class ExperienceMultiplier(Range):
@@ -263,7 +263,6 @@ class StartingPartner(Choice):
     option_flurrie = 5
     option_vivian = 6
     option_ms_mowz = 7
-    option_random_partner = 8
     default = 1
 
 
@@ -279,7 +278,6 @@ class YoshiColor(Choice):
     option_pink = 4
     option_black = 5
     option_white = 6
-    option_random_color = 7
     default = 0
 
 
