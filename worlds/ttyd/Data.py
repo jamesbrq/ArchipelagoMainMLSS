@@ -740,7 +740,7 @@ item_prices = {
     77772021: 30,  # Card Key 1
     77772022: 30,  # Card Key 2
     77772023: 30,  # Card Key 3
-    77772024: 130,  # Card Key 4
+    77772024: 30,  # Card Key 4
     77772025: 30,  # Castle Key
     77772026: 30,  # Champ's Belt
     77772027: 30,  # Charge - 30 buy price

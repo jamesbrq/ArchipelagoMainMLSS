@@ -50,7 +50,7 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.seek(0x210)
         caller.patcher.dol.data.write(seed_options["seed_name"].encode("utf-8")[0:16])
         caller.patcher.dol.data.seek(0x220)
-        caller.patcher.dol.data.write(seed_options["chapter_clears"].to_bytes(1, "big"))
+        caller.patcher.dol.data.write(seed_options["palace_stars"].to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x221)
         caller.patcher.dol.data.write(seed_options["starting_partner"].to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x222)
@@ -112,6 +112,8 @@ class TTYDPatchExtension(APPatchExtension):
             caller.patcher.dol.data.write(first_attack.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x244)
         caller.patcher.dol.data.write(random.randbytes(4))
+        caller.patcher.dol.data.seek(0x248)
+        caller.patcher.dol.data.write(seed_options["goal_stars"].to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x260)
         caller.patcher.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
@@ -239,7 +241,8 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "yoshi_name": world.options.yoshi_name.value,
         "yoshi_color": world.options.yoshi_color.value,
         "starting_partner": world.options.starting_partner.value,
-        "chapter_clears": world.options.palace_stars.value, # TODO: rename this option
+        "palace_stars": world.options.palace_stars.value,
+        "goal_stars": world.options.goal_stars.value,
         "starting_coins": world.options.starting_coins.value,
         "palace_skip": world.options.palace_skip.value,
         "westside": world.options.open_westside.value,

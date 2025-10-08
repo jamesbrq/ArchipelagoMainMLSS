@@ -111,7 +111,7 @@ class TTYDWorld(World):
                             f"Reducing number of stars required to enter the palace of shadow for accessibility.")
             self.options.palace_stars.value = self.options.goal_stars.value
         chapters = [i for i in range(1, 8)]
-        for i in range((self.options.palace_stars.value if self.options.goal == Goal.option_shadow_queen else self.options.goal_stars.value)):
+        for i in range(self.options.goal_stars.value):
             self.required_chapters.append(chapters.pop(self.multiworld.random.randint(0, len(chapters) - 1)))
         if self.options.limit_chapter_logic:
             self.limited_chapters += chapters
@@ -147,7 +147,8 @@ class TTYDWorld(World):
         if self.options.tattlesanity:
             self.limit_tattle_locations()
         self.lock_item("Rogueport Center: Goombella", starting_partners[self.options.starting_partner.value - 1])
-        self.lock_vanilla_items(get_locations_by_tags("star"))
+        if not self.options.star_shuffle:
+            self.lock_vanilla_items(get_locations_by_tags("star"))
         if self.options.goal == Goal.option_shadow_queen:
             self.lock_item("Shadow Queen", "Victory")
         if self.options.limit_chapter_eight:
@@ -279,7 +280,7 @@ class TTYDWorld(World):
         return {
             "goal": self.options.goal.value,
             "goal_stars": self.options.goal_stars.value,
-            "chapter_clears": self.options.palace_stars.value, # TODO: Update name to palace_stars once ready to deprecate
+            "palace_stars": self.options.palace_stars.value,
             "pit_items": self.options.pit_items.value,
             "limit_chapter_logic": self.options.limit_chapter_logic.value,
             "limit_chapter_eight": self.options.limit_chapter_eight.value,

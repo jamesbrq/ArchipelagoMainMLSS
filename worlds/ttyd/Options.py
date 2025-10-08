@@ -19,8 +19,8 @@ class Goal(Choice):
 
 class GoalStars(Range):
     """
-    This determines how many crystal stars are required for the goal option crystal_stars.
-    This is only used if the goal option is set to crystal_stars.
+    This determines how many crystal stars are required to enter the Throne Room in the Palace of Shadow.
+    This also determines how many stars are required to goal with the crystal_stars goal selected.
     """
     display_name = "Goal Crystal Stars"
     range_start = 1
@@ -36,6 +36,14 @@ class PalaceStars(Range):
     range_start = 0
     range_end = 7
     default = 7
+
+
+class StarShuffle(Toggle):
+    """
+    Crystal Stars will be added as items to the item pool.
+    Completing a chapter will reward you with a random item.
+    """
+    display_name = "Star Shuffle"
 
 
 class PitItems(Choice):
@@ -297,6 +305,7 @@ class TTYDOptions(PerGameCommonOptions):
     goal: Goal
     goal_stars: GoalStars
     palace_stars: PalaceStars
+    star_shuffle: StarShuffle
     tattlesanity: TattleSanityOption
     piecesanity: Piecesanity
     shopsanity: Shopsanity
