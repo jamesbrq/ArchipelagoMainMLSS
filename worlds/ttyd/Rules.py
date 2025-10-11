@@ -2,8 +2,9 @@ import json
 import pkgutil
 import typing
 
-from worlds.generic.Rules import add_rule
-from . import StateLogic, location_id_to_name, Goal, PitItems, pit_exclusive_tattle_stars_required, get_locations_by_tags
+from worlds.generic.Rules import add_rule, forbid_items_for_player
+from . import StateLogic, location_id_to_name, Goal, PitItems, pit_exclusive_tattle_stars_required, \
+    get_locations_by_tags, stars
 from .Options import PalaceSkip
 
 if typing.TYPE_CHECKING:
@@ -14,6 +15,11 @@ def set_rules(world: "TTYDWorld"):
     for location, rule in create_lambda_from_json(pkgutil.get_data(__name__, "json/rules.json").decode(), world).items():
         if location not in world.disabled_locations:
             add_rule(world.multiworld.get_location(location, world.player), rule)
+
+    for location in get_locations_by_tags("shop"):
+        if location.name in world.disabled_locations:
+            continue
+        forbid_items_for_player(world.get_location(location.name), set([item for item in stars]), world.player)
 
 def set_tattle_rules(world: "TTYDWorld"):
     for location in get_locations_by_tags("tattle"):

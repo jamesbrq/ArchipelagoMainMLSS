@@ -72,7 +72,7 @@ def get_region_connections_dict(world: "TTYDWorld") -> dict[tuple[str, str], typ
         ("Palace of Shadow", "Palace of Shadow (Post-Riddle Tower)"):
             lambda state: StateLogic.riddle_tower(state, world.player),
         ("Palace of Shadow (Post-Riddle Tower)", "Shadow Queen"):
-            lambda state: state.can_reach("Palace of Shadow Final Staircase: Ultra Shroom", "Location", world.player),
+            lambda state: state.can_reach("Palace of Shadow Final Staircase: Ultra Shroom", "Location", world.player) and state.has("stars", world.player, world.options.goal_stars.value),
         ("Rogueport", "Poshley Heights"):
             lambda state: StateLogic.ultra_hammer(state, world.player) and StateLogic.super_boots(state, world.player),
         ("Rogueport", "Fahr Outpost"):
