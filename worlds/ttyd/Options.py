@@ -82,6 +82,13 @@ class Piecesanity(Choice):
     default = 1
 
 
+class Shinesanity(DefaultOnToggle):
+    """
+    Shine Sprites will be randomized.
+    """
+    display_name = "Shinesanity"
+
+
 class Shopsanity(DefaultOnToggle):
     """
     Shop items will be randomized.
@@ -309,6 +316,7 @@ class TTYDOptions(PerGameCommonOptions):
     tattlesanity: TattleSanityOption
     piecesanity: Piecesanity
     shopsanity: Shopsanity
+    shinesanity: Shinesanity
     pit_items: PitItems
     limit_chapter_logic: LimitChapterLogic
     limit_chapter_eight: LimitChapterEight

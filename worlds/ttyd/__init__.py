@@ -148,7 +148,7 @@ class TTYDWorld(World):
             self.limit_tattle_locations()
         self.lock_item("Rogueport Center: Goombella", starting_partners[self.options.starting_partner.value - 1])
         if not self.options.star_shuffle:
-            self.lock_vanilla_items(get_locations_by_tags("star"))
+            self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("star"))
         if self.options.goal == Goal.option_shadow_queen:
             self.lock_item("Shadow Queen", "Victory")
         if self.options.limit_chapter_eight:
@@ -164,6 +164,8 @@ class TTYDWorld(World):
             self.lock_vanilla_items_remove_from_pool(get_locations_by_tags(["star_piece", "panel"]))
         if self.options.piecesanity == Piecesanity.option_nonpanel_only:
             self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("panel"))
+        if not self.options.shinesanity:
+            self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("shine"))
         if not self.options.shopsanity:
             self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("shop"))
         if self.options.pit_items == PitItems.option_filler:
@@ -332,10 +334,6 @@ class TTYDWorld(World):
         if change:
             if item.name in stars:
                 state.prog_items[item.player]["stars"] += 1
-            for star in self.required_chapters:
-                if item.name == stars[star - 1]:
-                    state.prog_items[item.player]["required_stars"] += 1
-                    break
         return change
 
     def remove(self, state: "CollectionState", item: "Item") -> bool:
@@ -343,10 +341,6 @@ class TTYDWorld(World):
         if change:
             if item.name in stars:
                 state.prog_items[item.player]["stars"] -= 1
-            for star in self.required_chapters:
-                if item.name == stars[star - 1]:
-                    state.prog_items[item.player]["required_stars"] -= 1
-                    break
         return change
 
     def generate_output(self, output_directory: str) -> None:

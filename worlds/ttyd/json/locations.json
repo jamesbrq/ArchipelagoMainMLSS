@@ -1790,7 +1790,9 @@
     "name": "Hooktail's Castle Hooktail's Room: Diamond Star",
     "id": 78780209,
     "rel": "gon",
-    "offsets": [],
+    "offsets": [
+      "0x144CC"
+    ],
     "vanilla_item": 77772044,
     "tags": [
       "hooktails_castle",
@@ -2095,7 +2097,11 @@
     "name": "Great Tree Entrance: Emerald Star",
     "id": 78780232,
     "rel": "mri",
-    "offsets": [],
+    "offsets": [
+      "0x35714",
+      "0x362F0",
+      "0x49008"
+    ],
     "vanilla_item": 77772055,
     "tags": [
       "great_tree",
@@ -2839,7 +2845,9 @@
     "name": "Glitzville Arena: Gold Star",
     "id": 78780287,
     "rel": "tou2",
-    "offsets": [],
+    "offsets": [
+      "0x1AFD8"
+    ],
     "vanilla_item": 77772075,
     "tags": [
       "glitzville",
@@ -3506,7 +3514,10 @@
     "name": "Creepy Steeple Upper Room: Ruby Star",
     "id": 78780437,
     "rel": "jin",
-    "offsets": [],
+    "offsets": [
+      "0xF5B8",
+      "0x104F8"
+    ],
     "vanilla_item": 77772158,
     "tags": [
       "creepy_steeple",
@@ -4525,7 +4536,9 @@
     "name": "Pirate's Grotto Cortez' Hoard: Sapphire Star",
     "id": 78780511,
     "rel": "muj",
-    "offsets": [],
+    "offsets": [
+      "0x2F694"
+    ],
     "vanilla_item": 77772160,
     "tags": [
       "pirates_grotto",
@@ -5107,7 +5120,9 @@
     "name": "Poshley Heights Sanctum Altar: Garnet Star",
     "id": 78780554,
     "rel": "pik",
-    "offsets": [],
+    "offsets": [
+      "0xEE10"
+    ],
     "vanilla_item": 77772070,
     "tags": [
       "poshley_heights",
@@ -5800,7 +5815,9 @@
     "name": "X-Naut Fortress Boss Room: Crystal Star",
     "id": 78780604,
     "rel": "aji",
-    "offsets": [],
+    "offsets": [
+      "0x33E60"
+    ],
     "vanilla_item": 77772039,
     "tags": [
       "xnaut_fortress",

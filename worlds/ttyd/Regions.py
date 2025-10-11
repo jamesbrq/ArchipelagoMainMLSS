@@ -66,7 +66,7 @@ def get_region_connections_dict(world: "TTYDWorld") -> dict[tuple[str, str], typ
         ("Rogueport Sewers", "Pit of 100 Trials"):
             lambda state: StateLogic.pit(state, world.player),
         ("Rogueport", "Shadow Queen"):
-            lambda state: StateLogic.palace(state, world.player, world.options.palace_stars.value),
+            lambda state: StateLogic.palace(state, world.player, world.options.goal_stars.value),
         ("Rogueport", "Palace of Shadow"):
             lambda state: StateLogic.palace(state, world.player, world.options.palace_stars.value),
         ("Palace of Shadow", "Palace of Shadow (Post-Riddle Tower)"):
