@@ -262,8 +262,6 @@ class TTYDWorld(World):
     def pre_fill(self) -> None:
         _ = [self.limited_state.collect(location.item, prevent_sweep=True) for location in self.get_locations() if
              location.item is not None and location.item.name not in stars and location.item.name != "Victory"]
-        logging.info(f"Locations Collected: {[location for location in self.get_locations() if location.item is not None and location.item.name not in stars]}")
-        logging.info(f"All filled locations: {[location for location in self.get_locations() if location.item is not None]}")
         for chapter in self.limited_chapters:
             locations = [location for location in self.limited_chapter_locations if location.item is None and location.name in get_location_names(get_locations_by_tags(f"chapter_{chapter}"))]
             progressive_items = [item for item in self.limited_items if item.name in chapter_items[chapter]]
@@ -322,8 +320,6 @@ class TTYDWorld(World):
             locations = [locations]
         for location in locations:
             self.locked_item_frequencies[items_by_id[location.vanilla_item].item_name] = self.locked_item_frequencies.get(items_by_id[location.vanilla_item].item_name, 0) + 1
-            logging.info(f"Locking {items_by_id[location.vanilla_item].item_name} at {location.name}")
-            logging.info(f"Locked item frequencies: {self.locked_item_frequencies}")
             if location.name not in self.disabled_locations:
                 self.get_location(location.name).place_locked_item(self.create_item(items_by_id[location.vanilla_item].item_name))
 
