@@ -88,6 +88,7 @@ class TTYDWorld(World):
     limited_item_names: set
     limited_items: List[TTYDItem]
     limited_state: CollectionState = None
+    locked_item_frequencies: Dict[str, int]
 
     def generate_early(self) -> None:
         self.disabled_locations = set()
@@ -98,6 +99,7 @@ class TTYDWorld(World):
         self.limited_chapter_locations = set()
         self.limited_item_names = set()
         self.limited_items = []
+        self.locked_item_frequencies = {}
         if self.options.limit_chapter_eight and self.options.palace_skip:
             logging.warning(f"{self.player_name}'s has enabled both Palace Skip and Limit Chapter 8. "
                             f"Disabling the Limit Chapter 8 option due to incompatibility.")
@@ -146,18 +148,20 @@ class TTYDWorld(World):
             self.limited_chapter_locations.update([self.get_location(location_id_to_name[location]) for location in limited_location_ids[chapter - 1]])
         if self.options.tattlesanity:
             self.limit_tattle_locations()
-        self.lock_item("Rogueport Center: Goombella", starting_partners[self.options.starting_partner.value - 1])
+        self.lock_item_remove_from_pool("Rogueport Center: Goombella", starting_partners[self.options.starting_partner.value - 1])
         if not self.options.star_shuffle:
             self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("star"))
         if self.options.goal == Goal.option_shadow_queen:
             self.lock_item("Shadow Queen", "Victory")
         if self.options.limit_chapter_eight:
-            for location in [location for location in get_locations_by_tags("palace") + get_locations_by_tags("riddle_tower") if "Palace Key" in location.name]:
+            for location in [location for location in get_locations_by_tags("chapter_8")]:
                 if "Palace Key (Tower)" in location.name:
-                    self.lock_item(location.name, "Palace Key (Tower)")
+                    self.lock_item_remove_from_pool(location.name, "Palace Key (Tower)")
                 elif "Palace Key" in location.name:
-                    self.lock_item(location.name, "Palace Key")
-            self.lock_item("Palace of Shadow Gloomtail Room: Star Key", "Star Key")
+                    self.lock_item_remove_from_pool(location.name, "Palace Key")
+            self.lock_item_remove_from_pool("Palace of Shadow Gloomtail Room: Star Key", "Star Key")
+        if self.options.palace_skip:
+            self.lock_vanilla_items_remove_from_pool(get_locations_by_tags(["riddle_tower", "palace"]))
         if self.options.pit_items == PitItems.option_vanilla:
             self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("pit_floor"))
         if self.options.piecesanity == Piecesanity.option_vanilla:
@@ -204,27 +208,25 @@ class TTYDWorld(World):
         precollected = [item for item in itemList if item in self.multiworld.precollected_items[self.player]]
         added_items = 0
         for chapter in self.limited_chapters:
-            self.limited_item_names.update(chapter_items[chapter])
+            self.limited_item_names.update(chapter_items[chapter] + (stars[chapter - 1] if self.options.star_shuffle else []))
         for item in [item for item in itemList if item.progression == ItemClassification.progression]:
-            if item not in precollected and item.item_name != starting_partners[self.options.starting_partner.value - 1]:
-                required_items += [item.item_name for _ in range(item.frequency)]
+            if item not in precollected:
+                frequency = max(item.frequency - self.locked_item_frequencies.get(item.id, 0), 0)
+                required_items += [item.item_name for _ in range(frequency)]
         for item_name in required_items:
-            if item_name in ["Star Key", "Palace Key", "Palace Key (Tower)"] and self.options.palace_skip:
-                continue
             item = self.create_item(item_name)
             if item_name in self.limited_item_names:
-                if item_name not in ["Star Key", "Palace Key", "Palace Key (Tower)"]:
-                    self.limited_items.append(item)
-                    added_items += 1
+                self.limited_items.append(item)
             else:
                 self.limited_state.collect(item, prevent_sweep=True)
                 self.multiworld.itempool.append(item)
-                added_items += 1
+            added_items += 1
 
         useful_items = []
         for item in [item for item in itemList if item.progression == ItemClassification.useful]:
-            if item.item_name != starting_partners[self.options.starting_partner.value - 1]:
-                useful_items += [item.item_name for _ in range(item.frequency)]
+            frequency = max(item.frequency - self.locked_item_frequencies.get(item.id, 0), 0)
+            useful_items += [item.item_name for _ in range(frequency)]
+
         for item_name in useful_items:
             self.items.append(self.create_item(item_name))
             added_items += 1
@@ -302,28 +304,38 @@ class TTYDWorld(World):
 
     def lock_item(self, location: str, item_name: str):
         item = self.create_item(item_name)
-        self.get_location(location).place_locked_item(item)
+        if location not in self.disabled_locations:
+            self.get_location(location).place_locked_item(item)
 
     def lock_vanilla_items(self, locations: LocationData | List[LocationData]) -> None:
         if isinstance(locations, LocationData):
             locations = [locations]
         for location in locations:
-            self.get_location(location.name).place_locked_item(self.create_item(items_by_id[location.vanilla_item].item_name))
+            if location.name not in self.disabled_locations:
+                self.get_location(location.name).place_locked_item(self.create_item(items_by_id[location.vanilla_item].item_name))
             
     def lock_vanilla_items_remove_from_pool(self, locations: LocationData | List[LocationData]) -> None:
         if isinstance(locations, LocationData):
             locations = [locations]
         for location in locations:
-            items_by_id[location.vanilla_item].frequency = max(items_by_id[location.vanilla_item].frequency, 0)
-            self.get_location(location.name).place_locked_item(self.create_item(items_by_id[location.vanilla_item].item_name))
+            self.locked_item_frequencies[items_by_id[location.vanilla_item].item_name] = self.locked_item_frequencies.get(items_by_id[location.vanilla_item].item_name, 0) + 1
+            if location.name not in self.disabled_locations:
+                self.get_location(location.name).place_locked_item(self.create_item(items_by_id[location.vanilla_item].item_name))
 
     def lock_filler_items_remove_from_pool(self, locations: LocationData | List[LocationData]) -> None:
         if isinstance(locations, LocationData):
             locations = [locations]
         for location in locations:
             filler_item_name = self.get_filler_item_name()
-            items_by_id[item_table[filler_item_name].id].frequency = max(items_by_id[item_table[filler_item_name].id].frequency, 0)
-            self.get_location(location.name).place_locked_item(self.create_item(filler_item_name))
+            self.locked_item_frequencies[filler_item_name] = self.locked_item_frequencies.get(filler_item_name, 0) + 1
+            if location.name not in self.disabled_locations:
+                self.get_location(location.name).place_locked_item(self.create_item(filler_item_name))
+
+    def lock_item_remove_from_pool(self, location: str, item_name: str):
+        self.locked_item_frequencies[item_name] = self.locked_item_frequencies.get(item_name, 0) + 1
+        item = self.create_item(item_name)
+        if location not in self.disabled_locations:
+            self.get_location(location).place_locked_item(item)
 
 
     def get_filler_item_name(self) -> str:

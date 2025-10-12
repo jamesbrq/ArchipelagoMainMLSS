@@ -16,6 +16,10 @@ def set_rules(world: "TTYDWorld"):
         if location not in world.disabled_locations:
             add_rule(world.multiworld.get_location(location, world.player), rule)
 
+    for location in ["Palace of Shadow Final Staircase: Ultra Shroom", "Palace of Shadow Final Staircase: Jammin' Jelly"]:
+        if location not in world.disabled_locations:
+            add_rule(world.multiworld.get_location(location, world.player), lambda state: state.has("stars", world.player, world.options.goal_stars))
+
     for location in get_locations_by_tags("shop"):
         if location.name in world.disabled_locations:
             continue
@@ -96,6 +100,12 @@ def _build_single_lambda(req: typing.Dict, world: "TTYDWorld") -> typing.Callabl
 
         elif "function" in r:
             function_name = r["function"]
+            count = 0
+            if isinstance(function_name, dict):
+                count = function_name.get("count", 0)
+                function_name = function_name.get("name", "")
+            if count > 0:
+                return f'StateLogic.{function_name}(state, world.player, {count})'
             return f'StateLogic.{function_name}(state, world.player)'
 
         else:

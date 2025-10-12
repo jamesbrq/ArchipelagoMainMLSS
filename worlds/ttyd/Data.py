@@ -1207,6 +1207,16 @@ stars = [
     "Crystal Star"
 ]
 
+star_locations = [
+    "Hooktail's Castle Hooktail's Room: Diamond Star",
+    "Great Tree Entrance: Emerald Star",
+    "Glitzville Arena: Gold Star",
+    "Creepy Steeple Upper Room: Ruby Star",
+    "Pirate's Grotto Cortez' Hoard: Sapphire Star",
+    "Poshley Heights Sanctum Altar: Garnet Star",
+    "X-Naut Fortress Boss Room: Crystal Star"
+]
+
 chapter_items = {
     1: ["Castle Key", "Sun Stone", "Moon Stone", "Black Key (Paper)"],
     2: ["Puni Orb", "Necklace", "Red Key", "Blue Key"],
