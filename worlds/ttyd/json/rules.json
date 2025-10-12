@@ -91,10 +91,10 @@
     "function": "super_boots"
   },
   "Great Tree Entrance: Mystic Egg": {
-    "has": "Emerald Star"
+    "can_reach": "Great Tree Entrance: Emerald Star"
   },
   "Great Tree Red Key Room: Mushroom": {
-    "has": "Emerald Star"
+    "can_reach": "Great Tree Entrance: Emerald Star"
   },
   "Keelhaul Key Grotto Entrance: Wedding Ring": {
     "has": "Yoshi"

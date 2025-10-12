@@ -108,7 +108,7 @@ class TTYDWorld(World):
             logging.warning(f"{self.player_name}'s has Bonetail as the goal with less than 5 stars required. "
                             f"Increasing number of goal stars to 5 for accessibility.")
             self.options.goal_stars.value = 5
-        if self.options.goal != Goal.option_shadow_queen and self.options.palace_stars > self.options.goal_stars:
+        if self.options.palace_stars > self.options.goal_stars:
             logging.warning(f"{self.player_name}'s has more palace stars required than goal stars. "
                             f"Reducing number of stars required to enter the palace of shadow for accessibility.")
             self.options.palace_stars.value = self.options.goal_stars.value
@@ -208,10 +208,13 @@ class TTYDWorld(World):
         precollected = [item for item in itemList if item in self.multiworld.precollected_items[self.player]]
         added_items = 0
         for chapter in self.limited_chapters:
-            self.limited_item_names.update(chapter_items[chapter] + (stars[chapter - 1] if self.options.star_shuffle else []))
+            if chapter != 8:
+                self.limited_item_names.update(chapter_items[chapter] + ([stars[chapter - 1]] if self.options.star_shuffle else []))
+            else:
+                self.limited_item_names.update(chapter_items[chapter])
         for item in [item for item in itemList if item.progression == ItemClassification.progression]:
             if item not in precollected:
-                frequency = max(item.frequency - self.locked_item_frequencies.get(item.id, 0), 0)
+                frequency = max(item.frequency - self.locked_item_frequencies.get(item.item_name, 0), 0)
                 required_items += [item.item_name for _ in range(frequency)]
         for item_name in required_items:
             item = self.create_item(item_name)
@@ -224,7 +227,7 @@ class TTYDWorld(World):
 
         useful_items = []
         for item in [item for item in itemList if item.progression == ItemClassification.useful]:
-            frequency = max(item.frequency - self.locked_item_frequencies.get(item.id, 0), 0)
+            frequency = max(item.frequency - self.locked_item_frequencies.get(item.item_name, 0), 0)
             useful_items += [item.item_name for _ in range(frequency)]
 
         for item_name in useful_items:
@@ -236,12 +239,10 @@ class TTYDWorld(World):
         filler_items = []
         for item in itemList:
             if item.progression == ItemClassification.filler:
-                freq = item.frequency
-                if freq is None:
-                    freq = 1
+                frequency = max(item.frequency - self.locked_item_frequencies.get(item.item_name, 0), 0)
                 if self.options.tattlesanity:
-                    freq += 2
-                filler_items += [item.item_name for _ in range(freq)]
+                    frequency += 2
+                filler_items += [item.item_name for _ in range(frequency)]
 
         remaining = len(self.multiworld.get_unfilled_locations(self.player)) - added_items
         for i in range(remaining):
@@ -260,7 +261,9 @@ class TTYDWorld(World):
 
     def pre_fill(self) -> None:
         _ = [self.limited_state.collect(location.item, prevent_sweep=True) for location in self.get_locations() if
-             location.item is not None and location.item.name not in stars]
+             location.item is not None and location.item.name not in stars and location.item.name != "Victory"]
+        logging.info(f"Locations Collected: {[location for location in self.get_locations() if location.item is not None and location.item.name not in stars]}")
+        logging.info(f"All filled locations: {[location for location in self.get_locations() if location.item is not None]}")
         for chapter in self.limited_chapters:
             locations = [location for location in self.limited_chapter_locations if location.item is None and location.name in get_location_names(get_locations_by_tags(f"chapter_{chapter}"))]
             progressive_items = [item for item in self.limited_items if item.name in chapter_items[chapter]]
@@ -319,6 +322,8 @@ class TTYDWorld(World):
             locations = [locations]
         for location in locations:
             self.locked_item_frequencies[items_by_id[location.vanilla_item].item_name] = self.locked_item_frequencies.get(items_by_id[location.vanilla_item].item_name, 0) + 1
+            logging.info(f"Locking {items_by_id[location.vanilla_item].item_name} at {location.name}")
+            logging.info(f"Locked item frequencies: {self.locked_item_frequencies}")
             if location.name not in self.disabled_locations:
                 self.get_location(location.name).place_locked_item(self.create_item(items_by_id[location.vanilla_item].item_name))
 
