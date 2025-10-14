@@ -82,6 +82,14 @@ class Piecesanity(Choice):
     default = 1
 
 
+class Shopsanity(DefaultOnToggle):
+    """
+    Shop items will be randomized.
+    This includes only regular shops.
+    """
+    display_name = "Shopsanity"
+
+
 class Shinesanity(DefaultOnToggle):
     """
     Shine Sprites will be randomized.
@@ -89,12 +97,18 @@ class Shinesanity(DefaultOnToggle):
     display_name = "Shinesanity"
 
 
-class Shopsanity(DefaultOnToggle):
+class DazzleRewards(Choice):
     """
-    Shop items will be randomized.
-    This includes only regular shops.
+    This determines what type of items are given as rewards by Dazzle.
+    vanilla: The rewards are the same as the original game.
+    filler: The rewards will be non-progression items.
+    all: The rewards can be any item.
     """
-    display_name = "Shopsanity"
+    display_name = "Dazzle Rewards"
+    option_vanilla = 0
+    option_filler = 1
+    option_all = 2
+    default = 2
 
 
 class LimitChapterLogic(Toggle):
@@ -317,6 +331,7 @@ class TTYDOptions(PerGameCommonOptions):
     piecesanity: Piecesanity
     shopsanity: Shopsanity
     shinesanity: Shinesanity
+    dazzle_rewards: DazzleRewards
     pit_items: PitItems
     limit_chapter_logic: LimitChapterLogic
     limit_chapter_eight: LimitChapterEight
