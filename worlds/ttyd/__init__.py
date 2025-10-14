@@ -161,7 +161,9 @@ class TTYDWorld(World):
                     self.lock_item_remove_from_pool(location.name, "Palace Key")
             self.lock_item_remove_from_pool("Palace of Shadow Gloomtail Room: Star Key", "Star Key")
         if self.options.palace_skip:
-            self.lock_vanilla_items_remove_from_pool(get_locations_by_tags(["riddle_tower", "palace"]))
+            self.locked_item_frequencies["Palace Key"] = 3
+            self.locked_item_frequencies["Palace Key (Tower)"] = 8
+            self.locked_item_frequencies["Star Key"] = 1
         if self.options.pit_items == PitItems.option_vanilla:
             self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("pit_floor"))
         if self.options.piecesanity == Piecesanity.option_vanilla:
