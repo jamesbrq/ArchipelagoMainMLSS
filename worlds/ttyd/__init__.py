@@ -2,9 +2,9 @@ import logging
 import os
 
 from Fill import fill_restrictive, fast_fill
-from typing import List, Dict, ClassVar, Any, Set
+from typing import List, Dict, ClassVar, Any, Set, Tuple
 from settings import UserFilePath, Group
-from BaseClasses import Tutorial, ItemClassification, CollectionState, Item, Location
+from BaseClasses import Tutorial, ItemClassification, CollectionState, Item, Location, MultiWorld
 from worlds.AutoWorld import WebWorld, World
 from .Data import starting_partners, limit_eight, stars, chapter_items, limited_location_ids, limit_pit, \
     pit_exclusive_tattle_stars_required
@@ -271,7 +271,7 @@ class TTYDWorld(World):
             self.multiworld.random.shuffle(progressive_items)
             self.multiworld.random.shuffle(locations)
             fill_restrictive(self.multiworld, self.limited_state, locations, progressive_items, single_player_placement=True, lock=True)
-        fast_fill(self.multiworld, self.limited_items, [location for location in self.limited_chapter_locations if location.item is None])
+        fill_restrictive(self.multiworld, self.limited_state, [location for location in self.limited_chapter_locations if location.item is None], self.limited_items, single_player_placement=True, lock=True)
 
     def set_rules(self) -> None:
         set_rules(self)
@@ -349,6 +349,10 @@ class TTYDWorld(World):
         if change:
             if item.name in stars:
                 state.prog_items[item.player]["stars"] += 1
+            for star in self.required_chapters:
+                if item.name == stars[star - 1]:
+                    state.prog_items[item.player]["required_stars"] += 1
+                    break
         return change
 
     def remove(self, state: "CollectionState", item: "Item") -> bool:
@@ -356,6 +360,10 @@ class TTYDWorld(World):
         if change:
             if item.name in stars:
                 state.prog_items[item.player]["stars"] -= 1
+            for star in self.required_chapters:
+                if item.name == stars[star - 1]:
+                    state.prog_items[item.player]["required_stars"] -= 1
+                    break
         return change
 
     def generate_output(self, output_directory: str) -> None:

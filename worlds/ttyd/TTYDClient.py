@@ -12,8 +12,8 @@ from CommonClient import ClientCommandProcessor, CommonContext, get_base_parser,
 import dolphin_memory_engine as dolphin
 
 from NetUtils import NetworkItem, ClientStatus
-from worlds.ttyd.Data import location_gsw_info, location_to_unit
-from worlds.ttyd.Items import items_by_id
+from .Data import location_gsw_info, location_to_unit
+from .Items import items_by_id
 
 RECEIVED_INDEX = 0x803DB860
 RECEIVED_ITEM_ARRAY = 0x80001000

@@ -1,5 +1,8 @@
-from worlds.ttyd.Data import star_locations
+import typing
+from .Data import star_locations
 
+if typing.TYPE_CHECKING:
+    from . import TTYDWorld
 
 def westside(state, player):
     return state.has("Contact Lens", player) or state.has("Bobbery", player) or tube_curse(state, player) or ultra_hammer(state, player)
@@ -106,8 +109,8 @@ def pit_westside_ground(state, player):
     return state.has("Flurrie", player) and ((state.has("Contact Lens", player) and state.has("Paper Mode", player)) or state.has("Bobbery", player) or tube_curse(state, player) or ultra_hammer(state, player))
 
 
-def palace(state, player, chapters: int):
-    return ttyd(state, player) and state.has("stars", player, chapters)
+def palace(state, world: "TTYDWorld", chapters: int):
+    return ttyd(state, world.player) and (state.has("stars", world.player, chapters) if world.options.star_shuffle else state.has("required_stars", world.player, chapters))
 
 
 def riddle_tower(state, player):
