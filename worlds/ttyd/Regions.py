@@ -85,6 +85,8 @@ def get_region_connections_dict(world: "TTYDWorld") -> dict[tuple[str, str], typ
             lambda state: StateLogic.westside(state, world.player),
         ("Rogueport (Westside)", "Glitzville"):
             lambda state: StateLogic.glitzville(state, world.player),
+        ("Rogueport (Westside)", "Rogueport Sewers Westside"):
+            lambda state: state.has("Paper Mode", world.player),
         ("Rogueport (Westside)", "Excess Express"):
             lambda state: StateLogic.excess_express(state, world.player),
         ("Excess Express", "Riverside Station"):
