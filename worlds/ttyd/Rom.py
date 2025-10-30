@@ -114,6 +114,12 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write(random.randbytes(4))
         caller.patcher.dol.data.seek(0x248)
         caller.patcher.dol.data.write(seed_options["goal_stars"].to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x249)
+        caller.patcher.dol.data.write(seed_options["goal"].to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x24A)
+        caller.patcher.dol.data.write(seed_options["star_shuffle"].to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x24B)
+        caller.patcher.dol.data.write(seed_options["dazzle_rewards"].to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x260)
         caller.patcher.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
@@ -261,7 +267,10 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "starting_level": world.options.starting_level.value,
         "first_attack": world.options.first_attack.value,
         "music": world.options.music_settings.value,
-        "block_visibility": world.options.block_visibility.value
+        "block_visibility": world.options.block_visibility.value,
+        "goal": world.options.goal.value,
+        "star_shuffle": world.options.star_shuffle.value,
+        "dazzle_rewards": world.options.dazzle_rewards.value
     }
 
     buffer = io.BytesIO()
