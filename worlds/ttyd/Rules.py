@@ -140,7 +140,7 @@ def get_tattle_rules_dict() -> dict[str, typing.List[int]]:
         "Tattle: Vivian": [78780215],
         "Tattle: Marilyn": [78780215, 78780622],
         "Tattle: Beldam": [78780215, 78780622],
-        "Tattle: X-Naut": [78780231, 78780584],
+        "Tattle: X-Naut": [78780231, 78780595],
         "Tattle: Yux": [78780231],
         "Tattle: Mini-Yux": [78780231],
         "Tattle: Pider": [78780241, 78780267, 78780639],
