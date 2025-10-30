@@ -292,8 +292,6 @@ class TTYDWorld(World):
             dazzle_locations = [self.get_location(location_name) for location_name in dazzle_location_names]
             for i, location in enumerate(dazzle_locations):
                 if limited_star_pieces > (100 - dazzle_counts[i - 1]):
-                    logging.info(f"{self.player_name} Adding location {location.name} to limited locations to avoid dazzle lock.")
-                    logging.info(f"{self.player_name} Number of star pieces in limited locations: {limited_star_pieces}, max allowed: {100 - dazzle_counts[i - 1]}")
                     self.limited_chapter_locations.add(location)
                     if len(self.items) > 0:
                         self.limited_items.append(self.create_item(self.get_filler_item_name()))
