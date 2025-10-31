@@ -11,10 +11,10 @@ class Goal(Choice):
     bonetail: Defeat Bonetail.
     """
     display_name = "Goal"
-    option_shadow_queen = 0
-    option_crystal_stars = 1
-    option_bonetail = 2
-    default = 0
+    option_shadow_queen = 1
+    option_crystal_stars = 2
+    option_bonetail = 3
+    default = 1
 
 
 class GoalStars(Range):
@@ -38,12 +38,18 @@ class PalaceStars(Range):
     default = 7
 
 
-class StarShuffle(Toggle):
+class StarShuffle(Choice):
     """
     Crystal Stars will be added as items to the item pool.
-    Completing a chapter will reward you with a random item.
+    vanilla: Crystal Stars will remain in their original locations.
+    stars_only: Crystal Stars will be shuffled into other crystal star locations.
+    all: Crystal Stars will be shuffled into any location.
     """
     display_name = "Star Shuffle"
+    option_vanilla = 1
+    option_stars_only = 2
+    option_all = 3
+    default = 1
 
 
 class PitItems(Choice):
@@ -105,10 +111,10 @@ class DazzleRewards(Choice):
     all: The rewards can be any item.
     """
     display_name = "Dazzle Rewards"
-    option_vanilla = 0
-    option_filler = 1
-    option_all = 2
-    default = 2
+    option_vanilla = 1
+    option_filler = 2
+    option_all = 3
+    default = 3
 
 
 class LimitChapterLogic(Toggle):

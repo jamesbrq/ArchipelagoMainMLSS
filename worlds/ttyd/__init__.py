@@ -7,11 +7,11 @@ from settings import UserFilePath, Group
 from BaseClasses import Tutorial, ItemClassification, CollectionState, Item, Location, MultiWorld
 from worlds.AutoWorld import WebWorld, World
 from .Data import starting_partners, limit_eight, stars, chapter_items, limited_location_ids, limit_pit, \
-    pit_exclusive_tattle_stars_required, dazzle_counts, dazzle_location_names
+    pit_exclusive_tattle_stars_required, dazzle_counts, dazzle_location_names, star_locations
 from .Locations import all_locations, location_table, location_id_to_name, TTYDLocation, locationName_to_data, \
     get_locations_by_tags, get_vanilla_item_names, get_location_names, LocationData
 from .Options import Piecesanity, TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight, Goal, \
-    DazzleRewards
+    DazzleRewards, StarShuffle
 from .Items import TTYDItem, itemList, item_table, ItemData, items_by_id
 from .Regions import create_regions, connect_regions, get_regions_dict, register_indirect_connections
 from .Rom import TTYDProcedurePatch, write_files
@@ -152,8 +152,14 @@ class TTYDWorld(World):
         if self.options.tattlesanity:
             self.limit_tattle_locations()
         self.lock_item_remove_from_pool("Rogueport Center: Goombella", starting_partners[self.options.starting_partner.value - 1])
-        if not self.options.star_shuffle:
+        if self.options.star_shuffle == StarShuffle.option_vanilla:
             self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("star"))
+        elif self.options.star_shuffle == StarShuffle.option_stars_only:
+            locations = get_locations_by_tags("star")
+            items = [location.vanilla_item for location in locations]
+            self.multiworld.random.shuffle(items)
+            for i, location in enumerate(locations):
+                self.lock_item_remove_from_pool(location.name, items_by_id[items[i]].item_name)
         if self.options.goal == Goal.option_shadow_queen:
             self.lock_item("Shadow Queen", "Victory")
         if self.options.limit_chapter_eight:
@@ -219,7 +225,7 @@ class TTYDWorld(World):
         added_items = 0
         for chapter in self.limited_chapters:
             if chapter != 8:
-                self.limited_item_names.update(chapter_items[chapter] + ([stars[chapter - 1]] if self.options.star_shuffle else []))
+                self.limited_item_names.update(chapter_items[chapter] + ([stars[chapter - 1]] if self.options.star_shuffle == StarShuffle.option_all else []))
             else:
                 self.limited_item_names.update(chapter_items[chapter])
         for item in [item for item in itemList if item.progression == ItemClassification.progression]:
@@ -349,6 +355,7 @@ class TTYDWorld(World):
 
     def lock_item(self, location: str, item_name: str):
         item = self.create_item(item_name)
+        item.location = self.get_location(location)
         if location not in self.disabled_locations:
             self.get_location(location).place_locked_item(item)
 
@@ -357,7 +364,9 @@ class TTYDWorld(World):
             locations = [locations]
         for location in locations:
             if location.name not in self.disabled_locations:
-                self.get_location(location.name).place_locked_item(self.create_item(items_by_id[location.vanilla_item].item_name))
+                item = self.create_item(items_by_id[location.vanilla_item].item_name)
+                item.location = self.get_location(location.name)
+                self.get_location(location.name).place_locked_item(item)
             
     def lock_vanilla_items_remove_from_pool(self, locations: LocationData | List[LocationData]) -> None:
         if isinstance(locations, LocationData):
@@ -365,7 +374,9 @@ class TTYDWorld(World):
         for location in locations:
             self.locked_item_frequencies[items_by_id[location.vanilla_item].item_name] = self.locked_item_frequencies.get(items_by_id[location.vanilla_item].item_name, 0) + 1
             if location.name not in self.disabled_locations:
-                self.get_location(location.name).place_locked_item(self.create_item(items_by_id[location.vanilla_item].item_name))
+                item = self.create_item(items_by_id[location.vanilla_item].item_name)
+                item.location = self.get_location(location.name)
+                self.get_location(location.name).place_locked_item(item)
 
     def lock_filler_items_remove_from_pool(self, locations: LocationData | List[LocationData]) -> None:
         if isinstance(locations, LocationData):
@@ -374,11 +385,14 @@ class TTYDWorld(World):
             filler_item_name = self.get_filler_item_name()
             self.locked_item_frequencies[filler_item_name] = self.locked_item_frequencies.get(filler_item_name, 0) + 1
             if location.name not in self.disabled_locations:
-                self.get_location(location.name).place_locked_item(self.create_item(filler_item_name))
+                item = self.create_item(filler_item_name)
+                item.location = self.get_location(location.name)
+                self.get_location(location.name).place_locked_item(item)
 
     def lock_item_remove_from_pool(self, location: str, item_name: str):
         self.locked_item_frequencies[item_name] = self.locked_item_frequencies.get(item_name, 0) + 1
         item = self.create_item(item_name)
+        item.location = self.get_location(location)
         if location not in self.disabled_locations:
             self.get_location(location).place_locked_item(item)
 
@@ -392,9 +406,13 @@ class TTYDWorld(World):
             if item.name in stars:
                 state.prog_items[item.player]["stars"] += 1
             for star in self.required_chapters:
-                if item.name == stars[star - 1]:
-                    state.prog_items[item.player]["required_stars"] += 1
-                    break
+                if item.location is not None:
+                    if item.name == stars[star - 1] and self.options.star_shuffle == StarShuffle.option_vanilla:
+                        state.prog_items[item.player]["required_stars"] += 1
+                        break
+                    elif item.location.name == star_locations[star - 1] and self.options.star_shuffle == StarShuffle.option_stars_only:
+                        state.prog_items[item.player]["required_stars"] += 1
+                        break
         return change
 
     def remove(self, state: "CollectionState", item: "Item") -> bool:
@@ -403,9 +421,13 @@ class TTYDWorld(World):
             if item.name in stars:
                 state.prog_items[item.player]["stars"] -= 1
             for star in self.required_chapters:
-                if item.name == stars[star - 1]:
-                    state.prog_items[item.player]["required_stars"] -= 1
-                    break
+                if item.location is not None:
+                    if item.name == stars[star - 1] and self.options.star_shuffle == StarShuffle.option_vanilla:
+                        state.prog_items[item.player]["required_stars"] -= 1
+                        break
+                    elif item.location == star_locations[star - 1] and self.options.star_shuffle == StarShuffle.option_stars_only:
+                        state.prog_items[item.player]["required_stars"] -= 1
+                        break
         return change
 
     def generate_output(self, output_directory: str) -> None:
