@@ -1,10 +1,10 @@
 import logging
 import os
 
-from Fill import fill_restrictive, fast_fill
-from typing import List, Dict, ClassVar, Any, Set, Tuple
+from Fill import fill_restrictive
+from typing import List, Dict, ClassVar, Any, Set
 from settings import UserFilePath, Group
-from BaseClasses import Tutorial, ItemClassification, CollectionState, Item, Location, MultiWorld
+from BaseClasses import Tutorial, ItemClassification, CollectionState, Item, Location
 from worlds.AutoWorld import WebWorld, World
 from .Data import starting_partners, limit_eight, stars, chapter_items, limited_location_ids, limit_pit, \
     pit_exclusive_tattle_stars_required, dazzle_counts, dazzle_location_names, star_locations
