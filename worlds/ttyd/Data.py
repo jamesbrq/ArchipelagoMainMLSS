@@ -50,6 +50,7 @@ rel_filepaths = [
     "hom",
     "init",
     "jin",
+    "jon",
     "kpa",
     "las",
     "mod",

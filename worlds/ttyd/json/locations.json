@@ -415,7 +415,7 @@
     ]
   },
   {
-    "name": "Rogueport Westside: Mushroom",
+    "name": "Rogueport Westside: Lottery",
     "id": 78780082,
     "rel": "gor",
     "offsets": [
@@ -552,7 +552,7 @@
     ],
     "vanilla_item": 77772177,
     "tags": [
-      "rogueport",
+      "rogueport_westside",
       "chapter_3",
       "star_piece"
     ]
@@ -566,7 +566,7 @@
     ],
     "vanilla_item": 77772177,
     "tags": [
-      "rogueport",
+      "rogueport_westside",
       "panel"
     ]
   },

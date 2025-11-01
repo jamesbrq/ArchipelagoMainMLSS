@@ -69,7 +69,10 @@ class TTYDSettings(Group):
 
 class TTYDWorld(World):
     """
-    TTYD
+    Paper Mario: The Thousand-Year Door is a quirky, turn-based RPG with a paper-craft twist.
+    Mario teams up with oddball allies to stop an ancient evil sealed behind a magical door.
+    Set in Rogueport, the game mixes platforming, puzzles, and witty, self-aware dialogue.
+    Battles play out on a stage with timed button presses and a live audience cheering you on.
     """
     game = "Paper Mario: The Thousand-Year Door"
     web = TTYDWebWorld()
@@ -79,7 +82,7 @@ class TTYDWorld(World):
     settings: ClassVar[TTYDSettings]
     item_name_to_id = {name: data.id for name, data in item_table.items()}
     location_name_to_id = {loc_data.name: loc_data.id for loc_data in all_locations}
-    required_client_version = (0, 6, 0)
+    required_client_version = (0, 6, 2)
     disabled_locations: set
     excluded_regions: set
     items: List[TTYDItem]
@@ -91,6 +94,7 @@ class TTYDWorld(World):
     limited_items: List[TTYDItem]
     limited_state: CollectionState = None
     locked_item_frequencies: Dict[str, int]
+    ut_can_gen_without_yaml = True
 
     def generate_early(self) -> None:
         self.disabled_locations = set()
@@ -103,6 +107,21 @@ class TTYDWorld(World):
         self.limited_item_names = set()
         self.limited_items = []
         self.locked_item_frequencies = {}
+        # implementing yaml-less UT support
+        if hasattr(self.multiworld, "re_gen_passthrough"):
+            if self.game in self.multiworld.re_gen_passthrough:
+                slot_data = self.multiworld.re_gen_passthrough[self.game]
+                self.options.goal.value = slot_data["goal"]
+                self.options.goal_stars.value = slot_data["goal_stars"]
+                self.options.palace_stars.value = slot_data["palace_stars"]
+                self.options.pit_items.value = slot_data["pit_items"]
+                self.options.limit_chapter_logic.value = slot_data["limit_chapter_logic"]
+                self.options.limit_chapter_eight.value = slot_data["limit_chapter_eight"]
+                self.options.palace_skip.value = slot_data["palace_skip"]
+                self.options.open_westside.value = slot_data["westside"]
+                self.options.tattlesanity.value = slot_data["tattlesanity"]
+                self.options.disable_intermissions.value = slot_data["disable_intermissions"]
+                return
         if self.options.limit_chapter_eight and self.options.palace_skip:
             logging.warning(f"{self.player_name}'s has enabled both Palace Skip and Limit Chapter 8. "
                             f"Disabling the Limit Chapter 8 option due to incompatibility.")
@@ -346,6 +365,8 @@ class TTYDWorld(World):
             "disable_intermissions": self.options.disable_intermissions.value,
             "cutscene_skip": self.options.cutscene_skip.value,
             "death_link": self.options.death_link.value,
+            "piecesanity": self.options.piecesanity.value,
+            "shinesanity": self.options.shinesanity.value
         }
 
     def create_item(self, name: str) -> TTYDItem:
