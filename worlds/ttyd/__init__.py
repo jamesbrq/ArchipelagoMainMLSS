@@ -7,7 +7,8 @@ from settings import UserFilePath, Group
 from BaseClasses import Tutorial, ItemClassification, CollectionState, Item, Location
 from worlds.AutoWorld import WebWorld, World
 from .Data import starting_partners, limit_eight, stars, chapter_items, limited_location_ids, limit_pit, \
-    pit_exclusive_tattle_stars_required, dazzle_counts, dazzle_location_names, star_locations
+    pit_exclusive_tattle_stars_required, dazzle_counts, dazzle_location_names, star_locations, chapter_keysanity_tags, \
+    chapter_keys
 from .Locations import all_locations, location_table, location_id_to_name, TTYDLocation, locationName_to_data, \
     get_locations_by_tags, get_vanilla_item_names, get_location_names, LocationData
 from .Options import Piecesanity, TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight, Goal, \
@@ -95,6 +96,8 @@ class TTYDWorld(World):
     limited_state: CollectionState = None
     locked_item_frequencies: Dict[str, int]
     ut_can_gen_without_yaml = True
+    keysanity_locations: List[List[Location]]
+    keysanity_items: List[List[TTYDItem]]
 
     def generate_early(self) -> None:
         self.disabled_locations = set()
@@ -107,6 +110,8 @@ class TTYDWorld(World):
         self.limited_item_names = set()
         self.limited_items = []
         self.locked_item_frequencies = {}
+        self.keysanity_locations = []
+        self.keysanity_items = []
         # implementing yaml-less UT support
         if hasattr(self.multiworld, "re_gen_passthrough"):
             if self.game in self.multiworld.re_gen_passthrough:
@@ -166,6 +171,12 @@ class TTYDWorld(World):
         create_regions(self)
         connect_regions(self)
         register_indirect_connections(self)
+        if not self.options.keysanity:
+            for i, tag in enumerate(chapter_keysanity_tags):
+                self.keysanity_locations.append([self.get_location(location) for location in get_location_names(get_locations_by_tags(tag)) if location not in self.disabled_locations])
+                for item_name, count in chapter_keys[i + 1].items():
+                    self.keysanity_items.append([self.create_item(item_name) for _ in range(count)])
+                    self.locked_item_frequencies[item_name] = self.locked_item_frequencies.get(item_name, 0) + count
         for chapter in self.limited_chapters:
             self.limited_chapter_locations.update([self.get_location(location_id_to_name[location]) for location in limited_location_ids[chapter - 1]])
         if self.options.tattlesanity:
@@ -242,6 +253,8 @@ class TTYDWorld(World):
         required_items = []
         precollected = [item for item in itemList if item in self.multiworld.precollected_items[self.player]]
         added_items = 0
+        if not self.options.keysanity:
+            added_items += sum([len(items) for items in self.keysanity_items])
         for chapter in self.limited_chapters:
             if chapter != 8:
                 self.limited_item_names.update(chapter_items[chapter] + ([stars[chapter - 1]] if self.options.star_shuffle == StarShuffle.option_all else []))
@@ -329,6 +342,9 @@ class TTYDWorld(World):
     def pre_fill(self) -> None:
         _ = [self.limited_state.collect(location.item, prevent_sweep=True) for location in self.get_locations() if
              location.item is not None and location.item.name not in stars and location.item.name != "Victory"]
+        if not self.options.keysanity:
+            for locations in self.keysanity_locations:
+                fill_restrictive(self.multiworld, self.limited_state, locations, self.keysanity_items[0], single_player_placement=True, lock=True)
         for chapter in self.limited_chapters:
             locations = [location for location in self.limited_chapter_locations if location.item is None and location.name in get_location_names(get_locations_by_tags(f"chapter_{chapter}"))]
             progressive_items = [item for item in self.limited_items if item.name in chapter_items[chapter]]

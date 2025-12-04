@@ -103,6 +103,14 @@ class Shinesanity(DefaultOnToggle):
     display_name = "Shinesanity"
 
 
+class Keysanity(DefaultOnToggle):
+    """
+    Chapter specific keys will be added to the item pool.
+    Disabling this will place the keys in their own chapters dungeon.
+    """
+    display_name = "Keysanity"
+
+
 class DazzleRewards(Choice):
     """
     This determines what type of items are given as rewards by Dazzle.
@@ -337,6 +345,7 @@ class TTYDOptions(PerGameCommonOptions):
     piecesanity: Piecesanity
     shopsanity: Shopsanity
     shinesanity: Shinesanity
+    keysanity: Keysanity
     dazzle_rewards: DazzleRewards
     pit_items: PitItems
     limit_chapter_logic: LimitChapterLogic
