@@ -149,8 +149,6 @@ def connect_regions(world: "TTYDWorld"):
             world.multiworld.get_region(target, world.player)
             connect(world, names, source, target, rule)
         except Exception:
-            # Skip connections where the region doesn't exist
-            # This could happen if one region was excluded by a different mechanism
             continue
 
 
