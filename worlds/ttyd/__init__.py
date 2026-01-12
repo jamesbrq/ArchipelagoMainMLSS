@@ -88,9 +88,11 @@ class TTYDWorld(World):
     excluded_regions: set
     required_chapters: List[int]
     limited_chapters: List[int]
-    limited_chapter_locations: Set[Location]
-    limited_item_names: set
-    limited_items: List[TTYDItem]
+    limited_chapter_locations: List[Set[Location]]
+    limited_misc_locations: Set[Location]
+    limited_misc_items: List[TTYDItem]
+    limited_item_names: List[Set[str]]
+    limited_items: List[List[TTYDItem]]
     limited_state: CollectionState = None
     locked_item_frequencies: Dict[str, int]
     ut_can_gen_without_yaml = True
@@ -102,9 +104,11 @@ class TTYDWorld(World):
         self.excluded_regions = set()
         self.required_chapters = []
         self.limited_chapters = []
-        self.limited_chapter_locations = set()
-        self.limited_item_names = set()
+        self.limited_chapter_locations = [set() for _ in range(8)]
+        self.limited_misc_locations = set()
+        self.limited_item_names = [set() for _ in range(8)]
         self.limited_items = []
+        self.limited_misc_items = []
         self.locked_item_frequencies = {}
         self.keysanity_locations = []
         self.keysanity_items = [[] for _ in range(8)]
@@ -175,10 +179,10 @@ class TTYDWorld(World):
                             self.keysanity_items[i].extend([self.create_item(item_name) for _ in range(count)])
                             self.locked_item_frequencies[item_name] = self.locked_item_frequencies.get(item_name, 0) + count
             if self.options.limit_chapter_eight:
-                del self.keysanity_locations[7]
-                del self.keysanity_items[7]
+                self.keysanity_locations[7] = []
+                self.keysanity_items[7] = []
         for chapter in self.limited_chapters:
-            self.limited_chapter_locations.update([self.get_location(location_id_to_name[location]) for location in limited_location_ids[chapter - 1]])
+            self.limited_chapter_locations[chapter - 1].update([self.get_location(location_id_to_name[location]) for location in limited_location_ids[chapter - 1]])
         if self.options.tattlesanity:
             self.limit_tattle_locations()
         self.lock_item_remove_from_pool("Rogueport Center: Goombella", starting_partners[self.options.starting_partner.value - 1])
@@ -224,105 +228,153 @@ class TTYDWorld(World):
     def limit_tattle_locations(self):
         for stars_required, locations in pit_exclusive_tattle_stars_required.items():
             if stars_required > len(self.required_chapters):
-                self.limited_chapter_locations.update([self.get_location(location) for location in locations if location not in self.disabled_locations])
+                self.limited_misc_locations.update([self.get_location(location) for location in locations if location not in self.disabled_locations])
         for location_name, locations in get_tattle_rules_dict().items():
             if location_name in self.disabled_locations:
                 continue
             if self.options.limit_chapter_eight and len(locations) == 0:
-                self.limited_chapter_locations.add(self.get_location(location_name))
+                self.limited_misc_locations.add(self.get_location(location_name))
                 continue
             enabled_locations = [location for location in locations if location_id_to_name[location] not in self.disabled_locations]
             if len(enabled_locations) == 0:
                 continue
             if self.options.pit_items != PitItems.option_all:
                 if all(location in limit_pit for location in enabled_locations):
-                    self.limited_chapter_locations.add(self.get_location(location_name))
+                    self.limited_misc_locations.add(self.get_location(location_name))
             if self.options.limit_chapter_logic:
                 if len(locations) == 1 and locations[0] == 78780511:
                     if 5 in self.limited_chapters:
-                        self.limited_chapter_locations.add(self.get_location(location_name))
+                        self.limited_misc_locations.add(self.get_location(location_name))
                 if all(self.get_location(location_id_to_name[location]) in self.limited_chapter_locations for location in enabled_locations):
-                    self.limited_chapter_locations.add(self.get_location(location_name))
+                    self.limited_misc_locations.add(self.get_location(location_name))
 
     def create_items(self) -> None:
-        self.limited_items = []
+        self.limited_items = [[] for _ in range(8)]
         star_pieces = []
         self.limited_state = CollectionState(self.multiworld)
         for chapter in self.limited_chapters:
+            logging.info(chapter)
             if chapter != 8:
-                self.limited_item_names.update(chapter_items[chapter] + (
+                self.limited_item_names[chapter - 1].update(chapter_items[chapter] + (
                     [stars[chapter - 1]] if self.options.star_shuffle == StarShuffle.option_all else []))
             else:
-                self.limited_item_names.update(chapter_items[chapter])
+                self.limited_item_names[chapter - 1].update(chapter_items[chapter])
 
         item_names = [item.item_name
                       for item in item_table.values() for _ in
                       range(max(item.frequency - self.locked_item_frequencies.get(item.item_name, 0), 0))]
 
+        logging.info(f"[{self.player}] Initial item_names count: {len(item_names)}")
+
         for item in self.multiworld.precollected_items[self.player]:
             if item.name in item_names:
                 item_names.remove(item.name)
 
+        logging.info(f"[{self.player}] After precollected removal: {len(item_names)}")
+
+        limited_item_index = {
+            item_name: index
+            for index, item_set in enumerate(self.limited_item_names)
+            for item_name in item_set
+        }
+
+        logging.info(f"[{self.player}] Limited item names by chapter: {[len(s) for s in self.limited_item_names]}")
+
         for item_name in list(item_names):
-            if item_name in self.limited_item_names:
+            if item_name in limited_item_index:
                 item_names.remove(item_name)
-                self.limited_items.append(self.create_item(item_name))
+                index = limited_item_index[item_name]
+                self.limited_items[index].append(self.create_item(item_name))
             elif item_name == "Star Piece":
                 item_names.remove(item_name)
                 star_pieces.append(self.create_item(item_name))
 
-        items = [self.create_item(item_name) for item_name in item_names]
+        logging.info(f"[{self.player}] After limited/star piece extraction: {len(item_names)} remaining")
+        logging.info(f"[{self.player}] Star pieces: {len(star_pieces)}")
+        logging.info(f"[{self.player}] Limited items by chapter: {[len(items) for items in self.limited_items]}")
 
-        limited_needed = len(self.limited_chapter_locations) - len(self.limited_items) - sum(
-            len(keys) for i, keys in enumerate(self.keysanity_items) if i + 1 in self.limited_chapters)
-        filler_to_move = []
-        remaining_items = []
-        for item in items:
-            if item.classification == ItemClassification.filler and len(filler_to_move) < limited_needed:
-                filler_to_move.append(item)
-            else:
-                remaining_items.append(item)
-        self.limited_items.extend(filler_to_move)
-        items = remaining_items
+        filler_items = [self.create_item(item_name) for item_name in item_names if
+                        item_table[item_name].progression == ItemClassification.filler]
+        required_items = [self.create_item(item_name) for item_name in item_names if
+                          item_table[item_name].progression != ItemClassification.filler]
+        self.random.shuffle(required_items)
+        self.random.shuffle(filler_items)
 
-        self.random.shuffle(self.limited_items)
+        logging.info(f"[{self.player}] Filler items: {len(filler_items)}, Required items: {len(required_items)}")
+
+        for chapter in self.limited_chapters:
+            before_count = len(self.limited_items[chapter - 1])
+            self.limited_items[chapter - 1].extend([filler_items.pop() for _ in
+                                                    range(len(self.limited_items[chapter - 1]),
+                                                          len(self.limited_chapter_locations[chapter - 1]) - len(
+                                                              self.keysanity_items[chapter - 1])) if
+                                                    len(filler_items) > 0])
+            needed = len(self.limited_chapter_locations[chapter - 1]) - len(self.limited_items[chapter - 1]) - len(
+                self.keysanity_items[chapter - 1])
+            if needed > 0:
+                self.limited_items[chapter - 1].extend(
+                    [self.create_item(self.get_filler_item_name()) for _ in range(needed)])
+            logging.info(
+                f"[{self.player}] Chapter {chapter}: locations={len(self.limited_chapter_locations[chapter - 1])}, "
+                f"keysanity={len(self.keysanity_items[chapter - 1])}, limited_items={before_count}->{len(self.limited_items[chapter - 1])}, "
+                f"needed={needed}, filler_remaining={len(filler_items)}")
+
+        self.limited_misc_items = [self.create_item(self.get_filler_item_name()) for _ in
+                                   range(len(self.limited_misc_locations))]
+
+        logging.info(
+            f"[{self.player}] Limited misc items: {len(self.limited_misc_items)} for {len(self.limited_misc_locations)} locations")
+
+        _ = {self.random.shuffle(items) for items in self.limited_items}
 
         dazzle_locations = [self.get_location(location_name) for location_name in dazzle_location_names]
+        dazzle_locked_count = 0
         for i, location in enumerate(dazzle_locations):
-            if len(star_pieces) < dazzle_counts[i - 1] and location.item is None:
+            if len(star_pieces) < dazzle_counts[i] and location.item is None:
                 location.place_locked_item(self.create_filler())
+                dazzle_locked_count += 1
 
-        self.random.shuffle(items)
-        _ = {self.limited_state.collect(item, prevent_sweep=True) for item in items + star_pieces}
+        logging.info(f"[{self.player}] Dazzle locations locked with filler: {dazzle_locked_count}")
 
-        required_items = [item for item in items if item.classification != ItemClassification.filler]
-        filler_items = [item for item in items if item.classification == ItemClassification.filler]
+        _ = {self.limited_state.collect(item, prevent_sweep=True) for item in required_items + star_pieces}
 
-        filler_count = len(self.multiworld.get_unfilled_locations(self.player)) - len(self.limited_items) - len(
-            star_pieces) - len(required_items)
+        unfilled_count = len(self.multiworld.get_unfilled_locations(self.player))
+        limited_chapter_total = len([location for locations in self.limited_chapter_locations for location in locations if location.item is None])
+        limited_chapter_total -= sum(len(self.keysanity_items[chapter - 1]) for chapter in self.limited_chapters)
+        filler_count = unfilled_count - len(star_pieces) - len(required_items) - limited_chapter_total - len(
+            self.limited_misc_locations) - sum(len(self.keysanity_items[chapter - 1]) for chapter in self.required_chapters)
+
+        logging.info(f"[{self.player}] Filler calculation: unfilled={unfilled_count}, star_pieces={len(star_pieces)}, "
+                      f"required={len(required_items)}, limited_chapter_total={limited_chapter_total}, "
+                      f"limited_misc={len(self.limited_misc_locations)}, filler_count={filler_count}")
+        logging.info(f"[{self.player}] Available filler: {len(filler_items)}, needed: {filler_count}, "
+                      f"generating extra: {max(0, filler_count - len(filler_items))}")
+
+        if len(filler_items) < filler_count:
+            filler_items += [self.create_item(self.get_filler_item_name()) for _ in
+                             range(filler_count - len(filler_items))]
+
+        logging.info(f"[{self.player}] Final itempool additions: star_pieces={len(star_pieces)}, "
+                      f"required={len(required_items)}, filler={filler_count}")
+        logging.info(f"Before: {len(self.multiworld.itempool)}")
         self.multiworld.itempool += star_pieces
         self.multiworld.itempool += required_items
         self.multiworld.itempool += filler_items[:filler_count]
+        logging.info(len(self.multiworld.itempool))
+        logging.info(f"After: {len(self.multiworld.itempool)}")
 
     def pre_fill(self) -> None:
         _ = [self.limited_state.collect(location.item, prevent_sweep=True) for location in self.get_locations() if
              location.item is not None and location.item.name not in stars and location.item.name != "Victory"]
         if not self.options.keysanity:
             keysanity_state = self.limited_state.copy()
-            _ = [keysanity_state.collect(item, prevent_sweep=True) for item in self.limited_items]
+            _ = [keysanity_state.collect(item, prevent_sweep=True) for items in self.limited_items for item in items]
             _ = [self.limited_state.collect(item, prevent_sweep=True) for items in self.keysanity_items for item in items]
             for i, locations in enumerate(self.keysanity_locations):
                 fill_restrictive(self.multiworld, keysanity_state, locations, self.keysanity_items[i], single_player_placement=True, lock=True)
         for chapter in self.limited_chapters:
-            locations = [location for location in self.limited_chapter_locations if location.item is None and location.name in get_location_names(get_locations_by_tags(f"chapter_{chapter}"))]
-            progressive_items = [item for item in self.limited_items if item.name in chapter_items[chapter]]
-            self.limited_items = [item for item in self.limited_items if item.name not in chapter_items[chapter]]
-            self.random.shuffle(progressive_items)
-            self.random.shuffle(locations)
-            fill_restrictive(self.multiworld, self.limited_state, locations, progressive_items, single_player_placement=True, lock=True)
-        fill_restrictive(self.multiworld, self.limited_state, [location for location in self.limited_chapter_locations if location.item is None], self.limited_items, single_player_placement=True, lock=True)
-        if self.limited_items or self.keysanity_items:
-            logging.warning(f"{self.player_name}'s Not all limited items were placed! {len(self.limited_items)} items remaining and {sum(len(items) for items in self.keysanity_items)} keysanity items remaining.")
+            fill_restrictive(self.multiworld, self.limited_state, list(self.limited_chapter_locations[chapter - 1]), self.limited_items[chapter - 1], single_player_placement=True, lock=True)
+        fill_restrictive(self.multiworld, self.limited_state, list(self.limited_misc_locations), self.limited_misc_items, single_player_placement=True, lock=True)
 
     def set_rules(self) -> None:
         set_rules(self)
