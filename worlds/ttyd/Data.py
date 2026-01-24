@@ -1266,6 +1266,28 @@ chapter_items = {
     8: ["Palace Key", "Palace Key (Tower)", "Star Key"],
 }
 
+chapter_keys = {
+    1: {"Castle Key": 4, "Black Key (Paper)": 1},
+    2: {"Red Key": 1, "Blue Key": 1},
+    3: {"Storage Key 1": 1, "Storage Key 2": 1},
+    4: {"Shop Key": 1, "Steeple Key": 1},
+    5: {"Grotto Key": 1, "Black Key (Boat)": 1},
+    6: {"Station Key 1": 1, "Station Key 2": 1},
+    7: {"Card Key 1": 1, "Card Key 2": 1, "Card Key 3": 1, "Card Key 4": 1},
+    8: {"Palace Key": 3, "Palace Key (Tower)": 8, "Star Key": 1},
+}
+
+chapter_keysanity_tags = [
+    "hooktails_castle",
+    "great_tree",
+    "glitzville",
+    "creepy_steeple",
+    "pirates_grotto",
+    "riverside",
+    "xnaut_fortress",
+    "palace"
+]
+
 pit_exclusive_tattle_stars_required = {
     1: [
         "Tattle: Gloomba",

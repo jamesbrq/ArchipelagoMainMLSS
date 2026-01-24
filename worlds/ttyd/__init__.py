@@ -7,7 +7,8 @@ from settings import UserFilePath, Group
 from BaseClasses import Tutorial, ItemClassification, CollectionState, Item, Location
 from worlds.AutoWorld import WebWorld, World
 from .Data import starting_partners, limit_eight, stars, chapter_items, limited_location_ids, limit_pit, \
-    pit_exclusive_tattle_stars_required, dazzle_counts, dazzle_location_names, star_locations
+    pit_exclusive_tattle_stars_required, dazzle_counts, dazzle_location_names, star_locations, chapter_keysanity_tags, \
+    chapter_keys
 from .Locations import all_locations, location_table, location_id_to_name, TTYDLocation, locationName_to_data, \
     get_locations_by_tags, get_vanilla_item_names, get_location_names, LocationData
 from .Options import Piecesanity, TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight, Goal, \
@@ -89,7 +90,7 @@ class TTYDWorld(World):
     star_pieces: List[TTYDItem]
     required_chapters: List[int]
     keysanity_items: List[List[TTYDItem]]
-    keysanity_locations: List[List[TTYDLocation]]
+    keysanity_locations: List[List[Location]]
     limited_chapters: List[int]
     limited_chapter_locations: Set[Location]
     limited_item_names: set
@@ -104,6 +105,8 @@ class TTYDWorld(World):
         self.items = []
         self.star_pieces = []
         self.required_chapters = []
+        self.keysanity_items = []
+        self.keysanity_locations = []
         self.limited_chapters = []
         self.limited_chapter_locations = set()
         self.limited_item_names = set()
@@ -170,8 +173,6 @@ class TTYDWorld(World):
         register_indirect_connections(self)
         for chapter in self.limited_chapters:
             self.limited_chapter_locations.update([self.get_location(location_id_to_name[location]) for location in limited_location_ids[chapter - 1]])
-        if not self.options.keysanity:
-            
         if self.options.tattlesanity:
             self.limit_tattle_locations()
         self.lock_item_remove_from_pool("Rogueport Center: Goombella", starting_partners[self.options.starting_partner.value - 1])
@@ -212,6 +213,14 @@ class TTYDWorld(World):
             self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("dazzle"))
         elif self.options.dazzle_rewards == DazzleRewards.option_filler:
             self.lock_filler_items_remove_from_pool(get_locations_by_tags("dazzle"))
+        if not self.options.keysanity:
+            for i, tag in enumerate(chapter_keysanity_tags):
+                self.keysanity_locations.append([self.get_location(location.name) for location in get_locations_by_tags(tag) if location.name not in self.disabled_locations])
+                self.keysanity_locations[i] = [location for location in self.keysanity_locations[i] if location.item is None]
+                self.keysanity_items.append([self.create_item(item) for item, count in chapter_keys[i + 1].items() for count in range(count)])
+            if self.options.limit_chapter_eight:
+                self.keysanity_items[7] = []
+                self.keysanity_locations[7] = []
 
 
     def limit_tattle_locations(self):
