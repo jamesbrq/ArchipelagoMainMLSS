@@ -1285,7 +1285,7 @@ chapter_keysanity_tags = [
     "pirates_grotto",
     "riverside",
     "xnaut_fortress",
-    "palace"
+    "chapter_8"
 ]
 
 pit_exclusive_tattle_stars_required = {
