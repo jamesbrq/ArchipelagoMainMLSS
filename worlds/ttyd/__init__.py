@@ -88,6 +88,8 @@ class TTYDWorld(World):
     items: List[TTYDItem]
     star_pieces: List[TTYDItem]
     required_chapters: List[int]
+    keysanity_items: List[List[TTYDItem]]
+    keysanity_locations: List[List[TTYDLocation]]
     limited_chapters: List[int]
     limited_chapter_locations: Set[Location]
     limited_item_names: set
@@ -168,6 +170,8 @@ class TTYDWorld(World):
         register_indirect_connections(self)
         for chapter in self.limited_chapters:
             self.limited_chapter_locations.update([self.get_location(location_id_to_name[location]) for location in limited_location_ids[chapter - 1]])
+        if not self.options.keysanity:
+            
         if self.options.tattlesanity:
             self.limit_tattle_locations()
         self.lock_item_remove_from_pool("Rogueport Center: Goombella", starting_partners[self.options.starting_partner.value - 1])
