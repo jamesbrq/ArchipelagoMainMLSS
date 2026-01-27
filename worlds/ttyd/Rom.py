@@ -52,8 +52,6 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.seek(0x220)
         caller.patcher.dol.data.write(seed_options["palace_stars"].to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x221)
-        caller.patcher.dol.data.write(seed_options["starting_partner"].to_bytes(1, "big"))
-        caller.patcher.dol.data.seek(0x222)
         caller.patcher.dol.data.write(seed_options["yoshi_color"].to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x223)
         caller.patcher.dol.data.write((1).to_bytes(1, "big"))
@@ -185,10 +183,12 @@ class TTYDPatchExtension(APPatchExtension):
                             logger.info(f"Writing Tattle item {item_data.item_name} to unit {unit_id}")
                             caller.patcher.dol.data.seek(0xB00 + ((unit_id - 1) * 2))
                             caller.patcher.dol.data.write(item_data.rom_id.to_bytes(2, "big"))
-                        continue
-                    if "Dazzle" in location_name:
+                    elif "Dazzle" in location_name:
                         caller.patcher.dol.data.seek(data.offset[0])
                         caller.patcher.dol.data.write(item_data.rom_id.to_bytes(2, "big"))
+                    else:
+                        caller.patcher.dol.data.seek(data.offset[0])
+                        caller.patcher.dol.data.write(item_data.rom_id.to_bytes(1, "big"))
                 else:
                     for i, offset in enumerate(data.offset):
                         if "30 Coins" in data.name and i == 1:
