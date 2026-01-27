@@ -40,9 +40,9 @@
   {
     "name": "Rogueport Center: Goombella",
     "id": 78780002,
-    "rel": "dol",
+    "rel": "gor",
     "offsets": [
-      "0x222"
+      "0x37F88"
     ],
     "vanilla_item": 77772078,
     "tags": [
