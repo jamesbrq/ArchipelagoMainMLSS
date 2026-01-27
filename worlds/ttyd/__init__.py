@@ -211,7 +211,6 @@ class TTYDWorld(World):
         for chapter in self.limited_chapters:
             self.lock_vanilla_items_remove_from_pool([location for location in get_locations_by_tags(f"chapter_{chapter}")
                                                       if items_by_id[location.vanilla_item].item_name == "Star Piece" and self.get_location(location.name).item is None])
-        # Calculate limited_chapter_locations AFTER all item locking to get accurate counts
         for chapter in self.limited_chapters:
             all_locs = [self.get_location(location_id_to_name[location]) for location in limited_location_ids[chapter - 1]]
             locs_with_items = [loc.name for loc in all_locs if loc.item is not None]
