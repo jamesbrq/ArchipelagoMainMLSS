@@ -299,7 +299,6 @@ class TTYDWorld(World):
 
         if not self.options.keysanity:
             for chapter in range(1, 9):
-                # Skip chapter 8 when limit_chapter_eight is enabled - keys are already locked
                 if chapter == 8 and self.options.limit_chapter_eight:
                     continue
                 keys = [item for item in required_items if item.name in chapter_keys[chapter]]
@@ -348,7 +347,6 @@ class TTYDWorld(World):
              self.multiworld.get_filled_locations(self.player)
              if location.item is not None and location.item.name not in stars and location.item.name != "Victory"}
         for chapter, locations in self.limited_chapter_locations.items().__reversed__():
-            # Allow star counting for chapter 8 since it needs stars for palace access
             self.in_pre_fill = chapter != 8
             for tag, locs in locations.items():
                 state = self.limited_state.copy()
@@ -360,8 +358,6 @@ class TTYDWorld(World):
                      locations.keys() if chapters != chapter for item in self.limited_items[chapters][tag]}
                 if len(self.limited_items[chapter][tag]) == 0:
                     continue
-                logging.info(f"Filling Chapter {chapter} - {tag} with {len(locs)} locations")
-                logging.info(f"{self.limited_state.prog_items}")
                 fill_restrictive(
                     self.multiworld,
                     state,
