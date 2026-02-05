@@ -125,6 +125,14 @@ class DazzleRewards(Choice):
     default = 3
 
 
+class Keysanity(DefaultOnToggle):
+    """
+    Dungeon keys will be randomized.
+    Disabling this option will place dungeon keys in their own dungeons.
+    """
+    display_name = "Keysanity"
+
+
 class LimitChapterLogic(Toggle):
     """
     Progression items will only appear in required chapters, and in common areas. You will not need to
@@ -347,6 +355,7 @@ class TTYDOptions(PerGameCommonOptions):
     shinesanity: Shinesanity
     keysanity: Keysanity
     dazzle_rewards: DazzleRewards
+    keysanity: Keysanity
     pit_items: PitItems
     limit_chapter_logic: LimitChapterLogic
     limit_chapter_eight: LimitChapterEight
