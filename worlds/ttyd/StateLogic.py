@@ -1,9 +1,5 @@
-import typing
 from .Data import star_locations
 from .Options import StarShuffle
-
-if typing.TYPE_CHECKING:
-    from . import TTYDWorld
 
 
 def westside(state, player):

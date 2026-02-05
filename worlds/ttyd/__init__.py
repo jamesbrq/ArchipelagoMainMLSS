@@ -207,6 +207,10 @@ class TTYDWorld(World):
             self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("dazzle"))
         elif self.options.dazzle_rewards == DazzleRewards.option_filler:
             self.lock_filler_items_remove_from_pool(get_locations_by_tags("dazzle"))
+        else:
+            for i, location in enumerate(dazzle_location_names):
+                if dazzle_counts[i] > 100 - self.locked_item_frequencies.get("Star Piece", 0):
+                    self.lock_item(location, self.get_filler_item_name())
         for chapter in self.limited_chapters:
             self.lock_vanilla_items_remove_from_pool(
                 [location for location in get_locations_by_tags(f"chapter_{chapter}")
@@ -225,8 +229,6 @@ class TTYDWorld(World):
             self.lock_item_remove_from_pool("Rogueport Westside: Train Ticket", self.get_filler_item_name())
         if not self.options.keysanity:
             for i in range(1, 9):
-                # Skip chapter 8 when limit_chapter_eight is enabled - keys are locked by that option
-                # and locations are handled by the limited_chapters code above
                 if i == 8 and self.options.limit_chapter_eight:
                     continue
                 tags = [chapter_keysanity_tags[i]] + (["riddle_tower"] if i == 8 else [])
@@ -291,11 +293,6 @@ class TTYDWorld(World):
                 useful_items.append(item)
             else:
                 filler_items.append(item)
-
-        if self.options.dazzle_rewards == DazzleRewards.option_all:
-            for i, location in enumerate(dazzle_location_names):
-                if dazzle_counts[i] > len(star_pieces):
-                    self.lock_item(location, self.get_filler_item_name())
 
         if not self.options.keysanity:
             for chapter in range(1, 9):
