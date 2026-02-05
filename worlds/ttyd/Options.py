@@ -1,5 +1,5 @@
 from Options import Range, StartInventoryPool, PerGameCommonOptions, Choice, FreeText, Toggle, DeathLink, \
-    DefaultOnToggle
+    DefaultOnToggle, OptionSet
 from dataclasses import dataclass
 
 
@@ -15,6 +15,26 @@ class Goal(Choice):
     option_crystal_stars = 2
     option_bonetail = 3
     default = 1
+
+
+class RequiredStarsToggle(Toggle):
+    """
+    Toggles the Required Stars setting.
+    This will force the stars selected in Required Stars to be needed to enter the Palace of Shadow.
+    Leaving this off will cause the stars needed to be chosen randomly.
+    """
+    display_name = "Required Stars Selection"
+
+
+class RequiredStars(OptionSet):
+    """
+    Select which stars are required to enter the Palace of Shadow.
+    If you do not toggle this option the stars will be chosen randomly.
+    If this has more stars in it than goal stars required, it will use the ones that come first in the list.
+    """
+    display_name = "Required Stars"
+    valid_keys = ["Diamond Star", "Emerald Star", "Gold Star", "Ruby Star", "Sapphire Star", "Garnet Star", "Crystal Star"]
+    default = valid_keys
 
 
 class GoalStars(Range):
@@ -96,6 +116,22 @@ class Shopsanity(DefaultOnToggle):
     display_name = "Shopsanity"
 
 
+class ShopPurchaseLimit(Choice):
+    """
+    This determines which items in the shop will be replenished infinitely when purchasing.
+    limited: No items can be purchased infinitely.
+    consumables_only: Only consumable items can be purchased infinitely.
+    badges_only: Only badges can be purchased infinitely.
+    infinite: All items in shops can be purchased infinitely.
+    """
+    display_name = "Shop Purchase Limit"
+    option_limited = 0
+    option_consumables_only = 1
+    option_badges_only = 2
+    option_infinite = 3
+    default = 1
+
+
 class Shinesanity(DefaultOnToggle):
     """
     Shine Sprites will be randomized.
@@ -161,6 +197,32 @@ class OpenWestside(Toggle):
     Rogueport Westside is open from the start.
     """
     display_name = "Open West Side"
+
+
+class GrubbaBribeType(Choice):
+    """
+    Sets how bribing grubba behaves in-game.
+    Set if you want grubba to require coins for moving up or down the rankings respectively.
+    up_rank_only: Grubba only accepts coins to move up the rankings. (20 -> 1). Moving down is free.
+    down_rank_only: Grubba only accepts coins bribes to move down the rankings. (1 -> 20). Moving up is free.
+    both_directions: Grubba accepts coins for moving both up and down the rankings.
+    """
+    display_name = "Grubba Bribe Type"
+    option_up_rank_only = 0
+    option_down_rank_only = 1
+    option_both_directions = 2
+    default = 0
+
+
+class GrubbaBribeCost(Range):
+    """
+    Sets the cost to bribe Grubba to move up the rankings.
+    Grubba can be found in his office after your first battle in the glitz pit.
+    """
+    display_name = "Grubba Bribe Cost"
+    range_start = 0
+    range_end = 50
+    default = 20
 
 
 class PermanentPeekaboo(Toggle):
