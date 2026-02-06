@@ -178,7 +178,7 @@ class LimitChapterEight(Toggle):
     display_name = "Limit Chapter 8"
 
 
-class BluePipeToggle(Toggle):
+class BluePipeToggle(DefaultOnToggle):
     """
     Toggle whether the blue pipes in Rogueport Sewers are usable.
     Disabling this will remove the blue switches and the pipes will become inaccessible.
