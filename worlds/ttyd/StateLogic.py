@@ -30,16 +30,12 @@ def petal_left(state, player):
     return state.has("Plane Mode", player)
 
 
-def petal_right(state, player):
-    return super_hammer(state, player) and super_boots(state, player)
-
-
 def hooktails_castle(state, player):
     return state.has("Sun Stone", player) and state.has("Moon Stone", player) and (state.has("Koops", player) or state.has("Bobbery", player))
 
 
 def boggly_woods(state, player):
-    return state.has("Paper Mode", player) or (super_hammer(state, player) and super_boots(state, player))
+    return state.has("Paper Mode", player)
 
 
 def great_tree(state, player):
@@ -65,8 +61,7 @@ def steeple(state, player):
 
 
 def keelhaul_key(state, player):
-    return ((state.has("Yoshi", player) and tube_curse(state, player) and state.has("Old Letter", player))
-            or (ultra_hammer(state, player) and super_boots(state, player)))
+    return state.has("Yoshi", player) and tube_curse(state, player) and state.has("Old Letter", player)
 
 
 def pirates_grotto(state, player):
@@ -127,3 +122,9 @@ def key_any(state, player):
 
 def chapter_completions(state, player, count):
     return len([location for location in star_locations if state.can_reach(location, "Location", player)]) >= count
+
+def super_blue_pipes(state, player):
+    return super_hammer(state, player) and super_boots(state, player)
+
+def ultra_blue_pipes(state, player):
+    return ultra_hammer(state, player) and super_boots(state, player)

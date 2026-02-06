@@ -25,7 +25,7 @@ def set_rules(world: "TTYDWorld"):
     for location in get_locations_by_tags("shop"):
         if location.name in world.disabled_locations:
             continue
-        forbid_items_for_player(world.get_location(location.name), set([item for item in stars]), world.player)
+        forbid_items_for_player(world.get_location(location.name), set([item for item in stars.values()]), world.player)
 
     for location in get_locations_by_tags("dazzle"):
         if location.name in world.disabled_locations:

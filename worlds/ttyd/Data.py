@@ -1116,15 +1116,15 @@ limited_tag_items = {
     "riddle_tower": []
 }
 
-stars = [
-    "Diamond Star",
-    "Emerald Star",
-    "Gold Star",
-    "Ruby Star",
-    "Sapphire Star",
-    "Garnet Star",
-    "Crystal Star"
-]
+stars = {
+    1: "Diamond Star",
+    2: "Emerald Star",
+    3: "Gold Star",
+    4: "Ruby Star",
+    5: "Sapphire Star",
+    6: "Garnet Star",
+    7: "Crystal Star"
+}
 
 star_locations = [
     "Hooktail's Castle Hooktail's Room: Diamond Star",

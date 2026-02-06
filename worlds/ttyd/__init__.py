@@ -136,10 +136,20 @@ class TTYDWorld(World):
                             f"Reducing number of stars required to enter the palace of shadow for accessibility.")
             self.options.palace_stars.value = self.options.goal_stars.value
         chapters = [i for i in range(1, 8)]
-        for i in range(self.options.goal_stars.value):
-            self.required_chapters.append(chapters.pop(self.multiworld.random.randint(0, len(chapters) - 1)))
+        if not self.options.required_stars_toggle:
+            for i in range(self.options.goal_stars.value):
+                self.required_chapters.append(chapters.pop(self.multiworld.random.randint(0, len(chapters) - 1)))
+        else:
+            star_names = self.options.required_stars.value
+            self.required_chapters = [chapter for chapter, star in stars.items() if star in star_names][:self.options.goal_stars.value]
+            if len(self.required_chapters) < self.options.goal_stars.value:
+                remaining_chapters = [i for i in range(1, 8) if i not in self.required_chapters]
+                for _ in range(self.options.goal_stars.value - len(self.required_chapters)):
+                    self.required_chapters.append(
+                        remaining_chapters.pop(self.multiworld.random.randint(0, len(remaining_chapters) - 1)))
+        logging.info(f"{self.player_name}'s required chapters: {self.required_chapters}")
         if self.options.limit_chapter_logic:
-            self.limited_chapters += chapters
+            self.limited_chapters += [chapter for chapter in chapters if chapter not in self.required_chapters]
         if self.options.limit_chapter_eight:
             self.limited_chapters += [8]
         if self.options.palace_skip:
@@ -321,9 +331,13 @@ class TTYDWorld(World):
         unfilled -= sum(
             len(self.limited_items[chapter][tag]) for chapter in range(1, 9) for tag in limited_tags[chapter])
 
-        self.multiworld.random.shuffle(filler_items)
-        self.multiworld.random.shuffle(useful_items)
-        self.multiworld.random.shuffle(required_items)
+        self.random.shuffle(filler_items)
+        self.random.shuffle(useful_items)
+        self.random.shuffle(required_items)
+
+        if unfilled < len(required_items) + len(star_pieces):
+            logging.info(f"Unfilled locations that arent limited: {[location.name for location in self.multiworld.get_unfilled_locations(self.player) if location not in self.limited_misc_locations and all(location not in locs for chapter_locs in self.limited_chapter_locations.values() for locs in chapter_locs.values())]}")
+            raise Exception(f"Not enough item pool to fill all locations for player {self.player}. Player has {unfilled} unfilled locations, and {len(required_items) + len(star_pieces)} required items.")
 
         for item in required_items + star_pieces:
             self.multiworld.itempool.append(item)
@@ -342,7 +356,7 @@ class TTYDWorld(World):
     def pre_fill(self) -> None:
         _ = {self.limited_state.collect(location.item, prevent_sweep=True) for location in
              self.multiworld.get_filled_locations(self.player)
-             if location.item is not None and location.item.name not in stars and location.item.name != "Victory"}
+             if location.item is not None and location.item.name not in stars.values() and location.item.name != "Victory"}
         for chapter, locations in self.limited_chapter_locations.items().__reversed__():
             self.in_pre_fill = chapter != 8
             for tag, locs in locations.items():
@@ -459,11 +473,11 @@ class TTYDWorld(World):
         # Skip counting stars during pre_fill to prevent sweep from making the game
         # appear beatable (which causes fill_restrictive to skip placement logic)
         if change and not self.in_pre_fill:
-            if item.name in stars:
+            if item.name in stars.values():
                 state.prog_items[item.player]["stars"] += 1
             for star in self.required_chapters:
                 if item.location is not None:
-                    if item.name == stars[star - 1] and self.options.star_shuffle == StarShuffle.option_vanilla:
+                    if item.name == stars[star] and self.options.star_shuffle == StarShuffle.option_vanilla:
                         state.prog_items[item.player]["required_stars"] += 1
                         break
                     elif item.location.name == star_locations[
@@ -475,11 +489,11 @@ class TTYDWorld(World):
     def remove(self, state: "CollectionState", item: "Item") -> bool:
         change = super().remove(state, item)
         if change:
-            if item.name in stars:
+            if item.name in stars.values():
                 state.prog_items[item.player]["stars"] -= 1
             for star in self.required_chapters:
                 if item.location is not None:
-                    if item.name == stars[star - 1] and self.options.star_shuffle == StarShuffle.option_vanilla:
+                    if item.name == stars[star] and self.options.star_shuffle == StarShuffle.option_vanilla:
                         state.prog_items[item.player]["required_stars"] -= 1
                         break
                     elif item.location == star_locations[
