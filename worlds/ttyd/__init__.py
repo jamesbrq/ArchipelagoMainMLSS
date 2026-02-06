@@ -31,6 +31,7 @@ components.append(
         func=launch_client,
         component_type=Type.CLIENT,
         file_identifier=SuffixIdentifier(".apttyd"),
+        description="Open the Paper Mario: The Thousand-Year Door client.",
     ),
 )
 
@@ -121,7 +122,11 @@ class TTYDWorld(World):
                 self.options.palace_skip.value = slot_data["palace_skip"]
                 self.options.open_westside.value = slot_data["westside"]
                 self.options.tattlesanity.value = slot_data["tattlesanity"]
+                self.options.dazzle_rewards.value = slot_data["dazzle_rewards"]
+                self.options.star_shuffle.value = slot_data["star_shuffle"]
                 self.options.disable_intermissions.value = slot_data["disable_intermissions"]
+                self.options.piecesanity.value = slot_data["piecesanity"]
+                self.options.shinesanity.value = slot_data["shinesanity"]
                 return
         if self.options.limit_chapter_eight and self.options.palace_skip:
             logging.warning(f"{self.player_name}'s has enabled both Palace Skip and Limit Chapter 8. "
@@ -415,8 +420,7 @@ class TTYDWorld(World):
 
     def create_item(self, name: str) -> TTYDItem:
         item = item_table.get(name, ItemData(None, name, "progression"))
-        progression = (
-            ItemClassification.useful if item.item_name == "Goombella" and not self.options.tattlesanity else item.progression)
+        progression = (ItemClassification.useful if (item.item_name == "Goombella" and not self.options.tattlesanity) or (item.item_name == "Star Piece" and self.options.dazzle_rewards != DazzleRewards.option_all) else item.progression)
         return TTYDItem(item.item_name, progression, item.id, self.player)
 
     def lock_item(self, location: str, item_name: str):

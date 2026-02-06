@@ -10,7 +10,7 @@ from BaseClasses import Location, ItemClassification
 from worlds.Files import APProcedurePatch, APTokenMixin, APPatchExtension, AutoPatchExtensionRegister
 from .Items import items_by_id, ItemData
 from .Locations import locationName_to_data, location_table, location_id_to_name
-from .Data import Rels, shop_items, item_prices, rel_filepaths, location_to_unit, shop_names, classification_to_color
+from .Data import Rels, shop_items, item_prices, rel_filepaths, location_to_unit, shop_names
 from .TTYDPatcher import TTYDPatcher
 
 if TYPE_CHECKING:
@@ -282,10 +282,11 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
     buffer = io.BytesIO()
     for i in range(len(shop_items)):
         location = world.get_location(location_id_to_name[shop_items[i]])
-        player_name = world.multiworld.player_name[location.item.player] if location.item is not None else "Unknown Player"
+        player_name = sanitize_string(world.multiworld.player_name[location.item.player]) if location.item is not None else "Unknown Player"
+        item_name = sanitize_string(location.item.name)
         buffer.write(f"ap_{shop_names[i // 6]}_{i % 6}".encode('utf-8'))
         buffer.write(b'\x00')
-        buffer.write(f"{player_name}'s\n<col {classification_to_color[get_base_classification(location.item.classification)]}ff>{location.item.name}</col>".encode('utf-8'))
+        buffer.write(f"{player_name}'s\n<col {classification_to_color(location.item.classification)}ff>{item_name}</col>".encode('utf-8'))
         buffer.write(b'\x00')
     buffer.write(b'\x00')  # null terminator for the end of the table
 
@@ -293,16 +294,15 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))
 
-def get_base_classification(classification: ItemClassification = ItemClassification.filler) -> ItemClassification:
-    """Extract the primary classification for color mapping"""
+def classification_to_color(classification: ItemClassification = ItemClassification.filler) -> str:
     if classification & ItemClassification.progression:
-        return ItemClassification.progression
+        return "6838c6"
     elif classification & ItemClassification.trap:
-        return ItemClassification.trap
+        return "b1130f"
     elif classification & ItemClassification.useful:
-        return ItemClassification.useful
+        return "3d4f84"
     else:
-        return ItemClassification.filler
+        return "005858"
 
 
 def locations_to_dict(locations: Iterable[Location]) -> Dict[str, Tuple]:
@@ -318,3 +318,10 @@ def locations_to_dict(locations: Iterable[Location]) -> Dict[str, Tuple]:
         else:
             result[location.name] = (0, 0, 0)
     return result
+
+def sanitize_string(input_string) -> str:
+    input_string = input_string.replace('\\', '\\\\') # Use the built in heart symbol and make sure escape sequences don't happen
+    allowed_chars = ' !"#$%&\'()=~|-^\\[]P{};:+*/?_,.@`abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789‘’‚“”„Œœ¡¤ª«²³º»¼½¾¿ÀÁÂÄÇÈÉÊËÌÍÎÏÐÑÒÓÔÖ×ØÙÚÛÜÞßàáâäçèéêëìíîïñòóôöùúûü'
+    filtered_chars = [char for char in input_string if char in allowed_chars]
+    return "".join(filtered_chars)
+    
