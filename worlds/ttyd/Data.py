@@ -1211,6 +1211,13 @@ pit_exclusive_tattle_stars_required = {
     ]
 }
 
+classification_to_color = {
+    ItemClassification.filler: "00d6d6",
+    ItemClassification.useful: "6d8be8",
+    ItemClassification.progression: "af99ef",
+    ItemClassification.trap: "fa8072"
+}
+
 item_classifications: typing.Dict[str, ItemClassification] = {
     "filler": ItemClassification.filler,
     "useful": ItemClassification.useful,
