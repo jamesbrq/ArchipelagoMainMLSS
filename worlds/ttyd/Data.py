@@ -287,7 +287,7 @@ location_gsw_info = {
     78780292: (GSWType.GSWF, 2521, 1),
     78780293: (GSWType.GSWF, 5547, 1),
     78780294: (GSWType.GSWF, 5626, 1),
-    78780295: (GSWType.GSWF, 2378, 1),
+    78780295: (GSWType.GSW, 1703, 14),
     78780296: (GSWType.GSWF, 2524, 1),
     78780297: (GSWType.GSWF, 6036, 1),
     78780298: (GSWType.GSWF, 6079, 1),
