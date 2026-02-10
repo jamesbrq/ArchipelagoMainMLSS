@@ -127,6 +127,7 @@ class TTYDWorld(World):
                 self.options.disable_intermissions.value = slot_data["disable_intermissions"]
                 self.options.piecesanity.value = slot_data["piecesanity"]
                 self.options.shinesanity.value = slot_data["shinesanity"]
+                self.options.blue_pipe_toggle.value = slot_data["blue_pipe_toggle"]
                 return
         if self.options.limit_chapter_eight and self.options.palace_skip:
             logging.warning(f"{self.player_name}'s has enabled both Palace Skip and Limit Chapter 8. "
@@ -410,7 +411,8 @@ class TTYDWorld(World):
             "cutscene_skip": self.options.cutscene_skip.value,
             "death_link": self.options.death_link.value,
             "piecesanity": self.options.piecesanity.value,
-            "shinesanity": self.options.shinesanity.value
+            "shinesanity": self.options.shinesanity.value,
+            "blue_pipe_toggle": self.options.blue_pipe_toggle.value
         }
 
     def create_item(self, name: str) -> TTYDItem:
