@@ -234,6 +234,25 @@ class GrubbaBribeCost(Range):
     default = 20
 
 
+class EnemyRandomizerToggle(Toggle):
+    """
+    Toggles the randomization of enemies in battles.
+    """
+    display_name = "Enemy Randomizer"
+
+
+class EnemyGroupType(Choice):
+    """
+    This determines how enemies are grouped when randomizing.
+    vanilla_groups: Enemies will be grouped by encounter, and shuffled as a group.
+    custom_groups: Enemies will be shuffled individually, and grouped into new encounters based on their new enemy count.
+    """
+    display_name = "Enemy Randomizer Grouping"
+    option_vanilla_groups = 0
+    option_custom_groups = 1
+    default = 0
+
+
 class PermanentPeekaboo(Toggle):
     """
     The Peekaboo badge is always active, even when not equipped.
@@ -433,6 +452,8 @@ class TTYDOptions(PerGameCommonOptions):
     open_westside: OpenWestside
     grubba_bribe_direction: GrubbaBribeDirection
     grubba_bribe_cost: GrubbaBribeCost
+    enemy_randomizer: EnemyRandomizerToggle
+    enemy_group_type: EnemyGroupType
     permanent_peekaboo: PermanentPeekaboo
     full_run_bar: FullRunBar
     first_attack: ZeroBPFirstAttack
