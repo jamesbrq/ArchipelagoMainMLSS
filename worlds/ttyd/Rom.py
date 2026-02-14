@@ -114,6 +114,12 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write(seed_options["grubba_bribe_cost"].to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x250)
         caller.patcher.dol.data.write(seed_options["blue_pipe_toggle"].to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x251)
+        caller.patcher.dol.data.write(seed_options["enemy_randomizer"].to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x252)
+        caller.patcher.dol.data.write(seed_options["enemy_stat_scaling"].to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x253)
+        caller.patcher.dol.data.write(seed_options["shuffle_chapter_stats"].to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x260)
         caller.patcher.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
@@ -283,6 +289,8 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "grubba_bribe_cost": world.options.grubba_bribe_cost.value,
         "blue_pipe_toggle": world.options.blue_pipe_toggle.value,
         "enemy_randomizer": world.options.enemy_randomizer.value,
+        "enemy_stat_scaling": world.options.enemy_stat_scaling.value,
+        "shuffle_chapter_stats": world.options.shuffle_chapter_stats.value
     }
 
     buffer = io.BytesIO()

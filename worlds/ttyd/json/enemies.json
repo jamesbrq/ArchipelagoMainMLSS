@@ -1,6 +1,7 @@
 [
   {
     "name": "btlgrp_aji_aji_zako",
+    "rel": "aji",
     "enemy_count": 2,
     "enemy_ids": [
       "0x78",
@@ -9,6 +10,7 @@
   },
   {
     "name": "btlgrp_aji_aji_01_01_off_1",
+    "rel": "aji",
     "enemy_count": 2,
     "enemy_ids": [
       "0x78",
@@ -17,6 +19,7 @@
   },
   {
     "name": "btlgrp_aji_aji_01_02_off_1",
+    "rel": "aji",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1C",
@@ -26,6 +29,7 @@
   },
   {
     "name": "btlgrp_aji_aji_01_03_off_1",
+    "rel": "aji",
     "enemy_count": 4,
     "enemy_ids": [
       "0x78",
@@ -36,6 +40,7 @@
   },
   {
     "name": "btlgrp_aji_aji_01_04_off_1",
+    "rel": "aji",
     "enemy_count": 2,
     "enemy_ids": [
       "0x77",
@@ -44,6 +49,7 @@
   },
   {
     "name": "btlgrp_aji_aji_01_05_off_1",
+    "rel": "aji",
     "enemy_count": 2,
     "enemy_ids": [
       "0x73",
@@ -52,6 +58,7 @@
   },
   {
     "name": "btlgrp_aji_aji_01_06_off_1",
+    "rel": "aji",
     "enemy_count": 4,
     "enemy_ids": [
       "0x78",
@@ -62,6 +69,7 @@
   },
   {
     "name": "btlgrp_aji_aji_01_07_off_1",
+    "rel": "aji",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1C",
@@ -71,6 +79,7 @@
   },
   {
     "name": "btlgrp_aji_aji_01_08_off_1",
+    "rel": "aji",
     "enemy_count": 4,
     "enemy_ids": [
       "0x1C",
@@ -81,6 +90,7 @@
   },
   {
     "name": "btlgrp_aji_aji_04_01_off_1",
+    "rel": "aji",
     "enemy_count": 2,
     "enemy_ids": [
       "0x75",
@@ -89,6 +99,7 @@
   },
   {
     "name": "btlgrp_aji_aji_06_01_off_1",
+    "rel": "aji",
     "enemy_count": 2,
     "enemy_ids": [
       "0x77",
@@ -97,6 +108,7 @@
   },
   {
     "name": "btlgrp_aji_aji_08_01_off_1",
+    "rel": "aji",
     "enemy_count": 3,
     "enemy_ids": [
       "0x77",
@@ -106,6 +118,7 @@
   },
   {
     "name": "btlgrp_aji_aji_09_01_off_1",
+    "rel": "aji",
     "enemy_count": 5,
     "enemy_ids": [
       "0x1C",
@@ -117,6 +130,7 @@
   },
   {
     "name": "btlgrp_aji_aji_10_01_off_1",
+    "rel": "aji",
     "enemy_count": 1,
     "enemy_ids": [
       "0x75"
@@ -124,6 +138,7 @@
   },
   {
     "name": "btlgrp_aji_aji_13_01_off_1",
+    "rel": "aji",
     "enemy_count": 4,
     "enemy_ids": [
       "0x77",
@@ -134,6 +149,7 @@
   },
   {
     "name": "btlgrp_aji_aji_13_02_off_1",
+    "rel": "aji",
     "enemy_count": 2,
     "enemy_ids": [
       "0x73",
@@ -142,6 +158,7 @@
   },
   {
     "name": "btlgrp_aji_aji_15_01_off_1",
+    "rel": "aji",
     "enemy_count": 1,
     "enemy_ids": [
       "0x78"
@@ -149,6 +166,7 @@
   },
   {
     "name": "btlgrp_bom_bom_00_01_off_1",
+    "rel": "bom",
     "enemy_count": 1,
     "enemy_ids": [
       "0x1"
@@ -156,6 +174,7 @@
   },
   {
     "name": "btlgrp_bom_bom_03_01_off_1",
+    "rel": "bom",
     "enemy_count": 2,
     "enemy_ids": [
       "0x70",
@@ -164,6 +183,7 @@
   },
   {
     "name": "btlgrp_bom_bom_03_01_off_2",
+    "rel": "bom",
     "enemy_count": 3,
     "enemy_ids": [
       "0x70",
@@ -173,6 +193,7 @@
   },
   {
     "name": "btlgrp_bom_bom_03_03_off_1",
+    "rel": "bom",
     "enemy_count": 2,
     "enemy_ids": [
       "0x71",
@@ -181,6 +202,7 @@
   },
   {
     "name": "btlgrp_bom_bom_03_03_off_2",
+    "rel": "bom",
     "enemy_count": 3,
     "enemy_ids": [
       "0x71",
@@ -190,6 +212,7 @@
   },
   {
     "name": "btlgrp_bom_bom_04_01_off_1",
+    "rel": "bom",
     "enemy_count": 2,
     "enemy_ids": [
       "0x71",
@@ -198,6 +221,7 @@
   },
   {
     "name": "btlgrp_bom_bom_04_01_off_2",
+    "rel": "bom",
     "enemy_count": 3,
     "enemy_ids": [
       "0x71",
@@ -207,6 +231,7 @@
   },
   {
     "name": "btlgrp_bom_bom_04_02_off_1",
+    "rel": "bom",
     "enemy_count": 2,
     "enemy_ids": [
       "0x70",
@@ -215,6 +240,7 @@
   },
   {
     "name": "btlgrp_bom_bom_04_02_off_2",
+    "rel": "bom",
     "enemy_count": 3,
     "enemy_ids": [
       "0x70",
@@ -224,6 +250,7 @@
   },
   {
     "name": "btlgrp_bom_bom_04_03_off_1",
+    "rel": "bom",
     "enemy_count": 4,
     "enemy_ids": [
       "0x71",
@@ -234,6 +261,7 @@
   },
   {
     "name": "btlgrp_dou_dou_00_01_off_1",
+    "rel": "dou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1",
@@ -243,6 +271,7 @@
   },
   {
     "name": "btlgrp_dou_dou_01_01_off_01",
+    "rel": "dou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x54",
@@ -252,6 +281,7 @@
   },
   {
     "name": "btlgrp_dou_dou_02_01_off_01",
+    "rel": "dou",
     "enemy_count": 2,
     "enemy_ids": [
       "0x55",
@@ -260,6 +290,7 @@
   },
   {
     "name": "btlgrp_dou_dou_02_02_off_01",
+    "rel": "dou",
     "enemy_count": 4,
     "enemy_ids": [
       "0x55",
@@ -270,6 +301,7 @@
   },
   {
     "name": "btlgrp_dou_dou_03_01_off_01",
+    "rel": "dou",
     "enemy_count": 2,
     "enemy_ids": [
       "0x5A",
@@ -278,6 +310,7 @@
   },
   {
     "name": "btlgrp_dou_dou_03_99_off_01",
+    "rel": "dou",
     "enemy_count": 2,
     "enemy_ids": [
       "0x5B",
@@ -286,6 +319,7 @@
   },
   {
     "name": "btlgrp_dou_dou_03_02_off_01",
+    "rel": "dou",
     "enemy_count": 2,
     "enemy_ids": [
       "0x5C",
@@ -294,6 +328,7 @@
   },
   {
     "name": "btlgrp_dou_dou_03_03_off_01",
+    "rel": "dou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x5C",
@@ -303,6 +338,7 @@
   },
   {
     "name": "btlgrp_dou_dou_05_01_off_01",
+    "rel": "dou",
     "enemy_count": 2,
     "enemy_ids": [
       "0x54",
@@ -311,6 +347,7 @@
   },
   {
     "name": "btlgrp_dou_dou_05_02_off_01",
+    "rel": "dou",
     "enemy_count": 2,
     "enemy_ids": [
       "0x59",
@@ -319,6 +356,7 @@
   },
   {
     "name": "btlgrp_dou_dou_06_01_off_01",
+    "rel": "dou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x59",
@@ -328,6 +366,7 @@
   },
   {
     "name": "btlgrp_dou_dou_06_02_off_01",
+    "rel": "dou",
     "enemy_count": 4,
     "enemy_ids": [
       "0x59",
@@ -338,6 +377,7 @@
   },
   {
     "name": "btlgrp_dou_dou_06_03_off_01",
+    "rel": "dou",
     "enemy_count": 1,
     "enemy_ids": [
       "0x59"
@@ -345,6 +385,7 @@
   },
   {
     "name": "btlgrp_dou_dou_07_01_off_01",
+    "rel": "dou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x54",
@@ -354,6 +395,7 @@
   },
   {
     "name": "btlgrp_dou_dou_08_01_off_01",
+    "rel": "dou",
     "enemy_count": 4,
     "enemy_ids": [
       "0x5C",
@@ -364,6 +406,7 @@
   },
   {
     "name": "btlgrp_dou_dou_09_01_off_01",
+    "rel": "dou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x55",
@@ -373,6 +416,7 @@
   },
   {
     "name": "btlgrp_dou_dou_09_02_off_01",
+    "rel": "dou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x54",
@@ -382,6 +426,7 @@
   },
   {
     "name": "btlgrp_dou_dou_12_01_off_01",
+    "rel": "dou",
     "enemy_count": 2,
     "enemy_ids": [
       "0x5A",
@@ -390,6 +435,7 @@
   },
   {
     "name": "btlgrp_dou_dou_12_99_off_01",
+    "rel": "dou",
     "enemy_count": 2,
     "enemy_ids": [
       "0x5B",
@@ -398,6 +444,7 @@
   },
   {
     "name": "btlgrp_dou_dou_13_01_off_01",
+    "rel": "dou",
     "enemy_count": 2,
     "enemy_ids": [
       "0x5A",
@@ -406,6 +453,7 @@
   },
   {
     "name": "btlgrp_dou_dou_13_99_off_01",
+    "rel": "dou",
     "enemy_count": 2,
     "enemy_ids": [
       "0x5B",
@@ -414,6 +462,7 @@
   },
   {
     "name": "btlgrp_eki_eki_06_01_off_1",
+    "rel": "eki",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1",
@@ -423,6 +472,7 @@
   },
   {
     "name": "btlgrp_eki_eki_02_01_off_1",
+    "rel": "eki",
     "enemy_count": 2,
     "enemy_ids": [
       "0x67",
@@ -431,6 +481,7 @@
   },
   {
     "name": "btlgrp_eki_eki_02_02_off_1",
+    "rel": "eki",
     "enemy_count": 3,
     "enemy_ids": [
       "0x67",
@@ -440,6 +491,7 @@
   },
   {
     "name": "btlgrp_eki_eki_02_03_off_1",
+    "rel": "eki",
     "enemy_count": 2,
     "enemy_ids": [
       "0x69",
@@ -448,6 +500,7 @@
   },
   {
     "name": "btlgrp_eki_eki_03_01_off_1",
+    "rel": "eki",
     "enemy_count": 2,
     "enemy_ids": [
       "0x68",
@@ -456,6 +509,7 @@
   },
   {
     "name": "btlgrp_eki_eki_03_02_off_1",
+    "rel": "eki",
     "enemy_count": 3,
     "enemy_ids": [
       "0x68",
@@ -465,6 +519,7 @@
   },
   {
     "name": "btlgrp_eki_eki_03_03_off_1",
+    "rel": "eki",
     "enemy_count": 3,
     "enemy_ids": [
       "0x68",
@@ -474,6 +529,7 @@
   },
   {
     "name": "btlgrp_eki_eki_03_05_off_1",
+    "rel": "eki",
     "enemy_count": 2,
     "enemy_ids": [
       "0x67",
@@ -482,6 +538,7 @@
   },
   {
     "name": "btlgrp_eki_eki_03_07_off_1",
+    "rel": "eki",
     "enemy_count": 4,
     "enemy_ids": [
       "0x67",
@@ -492,6 +549,7 @@
   },
   {
     "name": "btlgrp_eki_eki_04_01_off_1",
+    "rel": "eki",
     "enemy_count": 3,
     "enemy_ids": [
       "0x69",
@@ -501,6 +559,7 @@
   },
   {
     "name": "btlgrp_eki_eki_04_02_off_1",
+    "rel": "eki",
     "enemy_count": 3,
     "enemy_ids": [
       "0x69",
@@ -510,6 +569,7 @@
   },
   {
     "name": "btlgrp_eki_eki_04_06_off_1",
+    "rel": "eki",
     "enemy_count": 2,
     "enemy_ids": [
       "0x69",
@@ -518,6 +578,7 @@
   },
   {
     "name": "btlgrp_eki_eki_04_03_off_1",
+    "rel": "eki",
     "enemy_count": 2,
     "enemy_ids": [
       "0x68",
@@ -526,6 +587,7 @@
   },
   {
     "name": "btlgrp_eki_eki_04_04_off_1",
+    "rel": "eki",
     "enemy_count": 4,
     "enemy_ids": [
       "0x68",
@@ -536,6 +598,7 @@
   },
   {
     "name": "btlgrp_eki_eki_04_05_off_1",
+    "rel": "eki",
     "enemy_count": 2,
     "enemy_ids": [
       "0x68",
@@ -544,6 +607,7 @@
   },
   {
     "name": "btlgrp_gon_gon_02_02_off_1",
+    "rel": "gon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xF",
@@ -553,6 +617,7 @@
   },
   {
     "name": "btlgrp_gon_gon_02_03_off_1",
+    "rel": "gon",
     "enemy_count": 2,
     "enemy_ids": [
       "0xE",
@@ -561,6 +626,7 @@
   },
   {
     "name": "btlgrp_gon_gon_02_04_off_1",
+    "rel": "gon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xF",
@@ -570,6 +636,7 @@
   },
   {
     "name": "btlgrp_gon_gon_03_01_off_1",
+    "rel": "gon",
     "enemy_count": 5,
     "enemy_ids": [
       "0x16",
@@ -581,6 +648,7 @@
   },
   {
     "name": "btlgrp_gon_gon_04_01_off_1",
+    "rel": "gon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x11",
@@ -589,6 +657,7 @@
   },
   {
     "name": "btlgrp_gon_gon_04_02_off_1",
+    "rel": "gon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x11",
@@ -599,6 +668,7 @@
   },
   {
     "name": "btlgrp_gon_gon_04_03_off_1",
+    "rel": "gon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x11",
@@ -608,6 +678,7 @@
   },
   {
     "name": "btlgrp_gon_gon_06_03_off_1",
+    "rel": "gon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x2",
@@ -617,6 +688,7 @@
   },
   {
     "name": "btlgrp_gon_gon_06_04_off_1",
+    "rel": "gon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x11",
@@ -626,6 +698,7 @@
   },
   {
     "name": "btlgrp_gon_gon_08_01_off_1",
+    "rel": "gon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x11",
@@ -634,6 +707,7 @@
   },
   {
     "name": "btlgrp_gon_gon_08_03_off_1",
+    "rel": "gon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x11",
@@ -642,6 +716,7 @@
   },
   {
     "name": "btlgrp_gon_gon_08_05_off_1",
+    "rel": "gon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x2",
@@ -650,6 +725,7 @@
   },
   {
     "name": "btlgrp_gon_gon_09_01_off_1",
+    "rel": "gon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xE",
@@ -659,6 +735,7 @@
   },
   {
     "name": "btlgrp_gon_gon_09_02_off_1",
+    "rel": "gon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x11",
@@ -668,6 +745,7 @@
   },
   {
     "name": "btlgrp_gon_gon_09_04_off_1",
+    "rel": "gon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x11",
@@ -678,6 +756,7 @@
   },
   {
     "name": "btlgrp_gon_gon_10_01_off_1",
+    "rel": "gon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x3",
@@ -688,6 +767,7 @@
   },
   {
     "name": "btlgrp_gon_gon_10_02_off_1",
+    "rel": "gon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xF",
@@ -697,6 +777,7 @@
   },
   {
     "name": "btlgrp_gon_gon_10_03_off_1",
+    "rel": "gon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xE",
@@ -707,6 +788,7 @@
   },
   {
     "name": "btlgrp_gra_gra_01_01_off_1",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x42",
@@ -716,6 +798,7 @@
   },
   {
     "name": "btlgrp_gra_gra_01_01_on_1",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x42",
@@ -725,6 +808,7 @@
   },
   {
     "name": "btlgrp_gra_gra_01_01_on_2",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x42",
@@ -734,6 +818,7 @@
   },
   {
     "name": "btlgrp_gra_gra_01_01_on_3",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x42",
@@ -743,6 +828,7 @@
   },
   {
     "name": "btlgrp_gra_gra_01_03_off_1",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x43",
@@ -752,6 +838,7 @@
   },
   {
     "name": "btlgrp_gra_gra_01_03_on_1",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x43",
@@ -761,6 +848,7 @@
   },
   {
     "name": "btlgrp_gra_gra_01_03_on_2",
+    "rel": "gra",
     "enemy_count": 4,
     "enemy_ids": [
       "0x43",
@@ -771,6 +859,7 @@
   },
   {
     "name": "btlgrp_gra_gra_01_03_on_3",
+    "rel": "gra",
     "enemy_count": 4,
     "enemy_ids": [
       "0x43",
@@ -781,6 +870,7 @@
   },
   {
     "name": "btlgrp_gra_gra_01_04_off_1",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x44",
@@ -790,6 +880,7 @@
   },
   {
     "name": "btlgrp_gra_gra_01_04_on_1",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x44",
@@ -799,6 +890,7 @@
   },
   {
     "name": "btlgrp_gra_gra_01_04_on_2",
+    "rel": "gra",
     "enemy_count": 4,
     "enemy_ids": [
       "0x44",
@@ -809,6 +901,7 @@
   },
   {
     "name": "btlgrp_gra_gra_01_04_on_3",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x44",
@@ -818,6 +911,7 @@
   },
   {
     "name": "btlgrp_gra_gra_03_01_off_1",
+    "rel": "gra",
     "enemy_count": 2,
     "enemy_ids": [
       "0x43",
@@ -826,6 +920,7 @@
   },
   {
     "name": "btlgrp_gra_gra_03_01_off_2",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x43",
@@ -835,6 +930,7 @@
   },
   {
     "name": "btlgrp_gra_gra_03_04_off_1",
+    "rel": "gra",
     "enemy_count": 2,
     "enemy_ids": [
       "0x45",
@@ -843,6 +939,7 @@
   },
   {
     "name": "btlgrp_gra_gra_03_04_off_2",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x45",
@@ -852,6 +949,7 @@
   },
   {
     "name": "btlgrp_gra_gra_03_04_off_3",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x45",
@@ -861,6 +959,7 @@
   },
   {
     "name": "btlgrp_gra_gra_03_05_off_1",
+    "rel": "gra",
     "enemy_count": 4,
     "enemy_ids": [
       "0x45",
@@ -871,6 +970,7 @@
   },
   {
     "name": "btlgrp_gra_gra_03_05_off_2",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x45",
@@ -880,6 +980,7 @@
   },
   {
     "name": "btlgrp_gra_gra_03_05_off_3",
+    "rel": "gra",
     "enemy_count": 4,
     "enemy_ids": [
       "0x45",
@@ -890,6 +991,7 @@
   },
   {
     "name": "btlgrp_gra_gra_04_02_off_1",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x45",
@@ -899,6 +1001,7 @@
   },
   {
     "name": "btlgrp_gra_gra_04_02_off_2",
+    "rel": "gra",
     "enemy_count": 2,
     "enemy_ids": [
       "0x45",
@@ -907,6 +1010,7 @@
   },
   {
     "name": "btlgrp_gra_gra_04_02_off_3",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x45",
@@ -916,6 +1020,7 @@
   },
   {
     "name": "btlgrp_gra_gra_05_01_off_1",
+    "rel": "gra",
     "enemy_count": 2,
     "enemy_ids": [
       "0x47",
@@ -924,6 +1029,7 @@
   },
   {
     "name": "btlgrp_gra_gra_05_01_off_2",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x47",
@@ -933,6 +1039,7 @@
   },
   {
     "name": "btlgrp_gra_gra_05_03_off_1",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x47",
@@ -942,6 +1049,7 @@
   },
   {
     "name": "btlgrp_gra_gra_05_03_off_2",
+    "rel": "gra",
     "enemy_count": 3,
     "enemy_ids": [
       "0x47",
@@ -951,6 +1059,7 @@
   },
   {
     "name": "btlgrp_gra_gra_05_03_off_3",
+    "rel": "gra",
     "enemy_count": 4,
     "enemy_ids": [
       "0x47",
@@ -961,6 +1070,7 @@
   },
   {
     "name": "btlgrp_hei_hei_01_01_off_1",
+    "rel": "hei",
     "enemy_count": 4,
     "enemy_ids": [
       "0x1",
@@ -971,6 +1081,7 @@
   },
   {
     "name": "btlgrp_hei_hei_02_02_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x2",
@@ -979,6 +1090,7 @@
   },
   {
     "name": "btlgrp_hei_hei_02_03_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0xE",
@@ -987,6 +1099,7 @@
   },
   {
     "name": "btlgrp_hei_hei_02_04_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x3",
@@ -995,6 +1108,7 @@
   },
   {
     "name": "btlgrp_hei_hei_03_01_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x12",
@@ -1003,6 +1117,7 @@
   },
   {
     "name": "btlgrp_hei_hei_04_01_off_1",
+    "rel": "hei",
     "enemy_count": 3,
     "enemy_ids": [
       "0x2",
@@ -1012,6 +1127,7 @@
   },
   {
     "name": "btlgrp_hei_hei_04_01_off_2",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x2",
@@ -1020,6 +1136,7 @@
   },
   {
     "name": "btlgrp_hei_hei_04_02_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0xE",
@@ -1028,6 +1145,7 @@
   },
   {
     "name": "btlgrp_hei_hei_04_02_off_2",
+    "rel": "hei",
     "enemy_count": 3,
     "enemy_ids": [
       "0xE",
@@ -1037,6 +1155,7 @@
   },
   {
     "name": "btlgrp_hei_hei_05_01_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x13",
@@ -1045,6 +1164,7 @@
   },
   {
     "name": "btlgrp_hei_hei_06_02_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0xE",
@@ -1053,6 +1173,7 @@
   },
   {
     "name": "btlgrp_hei_hei_06_03_off_1",
+    "rel": "hei",
     "enemy_count": 3,
     "enemy_ids": [
       "0x2",
@@ -1062,6 +1183,7 @@
   },
   {
     "name": "btlgrp_hei_hei_06_03_off_2",
+    "rel": "hei",
     "enemy_count": 3,
     "enemy_ids": [
       "0x2",
@@ -1071,6 +1193,7 @@
   },
   {
     "name": "btlgrp_hei_hei_07_01_off_1",
+    "rel": "hei",
     "enemy_count": 4,
     "enemy_ids": [
       "0x1A",
@@ -1081,6 +1204,7 @@
   },
   {
     "name": "btlgrp_hei_hei_08_01_off_1",
+    "rel": "hei",
     "enemy_count": 4,
     "enemy_ids": [
       "0x10",
@@ -1091,6 +1215,7 @@
   },
   {
     "name": "btlgrp_hei_hei_09_01_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x10",
@@ -1099,6 +1224,7 @@
   },
   {
     "name": "btlgrp_hei_hei_09_01_off_2",
+    "rel": "hei",
     "enemy_count": 3,
     "enemy_ids": [
       "0x10",
@@ -1108,6 +1234,7 @@
   },
   {
     "name": "btlgrp_hei_hei_09_03_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x10",
@@ -1116,6 +1243,7 @@
   },
   {
     "name": "btlgrp_hei_hei_09_03_off_2",
+    "rel": "hei",
     "enemy_count": 3,
     "enemy_ids": [
       "0x10",
@@ -1125,6 +1253,7 @@
   },
   {
     "name": "btlgrp_hei_hei_11_01_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x10",
@@ -1133,6 +1262,7 @@
   },
   {
     "name": "btlgrp_hei_hei_11_01_off_2",
+    "rel": "hei",
     "enemy_count": 3,
     "enemy_ids": [
       "0x10",
@@ -1142,6 +1272,7 @@
   },
   {
     "name": "btlgrp_hei_hei_11_03_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x10",
@@ -1150,6 +1281,7 @@
   },
   {
     "name": "btlgrp_hei_hei_11_03_off_2",
+    "rel": "hei",
     "enemy_count": 3,
     "enemy_ids": [
       "0x10",
@@ -1159,6 +1291,7 @@
   },
   {
     "name": "btlgrp_hei_hei_12_01_off_1",
+    "rel": "hei",
     "enemy_count": 4,
     "enemy_ids": [
       "0x10",
@@ -1169,6 +1302,7 @@
   },
   {
     "name": "btlgrp_hei_hei_13_02_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x1",
@@ -1177,6 +1311,7 @@
   },
   {
     "name": "btlgrp_hei_hei_13_02_on_1",
+    "rel": "hei",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1",
@@ -1186,6 +1321,7 @@
   },
   {
     "name": "btlgrp_hei_hei_13_02_on_2",
+    "rel": "hei",
     "enemy_count": 4,
     "enemy_ids": [
       "0x1",
@@ -1196,6 +1332,7 @@
   },
   {
     "name": "btlgrp_hei_hei_13_02_on_3",
+    "rel": "hei",
     "enemy_count": 5,
     "enemy_ids": [
       "0x1",
@@ -1207,6 +1344,7 @@
   },
   {
     "name": "btlgrp_hei_hei_13_03_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x3",
@@ -1215,6 +1353,7 @@
   },
   {
     "name": "btlgrp_hei_hei_13_03_on_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x3",
@@ -1223,6 +1362,7 @@
   },
   {
     "name": "btlgrp_hei_hei_13_03_on_2",
+    "rel": "hei",
     "enemy_count": 3,
     "enemy_ids": [
       "0x3",
@@ -1232,6 +1372,7 @@
   },
   {
     "name": "btlgrp_hei_hei_13_04_off_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x2",
@@ -1240,6 +1381,7 @@
   },
   {
     "name": "btlgrp_hei_hei_13_04_on_1",
+    "rel": "hei",
     "enemy_count": 2,
     "enemy_ids": [
       "0x2",
@@ -1248,6 +1390,7 @@
   },
   {
     "name": "btlgrp_hei_hei_13_04_on_2",
+    "rel": "hei",
     "enemy_count": 4,
     "enemy_ids": [
       "0x2",
@@ -1258,6 +1401,7 @@
   },
   {
     "name": "btlgrp_jin_jin_00_01_off_1",
+    "rel": "jin",
     "enemy_count": 1,
     "enemy_ids": [
       "0x4B"
@@ -1265,6 +1409,7 @@
   },
   {
     "name": "btlgrp_jin_jin_00_01_off_2",
+    "rel": "jin",
     "enemy_count": 2,
     "enemy_ids": [
       "0x4B",
@@ -1273,6 +1418,7 @@
   },
   {
     "name": "btlgrp_jin_jin_00_01_off_3",
+    "rel": "jin",
     "enemy_count": 3,
     "enemy_ids": [
       "0x4B",
@@ -1282,6 +1428,7 @@
   },
   {
     "name": "btlgrp_jin_jin_00_01_off_4",
+    "rel": "jin",
     "enemy_count": 4,
     "enemy_ids": [
       "0x4B",
@@ -1292,6 +1439,7 @@
   },
   {
     "name": "btlgrp_jin_jin_01_01_off_1",
+    "rel": "jin",
     "enemy_count": 2,
     "enemy_ids": [
       "0x4A",
@@ -1300,6 +1448,7 @@
   },
   {
     "name": "btlgrp_jin_jin_01_01_off_2",
+    "rel": "jin",
     "enemy_count": 3,
     "enemy_ids": [
       "0x4A",
@@ -1309,6 +1458,7 @@
   },
   {
     "name": "btlgrp_jin_jin_01_01_off_3",
+    "rel": "jin",
     "enemy_count": 3,
     "enemy_ids": [
       "0x4A",
@@ -1318,6 +1468,7 @@
   },
   {
     "name": "btlgrp_jin_jin_01_03_off_1",
+    "rel": "jin",
     "enemy_count": 2,
     "enemy_ids": [
       "0x4A",
@@ -1326,6 +1477,7 @@
   },
   {
     "name": "btlgrp_jin_jin_01_03_off_2",
+    "rel": "jin",
     "enemy_count": 4,
     "enemy_ids": [
       "0x4A",
@@ -1336,6 +1488,7 @@
   },
   {
     "name": "btlgrp_jin_jin_01_03_off_3",
+    "rel": "jin",
     "enemy_count": 2,
     "enemy_ids": [
       "0x4A",
@@ -1344,6 +1497,7 @@
   },
   {
     "name": "btlgrp_jin_jin_03_01_off_1",
+    "rel": "jin",
     "enemy_count": 2,
     "enemy_ids": [
       "0x4A",
@@ -1352,6 +1506,7 @@
   },
   {
     "name": "btlgrp_jin_jin_03_02_off_1",
+    "rel": "jin",
     "enemy_count": 2,
     "enemy_ids": [
       "0x4A",
@@ -1360,6 +1515,7 @@
   },
   {
     "name": "btlgrp_jin_jin_07_01_off_1",
+    "rel": "jin",
     "enemy_count": 2,
     "enemy_ids": [
       "0x4B",
@@ -1368,6 +1524,7 @@
   },
   {
     "name": "btlgrp_jin_jin_07_01_off_2",
+    "rel": "jin",
     "enemy_count": 3,
     "enemy_ids": [
       "0x4B",
@@ -1377,6 +1534,7 @@
   },
   {
     "name": "btlgrp_jin_jin_07_02_off_1",
+    "rel": "jin",
     "enemy_count": 2,
     "enemy_ids": [
       "0x4B",
@@ -1385,6 +1543,7 @@
   },
   {
     "name": "btlgrp_jin_jin_07_02_off_2",
+    "rel": "jin",
     "enemy_count": 3,
     "enemy_ids": [
       "0x4B",
@@ -1394,6 +1553,7 @@
   },
   {
     "name": "btlgrp_jin_jin_09_01_off_1",
+    "rel": "jin",
     "enemy_count": 1,
     "enemy_ids": [
       "0x48"
@@ -1401,6 +1561,7 @@
   },
   {
     "name": "btlgrp_jin_jin_10_01_off_1",
+    "rel": "jin",
     "enemy_count": 2,
     "enemy_ids": [
       "0x48",
@@ -1409,6 +1570,7 @@
   },
   {
     "name": "btlgrp_jin_jin_10_02_off_1",
+    "rel": "jin",
     "enemy_count": 1,
     "enemy_ids": [
       "0x49"
@@ -1416,6 +1578,7 @@
   },
   {
     "name": "btlgrp_jin_jin_10_03_off_1",
+    "rel": "jin",
     "enemy_count": 1,
     "enemy_ids": [
       "0x48"
@@ -1423,6 +1586,7 @@
   },
   {
     "name": "btlgrp_jin_jin_10_04_off_1",
+    "rel": "jin",
     "enemy_count": 4,
     "enemy_ids": [
       "0x48",
@@ -1433,6 +1597,7 @@
   },
   {
     "name": "btlgrp_jin_jin_10_05_off_1",
+    "rel": "jin",
     "enemy_count": 2,
     "enemy_ids": [
       "0x49",
@@ -1441,6 +1606,7 @@
   },
   {
     "name": "btlgrp_jin_jin_10_06_off_1",
+    "rel": "jin",
     "enemy_count": 3,
     "enemy_ids": [
       "0x48",
@@ -1450,6 +1616,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_01_off_1",
+    "rel": "jon",
     "enemy_count": 1,
     "enemy_ids": [
       "0x99"
@@ -1457,6 +1624,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_01_off_2",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x99",
@@ -1465,6 +1633,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_01_off_3",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x99",
@@ -1473,6 +1642,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_02_off_1",
+    "rel": "jon",
     "enemy_count": 5,
     "enemy_ids": [
       "0x4",
@@ -1484,6 +1654,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_02_off_2",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x4",
@@ -1492,6 +1663,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_02_off_3",
+    "rel": "jon",
     "enemy_count": 5,
     "enemy_ids": [
       "0x4",
@@ -1503,6 +1675,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_03_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x5",
@@ -1513,6 +1686,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_03_off_2",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x5",
@@ -1521,6 +1695,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_03_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x5",
@@ -1531,6 +1706,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_04_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x11",
@@ -1541,6 +1717,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_04_off_2",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x11",
@@ -1549,6 +1726,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_04_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x11",
@@ -1558,6 +1736,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_05_off_1",
+    "rel": "jon",
     "enemy_count": 5,
     "enemy_ids": [
       "0x10",
@@ -1569,6 +1748,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_05_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x10",
@@ -1578,6 +1758,7 @@
   },
   {
     "name": "btlgrp_jon_jon_01_05_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x10",
@@ -1588,6 +1769,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_01_off_1",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x9A",
@@ -1596,6 +1778,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_01_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x9A",
@@ -1605,6 +1788,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_01_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x9A",
@@ -1614,6 +1798,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_02_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x1A",
@@ -1624,6 +1809,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_02_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1A",
@@ -1633,6 +1819,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_02_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1A",
@@ -1642,6 +1829,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_03_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x27",
@@ -1652,6 +1840,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_03_off_2",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x27",
@@ -1660,6 +1849,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_03_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x27",
@@ -1670,6 +1860,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_04_off_1",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x18",
@@ -1679,6 +1870,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_04_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x18",
@@ -1688,6 +1880,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_04_off_3",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x18",
@@ -1696,6 +1889,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_05_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x1B",
@@ -1706,6 +1900,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_05_off_2",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x1B",
@@ -1714,6 +1909,7 @@
   },
   {
     "name": "btlgrp_jon_jon_11_05_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x1B",
@@ -1724,6 +1920,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_01_off_1",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x9B",
@@ -1733,6 +1930,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_01_off_2",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x9B",
@@ -1743,6 +1941,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_01_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x9B",
@@ -1753,6 +1952,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_02_off_1",
+    "rel": "jon",
     "enemy_count": 5,
     "enemy_ids": [
       "0x2C",
@@ -1764,6 +1964,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_02_off_2",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x2C",
@@ -1772,6 +1973,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_02_off_3",
+    "rel": "jon",
     "enemy_count": 5,
     "enemy_ids": [
       "0x2C",
@@ -1783,6 +1985,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_03_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x28",
@@ -1793,6 +1996,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_03_off_2",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x28",
@@ -1801,6 +2005,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_03_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x28",
@@ -1811,6 +2016,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_04_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x2B",
@@ -1821,6 +2027,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_04_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x2B",
@@ -1830,6 +2037,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_04_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x2B",
@@ -1840,6 +2048,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_05_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x4B",
@@ -1850,6 +2059,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_05_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x4B",
@@ -1859,6 +2069,7 @@
   },
   {
     "name": "btlgrp_jon_jon_21_05_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x4B",
@@ -1869,6 +2080,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_01_off_1",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x9C",
@@ -1877,6 +2089,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_01_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x9C",
@@ -1886,6 +2099,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_01_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x9C",
@@ -1895,6 +2109,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_02_off_1",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x47",
@@ -1904,6 +2119,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_02_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x47",
@@ -1913,6 +2129,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_02_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x47",
@@ -1922,6 +2139,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_03_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x59",
@@ -1932,6 +2150,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_03_off_2",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x59",
@@ -1942,6 +2161,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_03_off_3",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x59",
@@ -1950,6 +2170,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_04_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x2F",
@@ -1960,6 +2181,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_04_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x2F",
@@ -1969,6 +2191,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_04_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x2F",
@@ -1978,6 +2201,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_05_off_1",
+    "rel": "jon",
     "enemy_count": 5,
     "enemy_ids": [
       "0x57",
@@ -1989,6 +2213,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_05_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x57",
@@ -1998,6 +2223,7 @@
   },
   {
     "name": "btlgrp_jon_jon_31_05_off_3",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x57",
@@ -2006,6 +2232,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_01_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x9D",
@@ -2016,6 +2243,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_01_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x9D",
@@ -2025,6 +2253,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_01_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x9D",
@@ -2034,6 +2263,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_02_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x5C",
@@ -2044,6 +2274,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_02_off_2",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x5C",
@@ -2052,6 +2283,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_02_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x5C",
@@ -2061,6 +2293,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_03_off_1",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x55",
@@ -2070,6 +2303,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_03_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x55",
@@ -2079,6 +2313,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_03_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x55",
@@ -2089,6 +2324,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_04_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x68",
@@ -2099,6 +2335,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_04_off_2",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x68",
@@ -2109,6 +2346,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_04_off_3",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x68",
@@ -2117,6 +2355,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_05_off_1",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x69",
@@ -2125,6 +2364,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_05_off_2",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x69",
@@ -2135,6 +2375,7 @@
   },
   {
     "name": "btlgrp_jon_jon_41_05_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x69",
@@ -2145,6 +2386,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_01_off_1",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x9E",
@@ -2154,6 +2396,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_01_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x9E",
@@ -2163,6 +2406,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_01_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x9E",
@@ -2172,6 +2416,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_02_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x70",
@@ -2182,6 +2427,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_02_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x70",
@@ -2191,6 +2437,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_02_off_3",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x70",
@@ -2199,6 +2446,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_03_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x6A",
@@ -2209,6 +2457,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_03_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x6A",
@@ -2218,6 +2467,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_03_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x6A",
@@ -2227,6 +2477,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_04_off_1",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x3B",
@@ -2236,6 +2487,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_04_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x3B",
@@ -2245,6 +2497,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_04_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x3B",
@@ -2254,6 +2507,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_05_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x72",
@@ -2264,6 +2518,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_05_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x72",
@@ -2273,6 +2528,7 @@
   },
   {
     "name": "btlgrp_jon_jon_51_05_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x72",
@@ -2282,6 +2538,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_01_off_1",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x9F",
@@ -2291,6 +2548,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_01_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x9F",
@@ -2300,6 +2558,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_01_off_3",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x9F",
@@ -2308,6 +2567,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_02_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x82",
@@ -2318,6 +2578,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_02_off_2",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x82",
@@ -2326,6 +2587,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_02_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x82",
@@ -2335,6 +2597,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_03_off_1",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x80",
@@ -2344,6 +2607,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_03_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x80",
@@ -2353,6 +2617,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_03_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x80",
@@ -2362,6 +2627,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_04_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x71",
@@ -2372,6 +2638,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_04_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x71",
@@ -2381,6 +2648,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_04_off_3",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x71",
@@ -2389,6 +2657,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_05_off_1",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x37",
@@ -2398,6 +2667,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_05_off_2",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x37",
@@ -2406,6 +2676,7 @@
   },
   {
     "name": "btlgrp_jon_jon_61_05_off_3",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0x37",
@@ -2414,6 +2685,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_01_off_1",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xA1",
@@ -2423,6 +2695,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_01_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xA1",
@@ -2432,6 +2705,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_01_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xA1",
@@ -2441,6 +2715,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_02_off_1",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x3C",
@@ -2450,6 +2725,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_02_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x3C",
@@ -2459,6 +2735,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_02_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x3C",
@@ -2468,6 +2745,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_03_off_1",
+    "rel": "jon",
     "enemy_count": 5,
     "enemy_ids": [
       "0x7C",
@@ -2479,6 +2757,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_03_off_2",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x7C",
@@ -2489,6 +2768,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_03_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x7C",
@@ -2499,6 +2779,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_04_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x7B",
@@ -2509,6 +2790,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_04_off_2",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x7B",
@@ -2519,6 +2801,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_04_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x7B",
@@ -2529,6 +2812,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_05_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0x7F",
@@ -2539,6 +2823,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_05_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x7F",
@@ -2548,6 +2833,7 @@
   },
   {
     "name": "btlgrp_jon_jon_71_05_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0x7F",
@@ -2557,6 +2843,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_01_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xA3",
@@ -2567,6 +2854,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_01_off_2",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xA3",
@@ -2577,6 +2865,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_01_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xA3",
@@ -2586,6 +2875,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_02_off_1",
+    "rel": "jon",
     "enemy_count": 2,
     "enemy_ids": [
       "0xA5",
@@ -2594,6 +2884,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_02_off_2",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xA5",
@@ -2604,6 +2895,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_02_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xA5",
@@ -2613,6 +2905,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_03_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xA4",
@@ -2623,6 +2916,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_03_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xA4",
@@ -2632,6 +2926,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_03_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xA4",
@@ -2641,6 +2936,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_04_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xA2",
@@ -2651,6 +2947,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_04_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xA2",
@@ -2660,6 +2957,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_04_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xA2",
@@ -2670,6 +2968,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_05_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xA3",
@@ -2680,6 +2979,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_05_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xA3",
@@ -2689,6 +2989,7 @@
   },
   {
     "name": "btlgrp_jon_jon_81_05_off_3",
+    "rel": "jon",
     "enemy_count": 5,
     "enemy_ids": [
       "0xA3",
@@ -2700,6 +3001,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_01_off_1",
+    "rel": "jon",
     "enemy_count": 5,
     "enemy_ids": [
       "0xA9",
@@ -2711,6 +3013,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_01_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xA9",
@@ -2720,6 +3023,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_01_off_3",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xA9",
@@ -2729,6 +3033,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_02_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xA6",
@@ -2739,6 +3044,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_02_off_2",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xA6",
@@ -2749,6 +3055,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_02_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xA6",
@@ -2759,6 +3066,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_03_off_1",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xA8",
@@ -2769,6 +3077,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_03_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xA8",
@@ -2778,6 +3087,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_03_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xA8",
@@ -2788,6 +3098,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_04_off_1",
+    "rel": "jon",
     "enemy_count": 5,
     "enemy_ids": [
       "0xA7",
@@ -2799,6 +3110,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_04_off_2",
+    "rel": "jon",
     "enemy_count": 3,
     "enemy_ids": [
       "0xA7",
@@ -2808,6 +3120,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_04_off_3",
+    "rel": "jon",
     "enemy_count": 4,
     "enemy_ids": [
       "0xA7",
@@ -2818,6 +3131,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_05_off_1",
+    "rel": "jon",
     "enemy_count": 5,
     "enemy_ids": [
       "0x46",
@@ -2829,6 +3143,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_05_off_2",
+    "rel": "jon",
     "enemy_count": 5,
     "enemy_ids": [
       "0x46",
@@ -2840,6 +3155,7 @@
   },
   {
     "name": "btlgrp_jon_jon_91_05_off_3",
+    "rel": "jon",
     "enemy_count": 5,
     "enemy_ids": [
       "0x46",
@@ -2851,6 +3167,7 @@
   },
   {
     "name": "btlgrp_las_las_05_01",
+    "rel": "las",
     "enemy_count": 5,
     "enemy_ids": [
       "0x82",
@@ -2862,6 +3179,7 @@
   },
   {
     "name": "btlgrp_las_las_17_01_off_1",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x11"
@@ -2869,6 +3187,7 @@
   },
   {
     "name": "btlgrp_las_las_17_02_off_1",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x16"
@@ -2876,6 +3195,7 @@
   },
   {
     "name": "btlgrp_las_las_17_03_off_1",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x82"
@@ -2883,6 +3203,7 @@
   },
   {
     "name": "btlgrp_las_las_17_04_off_1",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x83"
@@ -2890,6 +3211,7 @@
   },
   {
     "name": "btlgrp_las_las_01_01_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7B",
@@ -2898,6 +3220,7 @@
   },
   {
     "name": "btlgrp_las_las_01_02_off_1",
+    "rel": "las",
     "enemy_count": 3,
     "enemy_ids": [
       "0x7B",
@@ -2907,6 +3230,7 @@
   },
   {
     "name": "btlgrp_las_las_01_03_off_1",
+    "rel": "las",
     "enemy_count": 4,
     "enemy_ids": [
       "0x7B",
@@ -2917,6 +3241,7 @@
   },
   {
     "name": "btlgrp_las_las_01_01_off_2",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7B",
@@ -2925,6 +3250,7 @@
   },
   {
     "name": "btlgrp_las_las_01_02_off_2",
+    "rel": "las",
     "enemy_count": 3,
     "enemy_ids": [
       "0x7B",
@@ -2934,6 +3260,7 @@
   },
   {
     "name": "btlgrp_las_las_01_03_off_2",
+    "rel": "las",
     "enemy_count": 4,
     "enemy_ids": [
       "0x7B",
@@ -2944,6 +3271,7 @@
   },
   {
     "name": "btlgrp_las_las_02_01_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x82",
@@ -2952,6 +3280,7 @@
   },
   {
     "name": "btlgrp_las_las_02_02_off_1",
+    "rel": "las",
     "enemy_count": 3,
     "enemy_ids": [
       "0x7B",
@@ -2961,6 +3290,7 @@
   },
   {
     "name": "btlgrp_las_las_02_03_off_1",
+    "rel": "las",
     "enemy_count": 3,
     "enemy_ids": [
       "0x82",
@@ -2970,6 +3300,7 @@
   },
   {
     "name": "btlgrp_las_las_02_04_off_1",
+    "rel": "las",
     "enemy_count": 4,
     "enemy_ids": [
       "0x82",
@@ -2980,6 +3311,7 @@
   },
   {
     "name": "btlgrp_las_las_02_05_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7D",
@@ -2988,6 +3320,7 @@
   },
   {
     "name": "btlgrp_las_las_02_06_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7D",
@@ -2996,6 +3329,7 @@
   },
   {
     "name": "btlgrp_las_las_02_99_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7E",
@@ -3004,6 +3338,7 @@
   },
   {
     "name": "btlgrp_las_las_03_01_off_1",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x7B"
@@ -3011,6 +3346,7 @@
   },
   {
     "name": "btlgrp_las_las_03_02_off_1",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x7B"
@@ -3018,6 +3354,7 @@
   },
   {
     "name": "btlgrp_las_las_03_03_off_1",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x7B"
@@ -3025,6 +3362,7 @@
   },
   {
     "name": "btlgrp_las_las_03_01_off_2",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x7B"
@@ -3032,6 +3370,7 @@
   },
   {
     "name": "btlgrp_las_las_03_02_off_2",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x7B"
@@ -3039,6 +3378,7 @@
   },
   {
     "name": "btlgrp_las_las_03_03_off_2",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x7B"
@@ -3046,6 +3386,7 @@
   },
   {
     "name": "btlgrp_las_las_04_01_off_1",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x7C"
@@ -3053,6 +3394,7 @@
   },
   {
     "name": "btlgrp_las_las_06_01_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7D",
@@ -3061,6 +3403,7 @@
   },
   {
     "name": "btlgrp_las_las_06_02_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7D",
@@ -3069,6 +3412,7 @@
   },
   {
     "name": "btlgrp_las_las_06_03_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7C",
@@ -3077,6 +3421,7 @@
   },
   {
     "name": "btlgrp_las_las_06_04_off_1",
+    "rel": "las",
     "enemy_count": 4,
     "enemy_ids": [
       "0x7C",
@@ -3087,6 +3432,7 @@
   },
   {
     "name": "btlgrp_las_las_06_05_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7D",
@@ -3095,6 +3441,7 @@
   },
   {
     "name": "btlgrp_las_las_06_06_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7D",
@@ -3103,6 +3450,7 @@
   },
   {
     "name": "btlgrp_las_las_06_99_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7E",
@@ -3111,6 +3459,7 @@
   },
   {
     "name": "btlgrp_las_las_07_01_off_1",
+    "rel": "las",
     "enemy_count": 3,
     "enemy_ids": [
       "0x7C",
@@ -3120,6 +3469,7 @@
   },
   {
     "name": "btlgrp_las_las_07_02_off_1",
+    "rel": "las",
     "enemy_count": 3,
     "enemy_ids": [
       "0x82",
@@ -3129,6 +3479,7 @@
   },
   {
     "name": "btlgrp_las_las_07_03_off_1",
+    "rel": "las",
     "enemy_count": 3,
     "enemy_ids": [
       "0x82",
@@ -3138,6 +3489,7 @@
   },
   {
     "name": "btlgrp_las_las_09_01_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7F",
@@ -3146,6 +3498,7 @@
   },
   {
     "name": "btlgrp_las_las_09_02_off_1",
+    "rel": "las",
     "enemy_count": 3,
     "enemy_ids": [
       "0x7F",
@@ -3155,6 +3508,7 @@
   },
   {
     "name": "btlgrp_las_las_19_01_off_1",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x80"
@@ -3162,6 +3516,7 @@
   },
   {
     "name": "btlgrp_las_las_19_02_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x80",
@@ -3170,6 +3525,7 @@
   },
   {
     "name": "btlgrp_las_las_19_03_off_1",
+    "rel": "las",
     "enemy_count": 3,
     "enemy_ids": [
       "0x80",
@@ -3179,6 +3535,7 @@
   },
   {
     "name": "btlgrp_las_las_20_01_off_1",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x80"
@@ -3186,6 +3543,7 @@
   },
   {
     "name": "btlgrp_las_las_21_01_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7F",
@@ -3194,6 +3552,7 @@
   },
   {
     "name": "btlgrp_las_las_21_02_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7F",
@@ -3202,6 +3561,7 @@
   },
   {
     "name": "btlgrp_las_las_22_01_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x80",
@@ -3210,6 +3570,7 @@
   },
   {
     "name": "btlgrp_las_las_22_02_off_1",
+    "rel": "las",
     "enemy_count": 4,
     "enemy_ids": [
       "0x7C",
@@ -3220,6 +3581,7 @@
   },
   {
     "name": "btlgrp_las_las_22_03_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7F",
@@ -3228,6 +3590,7 @@
   },
   {
     "name": "btlgrp_las_las_24_01_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7F",
@@ -3236,6 +3599,7 @@
   },
   {
     "name": "btlgrp_las_las_25_01_off_1",
+    "rel": "las",
     "enemy_count": 1,
     "enemy_ids": [
       "0x7C"
@@ -3243,6 +3607,7 @@
   },
   {
     "name": "btlgrp_las_las_25_02_off_1",
+    "rel": "las",
     "enemy_count": 3,
     "enemy_ids": [
       "0x7C",
@@ -3252,6 +3617,7 @@
   },
   {
     "name": "btlgrp_las_las_25_03_off_1",
+    "rel": "las",
     "enemy_count": 4,
     "enemy_ids": [
       "0x7C",
@@ -3262,6 +3628,7 @@
   },
   {
     "name": "btlgrp_las_las_25_04_off_1",
+    "rel": "las",
     "enemy_count": 2,
     "enemy_ids": [
       "0x7C",
@@ -3270,6 +3637,7 @@
   },
   {
     "name": "btlgrp_las_las_25_05_off_1",
+    "rel": "las",
     "enemy_count": 3,
     "enemy_ids": [
       "0x7C",
@@ -3279,6 +3647,7 @@
   },
   {
     "name": "btlgrp_las_las_25_06_off_1",
+    "rel": "las",
     "enemy_count": 3,
     "enemy_ids": [
       "0x7C",
@@ -3288,6 +3657,7 @@
   },
   {
     "name": "btlgrp_moo_moo_00_01_off_1",
+    "rel": "moo",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1",
@@ -3297,6 +3667,7 @@
   },
   {
     "name": "btlgrp_moo_moo_01_01_off_1",
+    "rel": "moo",
     "enemy_count": 2,
     "enemy_ids": [
       "0x72",
@@ -3305,6 +3676,7 @@
   },
   {
     "name": "btlgrp_moo_moo_01_02_off_1",
+    "rel": "moo",
     "enemy_count": 2,
     "enemy_ids": [
       "0x72",
@@ -3313,6 +3685,7 @@
   },
   {
     "name": "btlgrp_moo_moo_01_02_off_2",
+    "rel": "moo",
     "enemy_count": 3,
     "enemy_ids": [
       "0x72",
@@ -3322,6 +3695,7 @@
   },
   {
     "name": "btlgrp_moo_moo_01_03_off_1",
+    "rel": "moo",
     "enemy_count": 3,
     "enemy_ids": [
       "0x72",
@@ -3331,6 +3705,7 @@
   },
   {
     "name": "btlgrp_moo_moo_01_04_off_1",
+    "rel": "moo",
     "enemy_count": 2,
     "enemy_ids": [
       "0x72",
@@ -3339,6 +3714,7 @@
   },
   {
     "name": "btlgrp_moo_moo_01_04_off_2",
+    "rel": "moo",
     "enemy_count": 3,
     "enemy_ids": [
       "0x72",
@@ -3348,6 +3724,7 @@
   },
   {
     "name": "btlgrp_moo_moo_01_04_off_3",
+    "rel": "moo",
     "enemy_count": 4,
     "enemy_ids": [
       "0x72",
@@ -3358,6 +3735,7 @@
   },
   {
     "name": "btlgrp_moo_moo_01_05_off_1",
+    "rel": "moo",
     "enemy_count": 4,
     "enemy_ids": [
       "0x72",
@@ -3368,6 +3746,7 @@
   },
   {
     "name": "btlgrp_moo_moo_02_01_off_1",
+    "rel": "moo",
     "enemy_count": 2,
     "enemy_ids": [
       "0x73",
@@ -3376,6 +3755,7 @@
   },
   {
     "name": "btlgrp_moo_moo_02_02_off_1",
+    "rel": "moo",
     "enemy_count": 2,
     "enemy_ids": [
       "0x73",
@@ -3384,6 +3764,7 @@
   },
   {
     "name": "btlgrp_moo_moo_02_03_off_1",
+    "rel": "moo",
     "enemy_count": 2,
     "enemy_ids": [
       "0x73",
@@ -3392,6 +3773,7 @@
   },
   {
     "name": "btlgrp_moo_moo_02_04_off_1",
+    "rel": "moo",
     "enemy_count": 3,
     "enemy_ids": [
       "0x72",
@@ -3401,6 +3783,7 @@
   },
   {
     "name": "btlgrp_moo_moo_02_05_off_1",
+    "rel": "moo",
     "enemy_count": 2,
     "enemy_ids": [
       "0x72",
@@ -3409,6 +3792,7 @@
   },
   {
     "name": "btlgrp_moo_moo_05_01_off_1",
+    "rel": "moo",
     "enemy_count": 2,
     "enemy_ids": [
       "0x72",
@@ -3417,6 +3801,7 @@
   },
   {
     "name": "btlgrp_moo_moo_05_01_off_2",
+    "rel": "moo",
     "enemy_count": 3,
     "enemy_ids": [
       "0x72",
@@ -3426,6 +3811,7 @@
   },
   {
     "name": "btlgrp_moo_moo_05_01_off_3",
+    "rel": "moo",
     "enemy_count": 4,
     "enemy_ids": [
       "0x72",
@@ -3436,6 +3822,7 @@
   },
   {
     "name": "btlgrp_moo_moo_05_02_off_1",
+    "rel": "moo",
     "enemy_count": 2,
     "enemy_ids": [
       "0x72",
@@ -3444,6 +3831,7 @@
   },
   {
     "name": "btlgrp_moo_moo_05_03_off_1",
+    "rel": "moo",
     "enemy_count": 2,
     "enemy_ids": [
       "0x72",
@@ -3452,6 +3840,7 @@
   },
   {
     "name": "btlgrp_moo_moo_05_03_off_2",
+    "rel": "moo",
     "enemy_count": 3,
     "enemy_ids": [
       "0x72",
@@ -3461,6 +3850,7 @@
   },
   {
     "name": "btlgrp_moo_moo_05_04_off_1",
+    "rel": "moo",
     "enemy_count": 3,
     "enemy_ids": [
       "0x72",
@@ -3470,6 +3860,7 @@
   },
   {
     "name": "btlgrp_moo_moo_05_05_off_1",
+    "rel": "moo",
     "enemy_count": 2,
     "enemy_ids": [
       "0x72",
@@ -3478,6 +3869,7 @@
   },
   {
     "name": "btlgrp_moo_moo_05_05_off_2",
+    "rel": "moo",
     "enemy_count": 3,
     "enemy_ids": [
       "0x72",
@@ -3487,6 +3879,7 @@
   },
   {
     "name": "btlgrp_moo_moo_05_05_off_3",
+    "rel": "moo",
     "enemy_count": 4,
     "enemy_ids": [
       "0x72",
@@ -3497,6 +3890,7 @@
   },
   {
     "name": "btlgrp_mri_mri_01_01",
+    "rel": "mri",
     "enemy_count": 2,
     "enemy_ids": [
       "0x1C",
@@ -3505,6 +3899,7 @@
   },
   {
     "name": "btlgrp_mri_mri_04_01",
+    "rel": "mri",
     "enemy_count": 1,
     "enemy_ids": [
       "0x1C"
@@ -3512,6 +3907,7 @@
   },
   {
     "name": "btlgrp_mri_mri_05_01",
+    "rel": "mri",
     "enemy_count": 2,
     "enemy_ids": [
       "0x1C",
@@ -3520,6 +3916,7 @@
   },
   {
     "name": "btlgrp_mri_mri_06_2F_02",
+    "rel": "mri",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1B",
@@ -3529,6 +3926,7 @@
   },
   {
     "name": "btlgrp_mri_mri_06_2F_03",
+    "rel": "mri",
     "enemy_count": 4,
     "enemy_ids": [
       "0x1B",
@@ -3539,6 +3937,7 @@
   },
   {
     "name": "btlgrp_mri_mri_12_01",
+    "rel": "mri",
     "enemy_count": 2,
     "enemy_ids": [
       "0x19",
@@ -3547,6 +3946,7 @@
   },
   {
     "name": "btlgrp_mri_mri_12_02",
+    "rel": "mri",
     "enemy_count": 4,
     "enemy_ids": [
       "0x19",
@@ -3557,6 +3957,7 @@
   },
   {
     "name": "btlgrp_mri_mri_15_01",
+    "rel": "mri",
     "enemy_count": 2,
     "enemy_ids": [
       "0x1C",
@@ -3565,6 +3966,7 @@
   },
   {
     "name": "btlgrp_mri_mri_17_01",
+    "rel": "mri",
     "enemy_count": 2,
     "enemy_ids": [
       "0x1B",
@@ -3573,6 +3975,7 @@
   },
   {
     "name": "btlgrp_mri_mri_18_02",
+    "rel": "mri",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1C",
@@ -3582,6 +3985,7 @@
   },
   {
     "name": "btlgrp_mri_mri_18_03",
+    "rel": "mri",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1D",
@@ -3591,6 +3995,7 @@
   },
   {
     "name": "btlgrp_mri_mri_19_01",
+    "rel": "mri",
     "enemy_count": 2,
     "enemy_ids": [
       "0x1B",
@@ -3599,6 +4004,7 @@
   },
   {
     "name": "btlgrp_mri_mri_19_02",
+    "rel": "mri",
     "enemy_count": 2,
     "enemy_ids": [
       "0x19",
@@ -3607,6 +4013,7 @@
   },
   {
     "name": "btlgrp_mri_mri_19_04",
+    "rel": "mri",
     "enemy_count": 4,
     "enemy_ids": [
       "0x19",
@@ -3617,6 +4024,7 @@
   },
   {
     "name": "btlgrp_mri_mri_20_02",
+    "rel": "mri",
     "enemy_count": 2,
     "enemy_ids": [
       "0x1C",
@@ -3625,6 +4033,7 @@
   },
   {
     "name": "btlgrp_mri_mri_20_03",
+    "rel": "mri",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1D",
@@ -3634,6 +4043,7 @@
   },
   {
     "name": "btlgrp_muj_muj_01_01",
+    "rel": "muj",
     "enemy_count": 3,
     "enemy_ids": [
       "0x54",
@@ -3643,6 +4053,7 @@
   },
   {
     "name": "btlgrp_muj_muj_05_01",
+    "rel": "muj",
     "enemy_count": 3,
     "enemy_ids": [
       "0x54",
@@ -3652,6 +4063,7 @@
   },
   {
     "name": "btlgrp_muj_muj_05_02",
+    "rel": "muj",
     "enemy_count": 3,
     "enemy_ids": [
       "0x54",
@@ -3661,6 +4073,7 @@
   },
   {
     "name": "btlgrp_muj_muj_00_01",
+    "rel": "muj",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1",
@@ -3670,6 +4083,7 @@
   },
   {
     "name": "btlgrp_muj_muj_02_01_off_01",
+    "rel": "muj",
     "enemy_count": 1,
     "enemy_ids": [
       "0x56"
@@ -3677,6 +4091,7 @@
   },
   {
     "name": "btlgrp_muj_muj_02_01_off_02",
+    "rel": "muj",
     "enemy_count": 2,
     "enemy_ids": [
       "0x56",
@@ -3685,6 +4100,7 @@
   },
   {
     "name": "btlgrp_muj_muj_02_01_off_03",
+    "rel": "muj",
     "enemy_count": 3,
     "enemy_ids": [
       "0x56",
@@ -3694,6 +4110,7 @@
   },
   {
     "name": "btlgrp_muj_muj_02_01_off_04",
+    "rel": "muj",
     "enemy_count": 4,
     "enemy_ids": [
       "0x56",
@@ -3704,6 +4121,7 @@
   },
   {
     "name": "btlgrp_muj_muj_02_04_off_01",
+    "rel": "muj",
     "enemy_count": 1,
     "enemy_ids": [
       "0x57"
@@ -3711,6 +4129,7 @@
   },
   {
     "name": "btlgrp_muj_muj_02_04_off_02",
+    "rel": "muj",
     "enemy_count": 2,
     "enemy_ids": [
       "0x57",
@@ -3719,6 +4138,7 @@
   },
   {
     "name": "btlgrp_muj_muj_02_04_off_03",
+    "rel": "muj",
     "enemy_count": 3,
     "enemy_ids": [
       "0x57",
@@ -3728,6 +4148,7 @@
   },
   {
     "name": "btlgrp_muj_muj_02_07_off_01",
+    "rel": "muj",
     "enemy_count": 2,
     "enemy_ids": [
       "0x56",
@@ -3736,6 +4157,7 @@
   },
   {
     "name": "btlgrp_muj_muj_02_07_off_02",
+    "rel": "muj",
     "enemy_count": 3,
     "enemy_ids": [
       "0x56",
@@ -3745,6 +4167,7 @@
   },
   {
     "name": "btlgrp_muj_muj_02_07_off_03",
+    "rel": "muj",
     "enemy_count": 4,
     "enemy_ids": [
       "0x56",
@@ -3755,6 +4178,7 @@
   },
   {
     "name": "btlgrp_muj_muj_03_01_off_01",
+    "rel": "muj",
     "enemy_count": 2,
     "enemy_ids": [
       "0x58",
@@ -3763,6 +4187,7 @@
   },
   {
     "name": "btlgrp_muj_muj_03_01_off_02",
+    "rel": "muj",
     "enemy_count": 3,
     "enemy_ids": [
       "0x58",
@@ -3772,6 +4197,7 @@
   },
   {
     "name": "btlgrp_muj_muj_03_01_off_03",
+    "rel": "muj",
     "enemy_count": 3,
     "enemy_ids": [
       "0x58",
@@ -3781,6 +4207,7 @@
   },
   {
     "name": "btlgrp_muj_muj_03_02_off_01",
+    "rel": "muj",
     "enemy_count": 2,
     "enemy_ids": [
       "0x58",
@@ -3789,6 +4216,7 @@
   },
   {
     "name": "btlgrp_muj_muj_03_02_off_02",
+    "rel": "muj",
     "enemy_count": 3,
     "enemy_ids": [
       "0x58",
@@ -3798,6 +4226,7 @@
   },
   {
     "name": "btlgrp_muj_muj_03_02_off_03",
+    "rel": "muj",
     "enemy_count": 3,
     "enemy_ids": [
       "0x58",
@@ -3807,6 +4236,7 @@
   },
   {
     "name": "btlgrp_muj_muj_03_04_off_01",
+    "rel": "muj",
     "enemy_count": 2,
     "enemy_ids": [
       "0x57",
@@ -3815,6 +4245,7 @@
   },
   {
     "name": "btlgrp_muj_muj_03_04_off_02",
+    "rel": "muj",
     "enemy_count": 3,
     "enemy_ids": [
       "0x57",
@@ -3824,6 +4255,7 @@
   },
   {
     "name": "btlgrp_muj_muj_03_04_off_03",
+    "rel": "muj",
     "enemy_count": 3,
     "enemy_ids": [
       "0x57",
@@ -3833,6 +4265,7 @@
   },
   {
     "name": "btlgrp_pik_pik_06_01_off_1",
+    "rel": "pik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x6A",
@@ -3841,6 +4274,7 @@
   },
   {
     "name": "btlgrp_pik_pik_06_02_off_1",
+    "rel": "pik",
     "enemy_count": 3,
     "enemy_ids": [
       "0x6A",
@@ -3850,6 +4284,7 @@
   },
   {
     "name": "btlgrp_pik_pik_06_03_off_1",
+    "rel": "pik",
     "enemy_count": 1,
     "enemy_ids": [
       "0x6A"
@@ -3857,6 +4292,7 @@
   },
   {
     "name": "btlgrp_pik_pik_06_04_off_1",
+    "rel": "pik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x6A",
@@ -3865,6 +4301,7 @@
   },
   {
     "name": "btlgrp_pik_pik_06_05_off_1",
+    "rel": "pik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x6A",
@@ -3873,6 +4310,7 @@
   },
   {
     "name": "btlgrp_pik_pik_06_06_off_1",
+    "rel": "pik",
     "enemy_count": 4,
     "enemy_ids": [
       "0x6A",
@@ -3883,6 +4321,7 @@
   },
   {
     "name": "btlgrp_pik_pik_06_07_off_1",
+    "rel": "pik",
     "enemy_count": 1,
     "enemy_ids": [
       "0x6A"
@@ -3890,6 +4329,7 @@
   },
   {
     "name": "btlgrp_pik_pik_06_08_off_1",
+    "rel": "pik",
     "enemy_count": 3,
     "enemy_ids": [
       "0x6A",
@@ -3899,6 +4339,7 @@
   },
   {
     "name": "btlgrp_pik_pik_06_09_off_1",
+    "rel": "pik",
     "enemy_count": 4,
     "enemy_ids": [
       "0x6A",
@@ -3909,6 +4350,7 @@
   },
   {
     "name": "btlgrp_tik_tik_01_02_off_1",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x3",
@@ -3917,6 +4359,7 @@
   },
   {
     "name": "btlgrp_tik_tik_04_01_off_1",
+    "rel": "tik",
     "enemy_count": 1,
     "enemy_ids": [
       "0x4"
@@ -3924,6 +4367,7 @@
   },
   {
     "name": "btlgrp_tik_tik_04_01_on_1",
+    "rel": "tik",
     "enemy_count": 1,
     "enemy_ids": [
       "0x4"
@@ -3931,6 +4375,7 @@
   },
   {
     "name": "btlgrp_tik_tik_04_01_on_2",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x4",
@@ -3939,6 +4384,7 @@
   },
   {
     "name": "btlgrp_tik_tik_04_02_off_1",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x4",
@@ -3947,6 +4393,7 @@
   },
   {
     "name": "btlgrp_tik_tik_04_02_on_1",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x4",
@@ -3955,6 +4402,7 @@
   },
   {
     "name": "btlgrp_tik_tik_04_02_on_2",
+    "rel": "tik",
     "enemy_count": 3,
     "enemy_ids": [
       "0x4",
@@ -3964,6 +4412,7 @@
   },
   {
     "name": "btlgrp_tik_tik_04_03_off_1",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xC",
@@ -3972,6 +4421,7 @@
   },
   {
     "name": "btlgrp_tik_tik_04_03_off_2",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xC",
@@ -3980,6 +4430,7 @@
   },
   {
     "name": "btlgrp_tik_tik_04_03_off_3",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xC",
@@ -3988,6 +4439,7 @@
   },
   {
     "name": "btlgrp_tik_tik_04_04_off_1",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xB",
@@ -3996,6 +4448,7 @@
   },
   {
     "name": "btlgrp_tik_tik_04_04_off_2",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xB",
@@ -4004,6 +4457,7 @@
   },
   {
     "name": "btlgrp_tik_tik_04_04_off_3",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xB",
@@ -4012,6 +4466,7 @@
   },
   {
     "name": "btlgrp_tik_tik_07_01_off_1",
+    "rel": "tik",
     "enemy_count": 3,
     "enemy_ids": [
       "0x5",
@@ -4021,6 +4476,7 @@
   },
   {
     "name": "btlgrp_tik_tik_07_01_off_2",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x5",
@@ -4029,6 +4485,7 @@
   },
   {
     "name": "btlgrp_tik_tik_07_02_off_1",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x5",
@@ -4037,6 +4494,7 @@
   },
   {
     "name": "btlgrp_tik_tik_07_02_off_2",
+    "rel": "tik",
     "enemy_count": 3,
     "enemy_ids": [
       "0x5",
@@ -4046,6 +4504,7 @@
   },
   {
     "name": "btlgrp_tik_tik_07_03_off_1",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xB",
@@ -4054,6 +4513,7 @@
   },
   {
     "name": "btlgrp_tik_tik_07_03_off_2",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xB",
@@ -4062,6 +4522,7 @@
   },
   {
     "name": "btlgrp_tik_tik_07_03_off_3",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xB",
@@ -4070,6 +4531,7 @@
   },
   {
     "name": "btlgrp_tik_tik_07_04_off_1",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x38",
@@ -4078,6 +4540,7 @@
   },
   {
     "name": "btlgrp_tik_tik_07_04_off_2",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x38",
@@ -4086,6 +4549,7 @@
   },
   {
     "name": "btlgrp_tik_tik_07_04_off_3",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x38",
@@ -4094,6 +4558,7 @@
   },
   {
     "name": "btlgrp_tik_tik_15_01_off_1",
+    "rel": "tik",
     "enemy_count": 1,
     "enemy_ids": [
       "0x1"
@@ -4101,6 +4566,7 @@
   },
   {
     "name": "btlgrp_tik_tik_15_02_off_1",
+    "rel": "tik",
     "enemy_count": 1,
     "enemy_ids": [
       "0x2"
@@ -4108,6 +4574,7 @@
   },
   {
     "name": "btlgrp_tik_tik_15_03_off_1",
+    "rel": "tik",
     "enemy_count": 1,
     "enemy_ids": [
       "0x3"
@@ -4115,6 +4582,7 @@
   },
   {
     "name": "btlgrp_tik_tik_15_04_off_1",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x38",
@@ -4123,6 +4591,7 @@
   },
   {
     "name": "btlgrp_tik_tik_15_04_off_2",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x38",
@@ -4131,6 +4600,7 @@
   },
   {
     "name": "btlgrp_tik_tik_15_04_off_3",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x38",
@@ -4139,6 +4609,7 @@
   },
   {
     "name": "btlgrp_tik_tik_15_05_off_1",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xC",
@@ -4147,6 +4618,7 @@
   },
   {
     "name": "btlgrp_tik_tik_15_05_off_2",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xC",
@@ -4155,6 +4627,7 @@
   },
   {
     "name": "btlgrp_tik_tik_15_05_off_3",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xC",
@@ -4163,6 +4636,7 @@
   },
   {
     "name": "btlgrp_tik_tik_18_01_off_1",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x5",
@@ -4171,6 +4645,7 @@
   },
   {
     "name": "btlgrp_tik_tik_18_01_off_2",
+    "rel": "tik",
     "enemy_count": 3,
     "enemy_ids": [
       "0x5",
@@ -4180,6 +4655,7 @@
   },
   {
     "name": "btlgrp_tik_tik_18_02_off_1",
+    "rel": "tik",
     "enemy_count": 4,
     "enemy_ids": [
       "0x5",
@@ -4190,6 +4666,7 @@
   },
   {
     "name": "btlgrp_tik_tik_18_02_off_2",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0x5",
@@ -4198,6 +4675,7 @@
   },
   {
     "name": "btlgrp_tik_tik_18_03_off_1",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xC",
@@ -4206,6 +4684,7 @@
   },
   {
     "name": "btlgrp_tik_tik_18_03_off_2",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xC",
@@ -4214,6 +4693,7 @@
   },
   {
     "name": "btlgrp_tik_tik_18_03_off_3",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xC",
@@ -4222,6 +4702,7 @@
   },
   {
     "name": "btlgrp_tik_tik_18_04_off_1",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xB",
@@ -4230,6 +4711,7 @@
   },
   {
     "name": "btlgrp_tik_tik_18_04_off_2",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xB",
@@ -4238,6 +4720,7 @@
   },
   {
     "name": "btlgrp_tik_tik_18_04_off_3",
+    "rel": "tik",
     "enemy_count": 2,
     "enemy_ids": [
       "0xB",
@@ -4246,6 +4729,7 @@
   },
   {
     "name": "btlgrp_tik_tik_20_01_off_1",
+    "rel": "tik",
     "enemy_count": 5,
     "enemy_ids": [
       "0x5",
@@ -4257,6 +4741,7 @@
   },
   {
     "name": "btlgrp_tik_tik_20_02_off_1",
+    "rel": "tik",
     "enemy_count": 4,
     "enemy_ids": [
       "0x5",
@@ -4267,6 +4752,7 @@
   },
   {
     "name": "btlgrp_tik_tik_20_03_off_1",
+    "rel": "tik",
     "enemy_count": 3,
     "enemy_ids": [
       "0x5",
@@ -4276,6 +4762,7 @@
   },
   {
     "name": "btlgrp_tik_tik_20_04_off_1",
+    "rel": "tik",
     "enemy_count": 4,
     "enemy_ids": [
       "0x5",
@@ -4286,6 +4773,7 @@
   },
   {
     "name": "btlgrp_tik_tik_20_05_off_1",
+    "rel": "tik",
     "enemy_count": 5,
     "enemy_ids": [
       "0x5",
@@ -4297,6 +4785,7 @@
   },
   {
     "name": "btlgrp_tik_tik_20_06_off_1",
+    "rel": "tik",
     "enemy_count": 5,
     "enemy_ids": [
       "0xA3",
@@ -4308,6 +4797,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_19",
+    "rel": "tou",
     "enemy_count": 5,
     "enemy_ids": [
       "0x24",
@@ -4319,6 +4809,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_18",
+    "rel": "tou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x25",
@@ -4328,6 +4819,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_17",
+    "rel": "tou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x27",
@@ -4337,6 +4829,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_16",
+    "rel": "tou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x11",
@@ -4346,6 +4839,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_15",
+    "rel": "tou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x29",
@@ -4355,6 +4849,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_14",
+    "rel": "tou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x19",
@@ -4364,6 +4859,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_13",
+    "rel": "tou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x2A",
@@ -4373,6 +4869,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_12",
+    "rel": "tou",
     "enemy_count": 4,
     "enemy_ids": [
       "0x2B",
@@ -4383,6 +4880,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_11",
+    "rel": "tou",
     "enemy_count": 4,
     "enemy_ids": [
       "0x2C",
@@ -4393,6 +4891,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_9",
+    "rel": "tou",
     "enemy_count": 2,
     "enemy_ids": [
       "0x2E",
@@ -4401,6 +4900,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_8",
+    "rel": "tou",
     "enemy_count": 2,
     "enemy_ids": [
       "0x13",
@@ -4409,6 +4909,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_7",
+    "rel": "tou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x2F",
@@ -4418,6 +4919,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_6",
+    "rel": "tou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x10",
@@ -4427,6 +4929,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_5",
+    "rel": "tou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x31",
@@ -4436,6 +4939,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_4",
+    "rel": "tou",
     "enemy_count": 1,
     "enemy_ids": [
       "0x37"
@@ -4443,6 +4947,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_3",
+    "rel": "tou",
     "enemy_count": 3,
     "enemy_ids": [
       "0x38",
@@ -4452,6 +4957,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_2",
+    "rel": "tou",
     "enemy_count": 2,
     "enemy_ids": [
       "0x3B",
@@ -4460,6 +4966,7 @@
   },
   {
     "name": "btlgrp_tou_tou_rank_1",
+    "rel": "tou",
     "enemy_count": 1,
     "enemy_ids": [
       "0x3C"
@@ -4467,6 +4974,7 @@
   },
   {
     "name": "btlgrp_tou_tou_add_1",
+    "rel": "tou",
     "enemy_count": 4,
     "enemy_ids": [
       "0x4A",
@@ -4477,6 +4985,7 @@
   },
   {
     "name": "btlgrp_tou_tou_add_2",
+    "rel": "tou",
     "enemy_count": 4,
     "enemy_ids": [
       "0x4",
@@ -4487,6 +4996,7 @@
   },
   {
     "name": "btlgrp_win_win_00_01_off_1",
+    "rel": "win",
     "enemy_count": 2,
     "enemy_ids": [
       "0x18",
@@ -4495,6 +5005,7 @@
   },
   {
     "name": "btlgrp_win_win_00_01_on_1",
+    "rel": "win",
     "enemy_count": 2,
     "enemy_ids": [
       "0x18",
@@ -4503,6 +5014,7 @@
   },
   {
     "name": "btlgrp_win_win_00_01_on_2",
+    "rel": "win",
     "enemy_count": 3,
     "enemy_ids": [
       "0x18",
@@ -4512,6 +5024,7 @@
   },
   {
     "name": "btlgrp_win_win_00_01_on_3",
+    "rel": "win",
     "enemy_count": 4,
     "enemy_ids": [
       "0x18",
@@ -4522,6 +5035,7 @@
   },
   {
     "name": "btlgrp_win_win_00_02_off_1",
+    "rel": "win",
     "enemy_count": 2,
     "enemy_ids": [
       "0x1A",
@@ -4530,6 +5044,7 @@
   },
   {
     "name": "btlgrp_win_win_00_02_on_1",
+    "rel": "win",
     "enemy_count": 2,
     "enemy_ids": [
       "0x1A",
@@ -4538,6 +5053,7 @@
   },
   {
     "name": "btlgrp_win_win_00_02_on_2",
+    "rel": "win",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1A",
@@ -4547,6 +5063,7 @@
   },
   {
     "name": "btlgrp_win_win_00_03_off_1",
+    "rel": "win",
     "enemy_count": 3,
     "enemy_ids": [
       "0x18",
@@ -4556,6 +5073,7 @@
   },
   {
     "name": "btlgrp_win_win_00_03_on_1",
+    "rel": "win",
     "enemy_count": 2,
     "enemy_ids": [
       "0x18",
@@ -4564,6 +5082,7 @@
   },
   {
     "name": "btlgrp_win_win_00_03_on_2",
+    "rel": "win",
     "enemy_count": 2,
     "enemy_ids": [
       "0x18",
@@ -4572,6 +5091,7 @@
   },
   {
     "name": "btlgrp_win_win_02_01_off_1",
+    "rel": "win",
     "enemy_count": 2,
     "enemy_ids": [
       "0x1A",
@@ -4580,6 +5100,7 @@
   },
   {
     "name": "btlgrp_win_win_02_01_on_1",
+    "rel": "win",
     "enemy_count": 2,
     "enemy_ids": [
       "0x1A",
@@ -4588,6 +5109,7 @@
   },
   {
     "name": "btlgrp_win_win_02_01_on_2",
+    "rel": "win",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1A",
@@ -4597,6 +5119,7 @@
   },
   {
     "name": "btlgrp_win_win_02_01_on_3",
+    "rel": "win",
     "enemy_count": 3,
     "enemy_ids": [
       "0x1A",
@@ -4606,6 +5129,7 @@
   },
   {
     "name": "btlgrp_win_win_02_02_off_1",
+    "rel": "win",
     "enemy_count": 2,
     "enemy_ids": [
       "0x19",
@@ -4614,6 +5138,7 @@
   },
   {
     "name": "btlgrp_win_win_02_02_on_1",
+    "rel": "win",
     "enemy_count": 2,
     "enemy_ids": [
       "0x19",
@@ -4622,6 +5147,7 @@
   },
   {
     "name": "btlgrp_win_win_02_02_on_2",
+    "rel": "win",
     "enemy_count": 3,
     "enemy_ids": [
       "0x19",
@@ -4631,6 +5157,7 @@
   },
   {
     "name": "btlgrp_win_win_02_02_on_3",
+    "rel": "win",
     "enemy_count": 3,
     "enemy_ids": [
       "0x19",
@@ -4640,6 +5167,7 @@
   },
   {
     "name": "btlgrp_win_win_03_01_off_1",
+    "rel": "win",
     "enemy_count": 4,
     "enemy_ids": [
       "0x19",
@@ -4650,6 +5178,7 @@
   },
   {
     "name": "btlgrp_win_win_03_01_on_1",
+    "rel": "win",
     "enemy_count": 2,
     "enemy_ids": [
       "0x19",
@@ -4658,6 +5187,7 @@
   },
   {
     "name": "btlgrp_win_win_03_01_on_2",
+    "rel": "win",
     "enemy_count": 3,
     "enemy_ids": [
       "0x19",
@@ -4667,6 +5197,7 @@
   },
   {
     "name": "btlgrp_win_win_03_01_on_3",
+    "rel": "win",
     "enemy_count": 3,
     "enemy_ids": [
       "0x19",
@@ -4676,6 +5207,7 @@
   },
   {
     "name": "btlgrp_win_win_03_01_on_4",
+    "rel": "win",
     "enemy_count": 4,
     "enemy_ids": [
       "0x19",

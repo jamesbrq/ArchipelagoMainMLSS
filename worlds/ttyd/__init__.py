@@ -13,7 +13,7 @@ from .Enemy import Encounter, parse_json_encounters, randomize_encounters
 from .Locations import all_locations, location_table, location_id_to_name, TTYDLocation, locationName_to_data, \
     get_locations_by_tags, get_vanilla_item_names, get_location_names, LocationData
 from .Options import Piecesanity, TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight, Goal, \
-    DazzleRewards, StarShuffle
+    DazzleRewards, StarShuffle, EnemyRandomizer
 from .Items import TTYDItem, itemList, item_table, ItemData, items_by_id
 from .Regions import create_regions, connect_regions, get_regions_dict, register_indirect_connections
 from .Rom import TTYDProcedurePatch, write_files
@@ -172,8 +172,8 @@ class TTYDWorld(World):
                 self.disabled_locations.update(["Tattle: Shadow Queen"])
         if self.options.tattlesanity and self.options.disable_intermissions:
             self.disabled_locations.update(["Tattle: Lord Crump"])
-        if self.options.enemy_randomizer:
-            randomize_encounters(self, self.options.enemy_group_type.value)
+        if self.options.enemy_randomizer != EnemyRandomizer.option_vanilla:
+            randomize_encounters(self)
         if self.options.tattlesanity:
             extra_disabled = [location.name for name, locations in get_regions_dict().items()
                               if name in self.excluded_regions for location in locations]
