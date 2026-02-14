@@ -10,12 +10,14 @@ if typing.TYPE_CHECKING:
 class Encounter:
     name: str
     rel: str
+    location_id: int | None
     enemy_count: int
     enemy_ids: list[int]
 
-    def __init__(self, name: str, rel: str, enemy_count: int, enemy_ids: list[str]):
+    def __init__(self, name: str, rel: str, location_id: int | None, enemy_count: int, enemy_ids: list[str]):
         self.name = name
         self.rel = rel
+        self.location_id = location_id
         self.enemy_count = enemy_count
         self.enemy_ids = [int(_id, 0) for _id in enemy_ids]
 

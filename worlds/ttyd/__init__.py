@@ -17,7 +17,7 @@ from .Options import Piecesanity, TTYDOptions, YoshiColor, StartingPartner, PitI
 from .Items import TTYDItem, itemList, item_table, ItemData, items_by_id
 from .Regions import create_regions, connect_regions, get_regions_dict, register_indirect_connections
 from .Rom import TTYDProcedurePatch, write_files
-from .Rules import set_rules, get_tattle_rules_dict, set_tattle_rules
+from .Rules import set_rules, get_tattle_rules_dict, set_tattle_rules, get_random_enemy_tattle_rules_dict
 from worlds.LauncherComponents import Component, SuffixIdentifier, Type, components, launch_subprocess
 
 
@@ -261,32 +261,63 @@ class TTYDWorld(World):
         if self.options.tattlesanity:
             self.limit_tattle_locations()
 
-    def limit_tattle_locations(self):
+    def limit_tattle_locations(self) -> None:
+        # Existing pit-exclusive logic unchanged
         for stars_required, locations in pit_exclusive_tattle_stars_required.items():
             if stars_required > len(self.required_chapters):
                 self.limited_misc_locations.update(
-                    [self.get_location(location) for location in locations if location not in self.disabled_locations])
-        all_limited_locations = set()
-        _ = {all_limited_locations.update(locations) for chapter_locs in self.limited_chapter_locations.values() for
-             locations in chapter_locs.values()}
-        for location_name, locations in get_tattle_rules_dict().items():
+                    self.get_location(loc)
+                    for loc in locations
+                    if loc not in self.disabled_locations
+                )
+
+        # Flatten limited chapter location-ids
+        all_limited_locations: set[int] = {
+            loc.address
+            for chapter_locs in self.limited_chapter_locations.values()
+            for locs in chapter_locs.values()
+            for loc in locs
+        }
+
+        base_rules = get_tattle_rules_dict()
+
+        # Use randomized rules if enabled; otherwise base.
+        # IMPORTANT: your get_random_enemy_tattle_rules_dict() should already do the
+        # "if no matches -> use base rule" fallback.
+        rules_dict = (
+            get_random_enemy_tattle_rules_dict(self)
+            if self.options.enemy_randomizer != EnemyRandomizer.option_vanilla
+            else base_rules
+        )
+
+        for location_name, locations in rules_dict.items():
             if location_name in self.disabled_locations:
                 continue
-            if self.options.limit_chapter_eight and len(locations) == 0:
+
+            # Chapter 8 clamp: if a tattle location has no gating locations, force-limit it.
+            if self.options.limit_chapter_eight and not locations:
                 self.limited_misc_locations.add(self.get_location(location_name))
                 continue
-            enabled_locations = [location for location in locations if
-                                 location_id_to_name[location] not in self.disabled_locations]
-            if len(enabled_locations) == 0:
+
+            enabled_locations = [
+                loc_id
+                for loc_id in locations
+                if location_id_to_name[loc_id] not in self.disabled_locations
+            ]
+            if not enabled_locations:
                 continue
+
             if self.options.pit_items != PitItems.option_all:
-                if all(location in limit_pit for location in enabled_locations):
+                if all(loc_id in limit_pit for loc_id in enabled_locations):
                     self.limited_misc_locations.add(self.get_location(location_name))
+
             if self.options.limit_chapter_logic:
-                if len(locations) == 1 and locations[0] == 78780511:
+                # Keep your special-case, but apply it to the *effective* rules being used.
+                if len(enabled_locations) == 1 and enabled_locations[0] == 78780511:
                     if 5 in self.limited_chapters:
                         self.limited_misc_locations.add(self.get_location(location_name))
-                if all(location in all_limited_locations for location in enabled_locations):
+
+                if all(loc_id in all_limited_locations for loc_id in enabled_locations):
                     self.limited_misc_locations.add(self.get_location(location_name))
 
     def create_items(self) -> None:
@@ -420,7 +451,10 @@ class TTYDWorld(World):
             "piecesanity": self.options.piecesanity.value,
             "shinesanity": self.options.shinesanity.value,
             "blue_pipe_toggle": self.options.blue_pipe_toggle.value,
-            "enemy_randomizer": self.options.enemy_randomizer.value
+            "enemy_randomizer": self.options.enemy_randomizer.value,
+            "tattle_rules": get_random_enemy_tattle_rules_dict(self)
+            if self.options.enemy_randomizer != EnemyRandomizer.option_vanilla
+            else get_tattle_rules_dict(),
         }
 
     def create_item(self, name: str) -> TTYDItem:

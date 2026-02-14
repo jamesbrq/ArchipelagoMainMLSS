@@ -3,9 +3,9 @@ import pkgutil
 import typing
 
 from worlds.generic.Rules import add_rule, forbid_items_for_player
-from . import StateLogic
+from . import StateLogic, location_table, EnemyRandomizer
 from .Options import Goal, PitItems
-from .Data import stars, pit_exclusive_tattle_stars_required
+from .Data import stars, pit_exclusive_tattle_stars_required, location_to_unit
 from .Locations import get_location_ids, get_locations_by_tags, location_id_to_name
 from .Options import PalaceSkip
 
@@ -37,7 +37,10 @@ def set_tattle_rules(world: "TTYDWorld"):
         if location.name in world.disabled_locations:
             continue
         add_rule(world.get_location(location.name), lambda state: state.has("Goombella", world.player))
-    for location_name, locations in get_tattle_rules_dict().items():
+    rules_dict = get_random_enemy_tattle_rules_dict(world) \
+        if world.options.enemy_randomizer != EnemyRandomizer.option_vanilla \
+        else get_tattle_rules_dict()
+    for location_name, locations in rules_dict.items():
         if location_name in world.disabled_locations:
             continue
         if len(locations) == 0:
@@ -248,3 +251,28 @@ def get_tattle_rules_dict() -> dict[str, typing.List[int]]:
         "Tattle: Bob-ulk": [78780647],
         "Tattle: Bonetail": [78780647]
     }
+
+def get_random_enemy_tattle_rules_dict(world: "TTYDWorld") -> dict[str, list[int]]:
+    base_rules = get_tattle_rules_dict()
+
+    encounter_enemy_sets = [
+        (enc.location_id, set(enc.enemy_ids))
+        for enc in world.encounters
+    ]
+
+    result: dict[str, list[int]] = {}
+
+    for key in base_rules:
+        tattle_ids = set(location_to_unit[location_table[key]])  # <-- FIX
+
+        matching_locations = [
+            loc_id
+            for loc_id, enemy_set in encounter_enemy_sets
+            if enemy_set & tattle_ids
+        ]
+
+        # fallback to base rule if random finds nothing
+        result[key] = matching_locations if matching_locations else list(base_rules[key])
+
+    return result
+
