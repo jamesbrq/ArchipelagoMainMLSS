@@ -131,6 +131,7 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.iso.add_new_file("files/mod/custom.rel", io.BytesIO(pkgutil.get_data(__name__, f"data/custom.rel")))
         caller.patcher.iso.add_new_file("files/msg/US/mod.txt", io.BytesIO(pkgutil.get_data(__name__, f"data/mod.txt")))
         caller.patcher.iso.add_new_file("files/msg/US/desc.txt", io.BytesIO(caller.get_file("desc.txt")))
+        caller.patcher.iso.add_new_file("files/msg/US/warp.txt", io.BytesIO(caller.get_file("warp.txt")))
 
 
 
