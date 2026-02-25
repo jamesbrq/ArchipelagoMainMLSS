@@ -2,23 +2,28 @@ import typing
 
 from BaseClasses import Region
 from .Locations import (TTYDLocation, shadow_queen, LocationData)
-from . import StateLogic, get_locations_by_tags
+from . import StateLogic, get_locations_by_tags, StarShuffle
 import json
 import pkgutil
 import random
 from .Data import warp_table
 from .Rules import _build_single_rule
-from rule_builder.rules import Rule, Has, True_, CanReachRegion, CanReachLocation
+from rule_builder.rules import Has, True_, CanReachRegion, CanReachLocation
 from collections import defaultdict, deque
 
 if typing.TYPE_CHECKING:
     from . import TTYDWorld
 
-zones_by_region: dict[str, list[dict]] = defaultdict(list)
-region_graph: dict[str, set[str]] = defaultdict(set)
-used_zones: set[str] = set()
-edge_dependencies = {}
 
+class RegionState:
+    """Holds all the state needed for region connection logic."""
+
+    def __init__(self):
+        self.zones_by_region: dict[str, list[dict]] = defaultdict(list)
+        self.region_graph: dict[str, set[str]] = defaultdict(set)
+        self.used_zones: set[str] = set()
+        self.edge_dependencies: dict[tuple[str, str], set[str]] = {}
+        self.unneeded_regions: set[str] = set()
 
 
 def get_region_defs_from_json():
@@ -35,8 +40,6 @@ def get_zone_dict_from_json():
 
     zone_defs = json.loads(raw.decode("utf-8"))
     return {z["name"]: z for z in zone_defs}
-
-
 
 
 def get_regions_dict() -> dict[str, list[LocationData]]:
@@ -78,155 +81,159 @@ def get_region_connections_dict(world: "TTYDWorld") -> dict[tuple[str, str], typ
     Returns a dictionary mapping region connections (source, target) to their access rules.
     If a rule is None, the connection is always available.
     """
-    return {
+    connections = {
         ("Menu", "Rogueport Center"): True_(),
         ("Rogueport West Tall Pipe", "Rogueport West"): True_(),
-        ("Rogueport Sewers East", "Rogueport Sewers East Bobbery Pipe"): 
-        Has("Bobbery"),
-        ("Rogueport Sewers East Bobbery Pipe", "Rogueport Sewers East"): 
-        Has("Bobbery"),
+        ("Rogueport Sewers East", "Rogueport Sewers East Bobbery Pipe"):
+            Has("Bobbery"),
+        ("Rogueport Sewers East Bobbery Pipe", "Rogueport Sewers East"):
+            Has("Bobbery"),
         ("Rogueport Sewers East", "Rogueport Sewers East Fortune Pipe"):
-        Has("Paper Mode"),
+            Has("Paper Mode"),
         ("Rogueport Sewers East Fortune Pipe", "Rogueport Sewers East"): True_(),
         ("Rogueport Sewers East", "Rogueport Sewers East Plane Mode"):
-        Has("Plane Mode"),
+            Has("Plane Mode"),
         ("Rogueport Sewers East Plane Mode", "Rogueport Sewers East"): True_(),
         ("Rogueport Sewers East Top", "Rogueport Sewers East"): True_(),
         ("Rogueport Sewers East Top", "Rogueport Sewers East Fortune Pipe"):
-        Has("Yoshi"),
+            Has("Yoshi"),
         ("Rogueport Sewers East Top", "Rogueport Sewers East Plane Mode"): True_(),
         ("Rogueport Sewers Blooper", "Rogueport Sewers Blooper Pipe"): True_(),
         ("Rogueport Sewers Town", "Rogueport Sewers Town Dazzle"):
-        StateLogic.fallen_pipe(),
+            StateLogic.fallen_pipe(),
         ("Rogueport Sewers Town Dazzle", "Rogueport Sewers Town"):
-        StateLogic.fallen_pipe(),
+            StateLogic.fallen_pipe(),
         ("Rogueport Sewers Town Teleporter", "Rogueport Sewers Town"): True_(),
         ("Rogueport Sewers Town", "Rogueport Sewers Town Teleporter"): True_(),
         ("Rogueport Sewers West", "Rogueport Sewers West West"):
-        Has("Yoshi"),
+            Has("Yoshi"),
         ("Rogueport Sewers West West", "Rogueport Sewers West"):
-        Has("Yoshi"),
+            Has("Yoshi"),
         ("Rogueport Sewers West", "Rogueport Sewers West Bottom"): True_(),
         ("Rogueport Sewers West West", "Rogueport Sewers West Bottom"): True_(),
         ("Rogueport Sewers West Bottom", "Rogueport Sewers West West"):
-        StateLogic.ultra_boots(),
+            StateLogic.ultra_boots(),
         ("Rogueport Sewers West West", "Rogueport Sewers West Fahr"):
-        StateLogic.ultra_hammer(),
+            StateLogic.ultra_hammer(),
         ("Rogueport Sewers West Fahr", "Rogueport Sewers West West"):
-        StateLogic.ultra_hammer(),
+            StateLogic.ultra_hammer(),
         ("Rogueport Sewers East Enemy Hall", "Rogueport Sewers East Enemy Hall Barred Door"):
-        Has("Paper Mode"),
+            Has("Paper Mode"),
         ("Rogueport Sewers East Enemy Hall Barred Door", "Rogueport Sewers East Enemy Hall"):
-        Has("Paper Mode"),
+            Has("Paper Mode"),
         ("Rogueport Sewers West Enemy Hall", "Rogueport Sewers West Enemy Hall Flurrie"):
-        Has("Flurrie"),
+            Has("Flurrie"),
         ("Rogueport Sewers West Enemy Hall Flurrie", "Rogueport Sewers West Enemy Hall"):
-        Has("Flurrie"),
+            Has("Flurrie"),
         ("Rogueport Sewers West Warp Room Left", "Rogueport Sewers West Warp Room Right"):
-        StateLogic.ultra_hammer(),
+            StateLogic.ultra_hammer(),
         ("Rogueport Sewers West Warp Room Right", "Rogueport Sewers West Warp Room Left"):
-        StateLogic.ultra_hammer(),
+            StateLogic.ultra_hammer(),
         ("Rogueport Sewers West Warp Room Left", "Rogueport Sewers West Warp Room Top"):
-        StateLogic.ultra_hammer(),
+            StateLogic.ultra_hammer(),
         ("Rogueport Sewers West Warp Room Top", "Rogueport Sewers West Warp Room Left"): True_(),
         ("Rogueport Sewers West Warp Room Right", "Rogueport Sewers West Warp Room Top"):
-        StateLogic.ultra_hammer(),
+            StateLogic.ultra_hammer(),
         ("Rogueport Sewers West Warp Room Top", "Rogueport Sewers West Warp Room Right"): True_(),
         ("Rogueport Sewers East Warp Room Left", "Rogueport Sewers East Warp Room Right"):
-        StateLogic.ultra_hammer(),
+            StateLogic.ultra_hammer(),
         ("Rogueport Sewers East Warp Room Right", "Rogueport Sewers East Warp Room Left"):
-        StateLogic.ultra_hammer(),
+            StateLogic.ultra_hammer(),
         ("Rogueport Sewers East Warp Room Left", "Rogueport Sewers East Warp Room Top"):
-        StateLogic.ultra_hammer(),
+            StateLogic.ultra_hammer(),
         ("Rogueport Sewers East Warp Room Top", "Rogueport Sewers East Warp Room Left"): True_(),
         ("Rogueport Sewers East Warp Room Right", "Rogueport Sewers East Warp Room Top"):
-        StateLogic.ultra_hammer(),
+            StateLogic.ultra_hammer(),
         ("Rogueport Sewers East Warp Room Top", "Rogueport Sewers East Warp Room Right"): True_(),
         ("Rogueport Sewers Black Key Room", "Rogueport Sewers Black Key Room Puni Door"):
-        Has("Paper Mode"),
+            Has("Paper Mode"),
         ("Rogueport Sewers Black Key Room Puni Door", "Rogueport Sewers Black Key Room"):
-        Has("Paper Mode"),
+            Has("Paper Mode"),
         ("Rogueport Sewers Puni Room", "Rogueport Sewers Puni Room Exit"): True_(),
         ("Petal Meadows Bridge West", "Petal Meadows Bridge East"): True_(),
         ("Hooktail's Castle Drawbridge East Bottom", "Hooktail's Castle Drawbridge West Bottom"):
-        Has("Yoshi"),
+            Has("Yoshi"),
         ("Hooktail's Castle Drawbridge West Bottom", "Hooktail's Castle Drawbridge East Bottom"): True_(),
         ("Hooktail's Castle Drawbridge East Top", "Hooktail's Castle Drawbridge East Bottom"): True_(),
         ("Hooktail's Castle Drawbridge East Top", "Hooktail's Castle Drawbridge West Bottom"):
-        Has("Plane Mode"),
+            Has("Plane Mode"),
         ("Hooktail's Castle Drawbridge West Top", "Hooktail's Castle Drawbridge West Bottom"): True_(),
         ("Hooktail's Castle Stair Switch Room Upper Level", "Hooktail's Castle Stair Switch Room"): True_(),
         ("Hooktail's Castle Life Shroom Room", "Hooktail's Castle Life Shroom Room Upper Level"):
-        StateLogic.partner_press_switch(),
+            StateLogic.partner_press_switch(),
         ("Hooktail's Castle Life Shroom Room Upper Level", "Hooktail's Castle Life Shroom Room Upper Level"): True_(),
         ("Hooktail's Castle Central Staircase Upper Level", "Hooktail's Castle Central Staircase"): True_(),
         ("Boggly Woods Plane Panel Room", "Boggly Woods Plane Panel Room Upper"):
-        Has("Plane Mode"),
+            Has("Plane Mode"),
         ("Boggly Woods Plane Panel Room Upper", "Boggly Woods Plane Panel Room"): True_(),
         ("Boggly Woods Outside Flurrie's House", "Boggly Woods Outside Flurrie's House Grass Area"):
-        Has("Paper Mode"),
+            Has("Paper Mode"),
         ("Boggly Woods Outside Flurrie's House Grass Area", "Boggly Woods Outside Flurrie's House"):
-        Has("Paper Mode"),
+            Has("Paper Mode"),
         ("Glitzville Promoter's Office Vent", "Glitzville Promoter's Office"): True_(),
         ("Creepy Steeple Main Hall Upper", "Creepy Steeple Main Hall"): True_(),
         ("Creepy Steeple Main Hall Upper South", "Creepy Steeple Main Hall"): True_(),
         ("Creepy Steeple Well Buzzy Room", "Creepy Steeple Well Buzzy Room Vivian"):
-        Has("Vivian"),
+            Has("Vivian"),
         ("Pirate's Grotto Handle Room Canal", "Pirate's Grotto Handle Room"):
-        Has("Boat Mode"),
+            Has("Boat Mode"),
         ("Pirate's Grotto Sluice Gate Upper", "Pirate's Grotto Sluice Gate Upper Canal"):
-        Has("Boat Mode"),
+            Has("Boat Mode"),
         ("Pirate's Grotto Sluice Gate Upper Canal", "Pirate's Grotto Sluice Gate Upper"):
-        Has("Boat Mode"),
+            Has("Boat Mode"),
         ("Pirate's Grotto Sluice Gate Upper Canal", "Pirate's Grotto Sluice Gate Canal"): True_(),
         ("Riverside Station Ultra Boots Room Upper", "Riverside Station Ultra Boots Room"): True_(),
         ("Pirate's Grotto Toad Boat Room", "Pirate's Grotto Toad Boat Room East"):
-        Has("Boat Mode") & Has("Plane Mode"),
+            Has("Boat Mode") & Has("Plane Mode"),
         ("Excess Express Storage Car", "Excess Express Storage Car West"):
-        CanReachRegion("Riverside Station Entrance") & Has("Elevator Key (Station)")
-        & CanReachRegion("Excess Express Middle Passenger Car") & CanReachLocation("Excess Express Middle Passenger Car: Briefcase"),
+            CanReachRegion("Riverside Station Entrance") & Has("Elevator Key (Station)")
+            & CanReachRegion("Excess Express Middle Passenger Car") & CanReachLocation(
+                "Excess Express Middle Passenger Car: Briefcase") & CanReachRegion("Excess Express Locomotive")
+            & CanReachRegion("Excess Express Back Passenger Car") & CanReachRegion("Excess Express Front Passenger Car"),
         ("Excess Express Storage Car West", "Excess Express Storage Car"): True_(),
         ("X-Naut Fortress Hall Ground Floor", "X-Naut Fortress Hall Sublevel One"):
-        Has("Elevator Key 1"),
+            Has("Elevator Key 1"),
         ("X-Naut Fortress Hall Sublevel One", "X-Naut Fortress Hall Ground Floor"):
-        Has("Elevator Key 1"),
+            Has("Elevator Key 1"),
         ("X-Naut Fortress Hall Ground Floor", "X-Naut Fortress Hall Sublevel Two"):
-        Has("Elevator Key 1"),
+            Has("Elevator Key 1"),
         ("X-Naut Fortress Hall Sublevel One", "X-Naut Fortress Hall Sublevel Two"):
-        Has("Elevator Key 1"),
+            Has("Elevator Key 1"),
         ("X-Naut Fortress Hall Sublevel Two", "X-Naut Fortress Hall Sublevel One"):
-        Has("Elevator Key 1"),
+            Has("Elevator Key 1"),
         ("X-Naut Fortress Hall Sublevel Two", "X-Naut Fortress Hall Sublevel Three"):
-        Has("Elevator Key 2"),
+            Has("Elevator Key 2"),
         ("X-Naut Fortress Hall Sublevel Three", "X-Naut Fortress Hall Sublevel Two"):
-        Has("Elevator Key 2"),
+            Has("Elevator Key 2"),
         ("X-Naut Fortress Hall Sublevel Two", "X-Naut Fortress Hall Sublevel Four"):
-        Has("Elevator Key 2"),
+            Has("Elevator Key 2"),
         ("X-Naut Fortress Hall Sublevel Four", "X-Naut Fortress Hall Sublevel Two"):
-        Has("Elevator Key 2"),
+            Has("Elevator Key 2"),
         ("X-Naut Fortress Hall Sublevel Three", "X-Naut Fortress Hall Sublevel Four"):
-        Has("Elevator Key 2"),
+            Has("Elevator Key 2"),
         ("X-Naut Fortress Hall Sublevel Four", "X-Naut Fortress Hall Sublevel Three"):
-        Has("Elevator Key 2"),
-        ("TTYD", "Palace of Shadow"): 
-        StateLogic.PalaceAccess(world.options.goal_stars.value),
-        ("Palace of Shadow", "Palace of Shadow (Post-Riddle Tower)"): 
-        StateLogic.riddle_tower(),
-        ("Rogueport Sewers Pit Room", "Pit of 100 Trials"): 
-        StateLogic.pit(),
+            Has("Elevator Key 2"),
+        ("Palace of Shadow Far Hallway One", "Palace of Shadow Far Hallway One Post Riddle Tower"):
+            StateLogic.riddle_tower(),
+        ("Palace of Shadow Far Hallway 2", "Palace of Shadow Far Hallway 2 Post Riddle"):
+            StateLogic.riddle_tower(),
+        ("Palace of Shadow Far Hallway 3", "Palace of Shadow Far Hallway 3 Post Riddle"):
+            StateLogic.riddle_tower(),
+        ("Palace of Shadow Far Hallway 4", "Palace of Shadow Far Hallway 4 Post Riddle"):
+            StateLogic.riddle_tower(),
+        ("Palace of Shadow Far Backroom 2", "Palace of Shadow Far Backroom 2 Top"):
+            Has("Bobbery"),
+        ("Palace of Shadow Far Backroom 2 Top", "Palace of Shadow Far Backroom 2"): True_(),
+        ("Palace of Shadow Final Staircase", "Shadow Queen"):
+            StateLogic.PalaceAccess(world.options.goal_stars.value),
+        ("Rogueport Sewers Pit Room", "Pit of 100 Trials"):
+            StateLogic.pit(),
         ("Menu", "Tattlesanity"): True_(),
         ("TTYD", "Shadow Queen"):
-        StateLogic.PalaceAccess(world.options.goal_stars.value)
+            StateLogic.PalaceAccess(world.options.goal_stars.value)
     }
 
-    if world.options.blue_pipe_toggle:
-        connections[("Rogueport Sewers", "Petal Meadows (Right)")] = lambda state: StateLogic.super_blue_pipes(state, world.player)
-        connections[("Rogueport Sewers", "Boggly Woods")] = lambda state: StateLogic.super_blue_pipes(state, world.player)
-        connections[("Rogueport Sewers", "Keelhaul Key")] = lambda state: StateLogic.ultra_blue_pipes(state, world.player)
-        connections[("Rogueport Sewers", "Poshley Heights")] = lambda state: StateLogic.ultra_blue_pipes(state, world.player)
-
     return connections
-
 
 
 def create_regions(world: "TTYDWorld"):
@@ -243,7 +250,8 @@ def create_regions(world: "TTYDWorld"):
 
         locations = get_locations_by_tags(tag)
 
-        if name not in world.excluded_regions:
+        if name not in world.excluded_regions and not (world.options.palace_skip and region["chapter"] == "Eight"):
+            print("Creating region", name)
             create_region(world, name, locations)
         else:
             world.disabled_locations.update(
@@ -253,14 +261,21 @@ def create_regions(world: "TTYDWorld"):
 
 
 def connect_regions(world: "TTYDWorld"):
+    # Create fresh state for this generation
+    state = RegionState()
+    chapters = ["Prologue", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight"]
     one_way = []
     vanilla = []
-    unneeded_regions = {
-        "Tattlesanity",
-        "Palace of Shadow",
-        "Palace of Shadow (Post-Riddle Tower)",
-        "Shadow Queen"
-    }
+    dungeon_entrance = []
+    dungeon_exit = []
+    delayed_connections: dict[str, list] = defaultdict(list)
+    chapter_eight_conn = ["Palace of Shadow Far Hallway One", "Palace of Shadow Far Hallway One Post Riddle Tower",
+                          "Palace of Shadow Far Hallway 2", "Palace of Shadow Far Hallway 2 Post Riddle",
+                          "Palace of Shadow Far Hallway 3", "Palace of Shadow Far Hallway 3 Post Riddle",
+                          "Palace of Shadow Far Hallway 4", "Palace of Shadow Far Hallway 4 Post Riddle",
+                          "Palace of Shadow Far Backroom 2", "Palace of Shadow Far Backroom 2 Top",
+                          "Palace of Shadow Final Staircase"]
+
 
     connections_dict = get_region_connections_dict(world)
     zones = get_zone_dict_from_json()
@@ -272,6 +287,8 @@ def connect_regions(world: "TTYDWorld"):
             continue
         if source == "Rogueport" and target == "Shadow Queen" and not world.options.palace_skip:
             continue
+        if world.options.palace_skip and (source in chapter_eight_conn or target in chapter_eight_conn):
+            continue
         if source == "Menu" and target == "Rogueport (Westside)" and not world.options.open_westside:
             continue
 
@@ -280,23 +297,50 @@ def connect_regions(world: "TTYDWorld"):
         source_region = world.multiworld.get_region(source, world.player)
         target_region = world.multiworld.get_region(target, world.player)
         world.create_entrance(source_region, target_region, rule)
-        add_edge(source, target)
+        if source == "Excess Express Storage Car" and target == "Excess Express Storage Car West":
+            add_edge(state, source, target, ["Riverside Station Entrance", "Excess Express Middle Passenger Car", "Excess Express Locomotive", "Excess Express Back Passenger Car", "Excess Express Front Passenger Car"])
+        add_edge(state, source, target)
 
     tag_to_region = get_region_name_by_tag()
 
+    # Mark chapter regions not in limited_chapters as unneeded
+    region_defs = get_region_defs_from_json()
+    for region in region_defs:
+        chapter = region.get("chapter")
+        if (chapter and chapter in chapters and chapters.index(chapter) in world.limited_chapters)\
+                or (world.options.palace_skip and chapter == "Eight"):
+            print("Region unneeded:", region["name"])
+            state.unneeded_regions.add(region["name"])
+
+    # Always unneeded
+    state.unneeded_regions.update(
+        {"Tattlesanity", "Palace of Shadow", "Palace of Shadow (Post-Riddle Tower)", "Shadow Queen"})
+
     for z in zones.values():
-        if "is_vanilla" in z:
+        limited_zone = any(tag in chapters and chapters.index(tag) in world.limited_chapters for tag in z["tags"])
+        if world.options.palace_skip and any(tag == "Eight" for tag in z["tags"]):
+            continue
+        if "vanilla" in z["tags"] or not world.options.loading_zone_shuffle or limited_zone:
+            print("Vanilla:", z["name"])
             vanilla.append(z)
-        elif z["target"] == "One Way":
-            one_way.append(z)
         elif z["target"] == "":
             continue
+        elif world.options.dungeon_shuffle and any(tag == "Dungeon Entrance" for tag in z["tags"]):
+            print("Dungeon Entrance:", z["name"])
+            dungeon_entrance.append(z)
+        elif world.options.dungeon_shuffle and any(tag == "Dungeon Exit" for tag in z["tags"]):
+            print("Dungeon Exit:", z["name"])
+            dungeon_exit.append(z)
+        elif z["target"] == "One Way":
+            print("One Way:", z["name"])
+            one_way.append(z)
         else:
+            print("Generic:", z["name"])
             region = tag_to_region.get(z["region"])
-            zones_by_region[region].append(z)
+            state.zones_by_region[region].append(z)
 
     all_regions = set(tag_to_region.values())
-    unreached_regions = all_regions - reachable_regions - unneeded_regions
+    unreached_regions = all_regions - reachable_regions - state.unneeded_regions
 
     for src in vanilla:
         if not (src["target"] == "" or src["target"] == "One Way" or src["target"] == "filler"):
@@ -308,16 +352,25 @@ def connect_regions(world: "TTYDWorld"):
             rule = build_rule_lambda(rule_dict, world)
             source_region = world.multiworld.get_region(src_region, world.player)
             target_region = world.multiworld.get_region(dst_region, world.player)
+            region_dependents = has_region_dependency(world, rule_dict)
+            if region_dependents != [] and world.options.loading_zone_shuffle:
+                for region in region_dependents:
+                    delayed_connections[region].append([region_dependents, src, dst])
+                continue
+
+            print("Vanilla Connection:", dst["name"], "     ", src_region, ":", dst_region)
             world.create_entrance(source_region, target_region, rule, dst["name"])
-            add_edge(src_region, dst_region, has_region_dependency(rule_dict))
-            mark_used(src, dst)
+            add_edge(state, src_region, dst_region, has_region_dependency(world, rule_dict))
+            mark_used(state, src, dst)
         elif src["target"] == "One Way":
-            source = src["src_region"]
-            target = src["region"]
+            source = tag_to_region.get(src["src_region"])
+            target = tag_to_region.get(src["region"])
             rule = build_rule_lambda(src.get("rules"), world)
-            world.multiworld.get_region(source, world.player)
-            world.multiworld.get_region(target, world.player)
-            world.create_entrance(source, target, rule)
+            source_region = world.multiworld.get_region(source, world.player)
+            target_region = world.multiworld.get_region(target, world.player)
+            add_edge(state, source, target)
+            print("One Way Vanilla Connection:", src["name"], "     ", source, ":", target)
+            world.create_entrance(source_region, target_region, rule, src["name"])
 
     max_attempts = 1000
     for attempt in range(max_attempts):
@@ -336,54 +389,75 @@ def connect_regions(world: "TTYDWorld"):
         target = tag_to_region.get(b["region"])
         rule_dict = a.get("rules")
         rule = build_rule_lambda(rule_dict, world)
-        world.multiworld.get_region(source, world.player)
-        world.multiworld.get_region(target, world.player)
-        add_edge(source, target, has_region_dependency(rule_dict))
+
 
         source_region = world.multiworld.get_region(source, world.player)
         target_region = world.multiworld.get_region(target, world.player)
+        region_dependents = has_region_dependency(world, rule_dict)
+        if region_dependents != []:
+            for region in region_dependents:
+                delayed_connections[region].append([region_dependents, a, b])
+            continue
+
+        print("One Way Connection:", b["name"], "     ", source, ":", target)
+        add_edge(state, source, target, has_region_dependency(world, rule_dict))
         world.create_entrance(source_region, target_region, rule, b["name"])
-    print(one_way)
-    limit = 0
+
+
+    random.shuffle(dungeon_entrance)
+
+    for i in range(len(dungeon_entrance)):
+        src = dungeon_entrance[i]
+        dst = dungeon_exit[i]
+
+        src_region = tag_to_region[src["region"]]
+        dst_region = tag_to_region[dst["region"]]
+
+        src_target = zones[src["target"]]
+        dst_target = zones[dst["target"]]
+
+        src_rule = build_rule_lambda(src.get("rules"), world)
+        dst_rule = build_rule_lambda(dst.get("rules"), world)
+
+        warp_table[(src_target["map"], src_target["bero"])] = (dst["map"], dst["bero"])
+        warp_table[(dst_target["map"], dst_target["bero"])] = (src["map"], src["bero"])
+
+        source_region = world.multiworld.get_region(src_region, world.player)
+        target_region = world.multiworld.get_region(dst_region, world.player)
+
+        print(dst["name"], ":", src["name"])
+        print("Dungeon Connection:", dst["name"], "     ", src_region, ":", dst_region)
+        world.create_entrance(source_region, target_region, src_rule, dst["name"])
+        print("Dungeon Connection:", src["name"], "     ", dst_region, ":", src_region)
+        world.create_entrance(target_region, source_region, dst_rule, src["name"])
+        add_edge(state, src_region, dst_region, has_region_dependency(world, rule_dict))
+        add_edge(state, dst_region, src_region, has_region_dependency(world, rule_dict))
+
+    consecutive_failures = 0
+    max_consecutive_failures = 50
+    reachable_regions = compute_reachable(state, "Menu")
+    unreached_regions = all_regions - reachable_regions - state.unneeded_regions
+    dst_zone_contenders = [
+        z
+        for r in unreached_regions
+        for z in state.zones_by_region[r]
+        if z["name"] not in state.used_zones and not any(
+            dep in unreached_regions for dep in has_region_dependency(world, z.get("rules")))
+    ]
+    src_zone_contenders = [
+        z
+        for r in reachable_regions
+        for z in state.zones_by_region[r]
+        if z["name"] not in state.used_zones and not any(
+            dep in unreached_regions for dep in has_region_dependency(world, z.get("rules")))
+    ]
     while unreached_regions:
-        # First, choose destination region and zone
-        dst_region_contenders = [
-            r for r in unreached_regions if unused_zones(r)
-        ]
-
-        if len(dst_region_contenders) == 0:
-            print(unreached_regions)
-            limit = limit + 1
-            if limit == 3:
-                break
-            continue
-
-        dst_region = random.choice(dst_region_contenders)
-        dst_zone_contenders = unused_zones(dst_region)
-        dst_zone = random.choice(dst_zone_contenders)
-
-        # Now find source regions that are reachable WITHOUT using edges dependent on dst_region
-        reachable_without_dst = get_reachable_regions_excluding_dependencies("Menu", dst_region)
-
-        src_region_contenders = [
-            r for r in reachable_without_dst if r in reachable_regions and unused_zones(r)
-        ]
-
-        if len(src_region_contenders) == 0:
-            print(f"No valid source regions for {dst_region}")
-            limit = limit + 1
-            if limit == 3:
-                break
-            continue
-
-        src_region = random.choice(src_region_contenders)
-        src_zone_contenders = unused_zones(src_region)
-
-        if len(src_region_contenders) == 1 and len(src_zone_contenders) == 1 and len(dst_zone_contenders) == 1 and len(
-                unreached_regions) != 1:
-            continue
-
         src_zone = random.choice(src_zone_contenders)
+        if len(dst_zone_contenders) == 0:
+            print(unreached_regions)
+        dst_zone = random.choice(dst_zone_contenders)
+        src_region = tag_to_region[src_zone.get("region")]
+        dst_region = tag_to_region[dst_zone.get("region")]
 
         src_target = zones[src_zone["target"]]
         dst_target = zones[dst_zone["target"]]
@@ -398,20 +472,138 @@ def connect_regions(world: "TTYDWorld"):
         source_region = world.multiworld.get_region(src_region, world.player)
         target_region = world.multiworld.get_region(dst_region, world.player)
 
+        mark_used(state, src_zone, dst_zone)
+        add_edge(state, src_region, dst_region, has_region_dependency(world, src_rule_dict))
+        add_edge(state, dst_region, src_region, has_region_dependency(world, dst_rule_dict))
+        reachable_regions = compute_reachable(state, "Menu")
+        unreached_regions = all_regions - reachable_regions - state.unneeded_regions
+
+        dst_zone_contenders = [
+            z
+            for r in unreached_regions
+            for z in state.zones_by_region[r]
+            if z["name"] not in state.used_zones and not any(
+                dep in unreached_regions for dep in has_region_dependency(world, z.get("rules")))
+        ]
+        src_zone_contenders = [
+            z
+            for r in reachable_regions
+            for z in state.zones_by_region[r]
+            if z["name"] not in state.used_zones and not any(
+                dep in unreached_regions for dep in has_region_dependency(world, z.get("rules")))
+        ]
+
+        if len(dst_zone_contenders) != 0 and len(src_zone_contenders) == 0:
+            warp_table.pop((src_target["map"], src_target["bero"]), None)
+            warp_table.pop((dst_target["map"], dst_target["bero"]), None)
+            mark_unused(state, src_zone, dst_zone)
+            remove_edge(state, src_region, dst_region)
+            remove_edge(state, dst_region, src_region)
+            reachable_regions = compute_reachable(state, "Menu")
+            unreached_regions = all_regions - reachable_regions - state.unneeded_regions
+            dst_zone_contenders = [
+                z
+                for r in unreached_regions
+                for z in state.zones_by_region[r]
+                if z["name"] not in state.used_zones and not any(
+                    dep in unreached_regions for dep in has_region_dependency(world, z.get("rules")))
+            ]
+            src_zone_contenders = [
+                z
+                for r in reachable_regions
+                for z in state.zones_by_region[r]
+                if z["name"] not in state.used_zones and not any(
+                    dep in unreached_regions for dep in has_region_dependency(world, z.get("rules")))
+            ]
+            consecutive_failures += 1
+            if consecutive_failures > max_consecutive_failures:
+                print("YOU LOSE GOOD DAY SIR", unreached_regions, )
+                break
+            continue
+
+        if dst_region in delayed_connections.keys():
+            connections = delayed_connections.get(dst_region)
+            del delayed_connections[dst_region]
+            for connection in connections:
+                connection[0].remove(dst_region)
+                region_dependents = connection[0]
+                dep_src = connection[1]
+                dep_dst = connection[2]
+                if region_dependents == []:
+                    if dep_src["target"] == "One Way":
+                        dep_src_region_name = tag_to_region[dep_src["src_region"]]
+                        dep_dst_region_name = tag_to_region[dep_dst["region"]]
+                        dep_src_region = world.multiworld.get_region(dep_src_region_name, world.player)
+                        dep_dst_region = world.multiworld.get_region(dep_dst_region_name, world.player)
+                        dep_rule_dict = dep_src["rules"]
+                        dep_rule = build_rule_lambda(dep_rule_dict, world)
+                        add_edge(state, dep_src_region_name, dep_dst_region_name)
+                        print("Delayed Connection:", dep_dst["name"], "     ", dep_dst_region_name, ":",
+                              dep_src_region_name)
+                        world.create_entrance(dep_src_region, dep_dst_region, dep_rule, dep_dst["name"])
+                    else:
+                        dep_src_region_name = tag_to_region[dep_src["region"]]
+                        dep_dst_region_name = tag_to_region[dep_dst["region"]]
+                        dep_src_region = world.multiworld.get_region(dep_src_region_name, world.player)
+                        dep_dst_region = world.multiworld.get_region(dep_dst_region_name, world.player)
+                        dep_src_rule_dict = dep_src["rules"]
+                        dep_src_rule = build_rule_lambda(dep_src_rule_dict, world)
+                        add_edge(state, dep_src_region_name, dep_dst_region_name)
+                        print("Delayed Connection:", dep_dst["name"], "     ", dep_dst_region_name, ":",
+                              dep_src_region_name)
+                        world.create_entrance(dep_src_region, dep_dst_region, dep_src_rule, dep_dst["name"])
+            reachable_regions = compute_reachable(state, "Menu")
+            unreached_regions = all_regions - reachable_regions - state.unneeded_regions
+
+        print("Unreached Connection:", dst_zone["name"], "     ", src_region, ":", dst_region)
         world.create_entrance(source_region, target_region, src_rule, dst_zone["name"])
+        print("Unreached Connection:", src_zone["name"], "     ", dst_region, ":", src_region)
         world.create_entrance(target_region, source_region, dst_rule, src_zone["name"])
 
-        mark_used(src_zone, dst_zone)
-        add_edge(src_region, dst_region, has_region_dependency(src_rule_dict))
-        add_edge(dst_region, src_region, has_region_dependency(dst_rule_dict))
-        reachable_regions = compute_reachable("Menu")
-        unreached_regions = all_regions - reachable_regions - unneeded_regions
+    # Process any remaining delayed connections whose dependencies are now all resolved
+    processed = set()
+    for key in list(delayed_connections.keys()):
+        connections = delayed_connections.get(key, [])
+        for connection in connections:
+            # Use id() to identify the connection list itself across multiple entries
+            conn_id = id(connection)
+            if conn_id in processed:
+                continue
+
+            connection[0].discard(key) if hasattr(connection[0], 'discard') else (
+                connection[0].remove(key) if key in connection[0] else None)
+            region_dependents = connection[0]
+            dep_src = connection[1]
+            dep_dst = connection[2]
+
+            if region_dependents == []:
+                processed.add(conn_id)
+                if dep_src["target"] == "One Way":
+                    dep_src_region_name = tag_to_region[dep_src["src_region"]]
+                    dep_dst_region_name = tag_to_region[dep_dst["region"]]
+                    dep_src_region = world.multiworld.get_region(dep_src_region_name, world.player)
+                    dep_dst_region = world.multiworld.get_region(dep_dst_region_name, world.player)
+                    dep_rule = build_rule_lambda(dep_src["rules"], world)
+                    add_edge(state, dep_src_region_name, dep_dst_region_name)
+                    print("Delayed Connection:", dep_dst["name"], "     ", dep_dst_region_name, ":", dep_src_region_name)
+                    world.create_entrance(dep_src_region, dep_dst_region, dep_rule, dep_dst["name"])
+                else:
+                    dep_src_region_name = tag_to_region[dep_src["region"]]
+                    dep_dst_region_name = tag_to_region[dep_dst["region"]]
+                    dep_src_region = world.multiworld.get_region(dep_src_region_name, world.player)
+                    dep_dst_region = world.multiworld.get_region(dep_dst_region_name, world.player)
+                    dep_src_rule = build_rule_lambda(dep_src["rules"], world)
+                    add_edge(state, dep_src_region_name, dep_dst_region_name)
+                    print("Delayed Connection:", dep_dst["name"], "     ", dep_dst_region_name, ":", dep_src_region_name)
+                    world.create_entrance(dep_src_region, dep_dst_region, dep_src_rule, dep_dst["name"])
+
+    delayed_connections.clear()
 
     # Process remaining zones
     remaining_zones = [
-        z for region in zones_by_region
-        for z in zones_by_region[region]
-        if z["name"] not in used_zones
+        z for region in state.zones_by_region
+        for z in state.zones_by_region[region]
+        if z["name"] not in state.used_zones
     ]
 
     random.shuffle(remaining_zones)
@@ -435,13 +627,15 @@ def connect_regions(world: "TTYDWorld"):
 
         source_region = world.multiworld.get_region(src_region, world.player)
         target_region = world.multiworld.get_region(dst_region, world.player)
+
+        print("Remaining Connection:", dst["name"], "     ", src_region, ":", dst_region)
         world.create_entrance(source_region, target_region, src_rule, dst["name"])
+        print("Remaining Connection:", src["name"], "     ", dst_region, ":", src_region)
         world.create_entrance(target_region, source_region, dst_rule, src["name"])
 
-    print(warp_table)
 
 
-def has_region_dependency(rule_dict):
+def has_region_dependency(world, rule_dict):
     """
     Extract all region dependencies from a rule dictionary.
     Returns a flat list of region names that this rule depends on.
@@ -456,22 +650,29 @@ def has_region_dependency(rule_dict):
         if "can_reach_region" in rule_dict:
             dependency_list.append(rule_dict["can_reach_region"])
 
+
         # Recursively check nested rules (and, or conditions)
         for key, value in rule_dict.items():
             if key in ["and", "or"]:
                 if isinstance(value, list):
                     for sub_rule in value:
                         # Use extend to flatten the list
-                        dependency_list.extend(has_region_dependency(sub_rule))
+                        dependency_list.extend(has_region_dependency(world, sub_rule))
                 else:
                     # Use extend to flatten the list
-                    dependency_list.extend(has_region_dependency(value))
+                    dependency_list.extend(has_region_dependency(world, value))
+            if isinstance(value, dict):
+                if key == "function" and value["name"] and value["name"] == "PalaceAccess" and world.options.star_shuffle != StarShuffle.option_all:
+                    dependency_list.extend(["Poshley Heights Sanctum", "X-Naut Fortress Boss Room", "Hooktail's Castle Hooktail's Room",
+                                            "Great Tree Entrance", "Creepy Steeple Spire", "Glitzville Arena", "Pirate's Grotto Cortez's Hoard"])
 
     return dependency_list
 
 
 def is_valid_one_way_arrangement(one_way):
     """Check if the one_way arrangement has no forbidden connections."""
+    forbidden_one_ways = ["steeple_boo_background", "glitzville_attic"]
+    allowed = 0
     for i in range(len(one_way)):
         a = one_way[i]
         b = one_way[(i + 1) % len(one_way)]  # Wrap around to first element
@@ -479,9 +680,13 @@ def is_valid_one_way_arrangement(one_way):
         # Check if this connection is forbidden
         if a["src_region"] == b["region"] or b["src_region"] == a["region"]:
             return False
+        if a["src_region"] in forbidden_one_ways and b["region"] in forbidden_one_ways:
+            allowed += 1
+            if allowed == 2:
+                return False
     return True
 
-        
+
 def write_rel_warp_table(warp_table, filename="json/warp_table.json"):
     rel_table = {}
     for (src_map, src_bero), (dst_map, dst_bero) in warp_table.items():
@@ -500,25 +705,34 @@ def build_rule_lambda(rule_json: dict | None, world: "TTYDWorld"):
         return True_()
     return _build_single_rule(rule_json, world)
 
+
 def get_region_name_by_tag():
     region_defs = get_region_defs_from_json()
     return {r["tag"]: r["name"] for r in region_defs}
 
-def unused_zones(region):
-    return [z for z in zones_by_region[region] if z["name"] not in used_zones]
+def unused_zones(state: RegionState, region):
+    return [z for z in state.zones_by_region[region] if z["name"] not in state.used_zones]
 
-def mark_used(*zones):
+def mark_used(state: RegionState, *zones):
     for z in zones:
-        used_zones.add(z["name"])
+        state.used_zones.add(z["name"])
+
+def mark_unused(state: RegionState, *zones):
+    for z in zones:
+        state.used_zones.discard(z["name"])
 
 
-def add_edge(a: str, b: str, dependencies: list[str] = None):
-    region_graph[a].add(b)
+def add_edge(state: RegionState,a: str, b: str, dependencies: list[str] = None):
+    state.region_graph[a].add(b)
     if dependencies:
-        edge_dependencies[(a, b)] = set(dependencies)
+        state.edge_dependencies[(a, b)] = set(dependencies)
+
+def remove_edge(state: RegionState, a: str, b: str):
+    state.region_graph[a].discard(b)
+    state.edge_dependencies.pop((a, b), None)
 
 
-def compute_reachable(start: str, excluding_region: str = None) -> set[str]:
+def compute_reachable(state: RegionState, start: str, excluding_region: str = None) -> set[str]:
     visited = set()
     queue = deque([start])
 
@@ -530,12 +744,12 @@ def compute_reachable(start: str, excluding_region: str = None) -> set[str]:
 
         # Get neighbors, filtering out edges dependent on excluded region
         neighbors = set()
-        for neighbor in region_graph[current]:
+        for neighbor in state.region_graph[current]:
             edge = (current, neighbor)
             # Check if this edge has dependencies
-            if excluding_region and edge in edge_dependencies:
+            if excluding_region and edge in state.edge_dependencies:
                 # Skip this edge if it depends on the excluded region
-                if excluding_region in edge_dependencies[edge]:
+                if excluding_region in state.edge_dependencies[edge]:
                     continue
             neighbors.add(neighbor)
 
@@ -544,9 +758,8 @@ def compute_reachable(start: str, excluding_region: str = None) -> set[str]:
     return visited
 
 
-def get_reachable_regions_excluding_dependencies(start: str, excluded_region: str) -> set[str]:
-    return compute_reachable(start, excluding_region=excluded_region)
-
+def get_reachable_regions_excluding_dependencies(state: RegionState, start: str, excluded_region: str) -> set[str]:
+    return compute_reachable(state, start, excluding_region=excluded_region)
 
 
 def create_region(world: "TTYDWorld", name: str, locations: list[LocationData]):
@@ -554,5 +767,3 @@ def create_region(world: "TTYDWorld", name: str, locations: list[LocationData]):
     reg = Region(name, world.player, world.multiworld)
     reg.add_locations({loc.name: loc.id for loc in locations if loc.name not in world.disabled_locations}, TTYDLocation)
     world.multiworld.regions.append(reg)
-
-
