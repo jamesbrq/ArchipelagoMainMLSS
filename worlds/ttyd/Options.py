@@ -274,6 +274,51 @@ class GrubbaBribeCost(Range):
     default = 20
 
 
+class EnemyRandomizer(Choice):
+    """
+    Toggles the randomization of enemies in battles.
+    vanilla: Enemies will be the same as the original game.
+    within_chapter: Enemy encounters will be shuffled with other encounters that appear in the same chapter.
+    random: Enemy encounters will be shuffled with any other encounter in the game.
+    """
+    display_name = "Enemy Randomizer"
+    option_vanilla = 0
+    option_within_chapter = 1
+    option_randomize = 2
+    default = 1
+
+
+class EncounterShuffleType(Choice):
+    """
+    This determines how enemies are grouped when randomizing.
+    Enemy randomizer must be set to either within_chapter or random for this option to have an effect.
+    vanilla_groups: Enemies will be grouped by encounter, and shuffled as a group.
+    custom_groups: Enemies will be shuffled individually, and grouped into new encounters based on their new enemy count.
+    """
+    display_name = "Enemy Randomizer Grouping"
+    option_vanilla_groups = 0
+    option_custom_groups = 1
+    default = 0
+
+
+class EnemyStatScaling(Toggle):
+    """
+    Enemies will have their stats scaled based on the chapter they appear in.
+    This option is independent of the Enemy Randomizer option, and will scale enemies even if they are not randomized.
+    """
+    display_name = "Enemy Stat Scaling"
+
+
+class ShuffleChapterStats(Toggle):
+    """
+    Chapter stat scaling values will be shuffled between each other.
+    EnemyStatScaling must be enabled for this option to have an effect.
+    ie. Chapter 1 enemies could have scaled stats based on chapter 5,
+    Chapter 2 enemies could have scaled stats based on chapter 3, etc.
+    """
+    display_name = "Shuffle Chapter Stats"
+
+
 class PermanentPeekaboo(Toggle):
     """
     The Peekaboo badge is always active, even when not equipped.
@@ -505,6 +550,10 @@ class TTYDOptions(PerGameCommonOptions):
     open_westside: OpenWestside
     grubba_bribe_direction: GrubbaBribeDirection
     grubba_bribe_cost: GrubbaBribeCost
+    enemy_randomizer: EnemyRandomizer
+    encounter_shuffle_type: EncounterShuffleType
+    enemy_stat_scaling: EnemyStatScaling
+    shuffle_chapter_stats: ShuffleChapterStats
     permanent_peekaboo: PermanentPeekaboo
     full_run_bar: FullRunBar
     first_attack: ZeroBPFirstAttack
