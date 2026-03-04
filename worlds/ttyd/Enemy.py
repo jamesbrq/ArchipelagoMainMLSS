@@ -81,17 +81,12 @@ def randomize_encounters(world: "TTYDWorld") -> None:
         key = encounter.rel if world.options.enemy_randomizer == EnemyRandomizer.option_within_chapter else "__ALL__"
         bucket = rel_groups[key]
 
-        if encounter_shuffle_type == 0:
-            # Groups are already shuffled, just pop in order
-            encounter.enemy_ids = bucket.pop(0)
-        else:
-            # Size matching needed for individual shuffle
-            idx = next((n for n, g in enumerate(bucket) if len(g) == encounter.enemy_count), None)
-            if idx is None:
-                sizes = sorted({len(g) for g in bucket})
-                raise ValueError(
-                    f"No group of size {encounter.enemy_count} available for encounter {getattr(encounter,'name',None)} "
-                    f"(rel={getattr(encounter,'rel',None)}). Available sizes in bucket: {sizes}"
-                )
+        idx = next((n for n, g in enumerate(bucket) if len(g) == encounter.enemy_count), None)
+        if idx is None:
+            sizes = sorted({len(g) for g in bucket})
+            raise ValueError(
+                f"No group of size {encounter.enemy_count} available for encounter {getattr(encounter,'name',None)} "
+                f"(rel={getattr(encounter,'rel',None)}). Available sizes in bucket: {sizes}"
+            )
 
-            encounter.enemy_ids = bucket.pop(idx)
+        encounter.enemy_ids = bucket.pop(idx)
