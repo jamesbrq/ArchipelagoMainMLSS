@@ -120,6 +120,12 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write(seed_options["enemy_stat_scaling"].to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x253)
         caller.patcher.dol.data.write(seed_options["shuffle_chapter_stats"].to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x258)
+        caller.patcher.dol.data.write(seed_options["badge_bp"].to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x259)
+        caller.patcher.dol.data.write(seed_options["badge_fp"].to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x25A)
+        caller.patcher.dol.data.write(seed_options["partner_fp"].to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x260)
         caller.patcher.dol.data.write(seed_options["yoshi_name"].encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
@@ -290,7 +296,10 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "blue_pipe_toggle": world.options.blue_pipe_toggle.value,
         "enemy_randomizer": world.options.enemy_randomizer.value,
         "enemy_stat_scaling": world.options.enemy_stat_scaling.value,
-        "shuffle_chapter_stats": world.options.shuffle_chapter_stats.value
+        "shuffle_chapter_stats": world.options.shuffle_chapter_stats.value,
+        "badge_bp": world.options.badge_bp.value,
+        "badge_fp": world.options.badge_fp.value,
+        "partner_fp": world.options.partner_fp.value
     }
 
     buffer = io.BytesIO()
