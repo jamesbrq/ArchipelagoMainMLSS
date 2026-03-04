@@ -1,5 +1,5 @@
 from Options import Range, StartInventoryPool, PerGameCommonOptions, Choice, FreeText, Toggle, DeathLink, \
-    DefaultOnToggle, OptionSet
+    DefaultOnToggle, OptionList
 from dataclasses import dataclass
 
 
@@ -47,7 +47,7 @@ class RequiredStarsToggle(Toggle):
     display_name = "Required Stars Selection"
 
 
-class RequiredStars(OptionSet):
+class RequiredStars(OptionList):
     """
     Select which stars are required to enter the Palace of Shadow.
     If you do not toggle this option the stars will be chosen randomly.
@@ -57,6 +57,16 @@ class RequiredStars(OptionSet):
     display_name = "Required Stars"
     valid_keys = ["Diamond Star", "Emerald Star", "Gold Star", "Ruby Star", "Sapphire Star", "Garnet Star", "Crystal Star"]
     default = valid_keys
+
+    def verify(self, world, player_name: str, plando_options) -> None:
+        super().verify(world, player_name, plando_options)
+        seen = set()
+        unique = []
+        for star in self.value:
+            if star not in seen:
+                seen.add(star)
+                unique.append(star)
+        self.value = unique
 
 
 class StarShuffle(Choice):
@@ -160,6 +170,36 @@ class DazzleRewards(Choice):
     option_filler = 2
     option_all = 3
     default = 3
+
+
+class PartnerShuffle(Choice):
+    """
+    This determines how partners are shuffled.
+    vanilla: Partners will be in their original locations.
+    shuffled: Partners will be shuffled among each other, but not with other items.
+    full_random: Partners can be shuffled into any location.
+    """
+    display_name = "Partner Shuffle"
+    option_vanilla = 1
+    option_shuffled = 2
+    option_full_random = 3
+    default = 1
+
+
+class StartingPartner(Choice):
+    """
+    Choose the partner that you start with.
+    This settings will not be applied if partner shuffle is set to Vanilla.
+    """
+    display_name = "Starting Partner"
+    option_goombella = 1
+    option_koops = 2
+    option_bobbery = 3
+    option_yoshi = 4
+    option_flurrie = 5
+    option_vivian = 6
+    option_ms_mowz = 7
+    default = 1
 
 
 class LimitChapterLogic(Toggle):
@@ -279,6 +319,51 @@ class ZeroBPFirstAttack(Toggle):
     display_name = "0 BP First Attack"
 
 
+class BadgeBP(Choice):
+    """
+    Change the BP cost of all badges.
+    This will not affect badges with unique costs such as First Attack, Power Bounce, etc.
+    vanilla: All badges will have their normal BP cost.
+    shuffled: All badges will have their BP cost shuffled among each other.
+    random_costs: All badges will have a random BP cost between 1 and 6.
+    """
+    display_name = "Badge BP Cost"
+    option_vanilla = 0
+    option_shuffled = 1
+    option_random_costs = 2
+    default = 0
+
+
+class BadgeFP(Choice):
+    """
+    Change the FP cost of all badges.
+    This will not affect badges with unique costs such as Refresh, etc.
+    vanilla: All badges will have their normal FP cost.
+    shuffled: All badges will have their FP cost shuffled among each other.
+    random_costs: All badges will have a random FP cost between 1 and 6.
+    """
+    display_name = "Badge FP Cost"
+    option_vanilla = 0
+    option_shuffled = 1
+    option_random_costs = 2
+    default = 0
+
+
+class PartnerFP(Choice):
+    """
+    Change the FP cost of all partners.
+    This will not affect partners with unique costs such as Vivian, etc.
+    vanilla: All partner abilities will have their normal FP cost.
+    shuffled: All partner abilities will have their FP cost shuffled among each other.
+    random_costs: All partner abilities will have a random FP cost between 0 and 6.
+    """
+    display_name = "Partner FP Cost"
+    option_vanilla = 0
+    option_shuffled = 2
+    option_random_costs = 3
+    default = 0
+
+
 class MusicSettings(Choice):
     """
     Choose in-game music settings.
@@ -302,6 +387,7 @@ class BlockVisibility(Choice):
     display_name = "Block Visibility"
     option_normal = 0
     option_all_visible = 1
+    option_all_invisible = 2
     default = 1
 
 
@@ -365,21 +451,6 @@ class StartingCoins(Range):
     default = 100
 
 
-class StartingPartner(Choice):
-    """
-    Choose the partner that you start with.
-    """
-    display_name = "Starting Partner"
-    option_goombella = 1
-    option_koops = 2
-    option_bobbery = 3
-    option_yoshi = 4
-    option_flurrie = 5
-    option_vivian = 6
-    option_ms_mowz = 7
-    default = 1
-
-
 class YoshiColor(Choice):
     """
     Select the color of your Yoshi partner.
@@ -426,6 +497,7 @@ class TTYDOptions(PerGameCommonOptions):
     limit_chapter_eight: LimitChapterEight
     blue_pipe_toggle: BluePipeToggle
     palace_skip: PalaceSkip
+    #partner_shuffle: PartnerShuffle
     cutscene_skip: CutsceneSkip
     disable_intermissions: DisableIntermissions
     fast_travel: FastTravel
@@ -436,6 +508,9 @@ class TTYDOptions(PerGameCommonOptions):
     permanent_peekaboo: PermanentPeekaboo
     full_run_bar: FullRunBar
     first_attack: ZeroBPFirstAttack
+    badge_bp: BadgeBP
+    badge_fp: BadgeFP
+    partner_fp: PartnerFP
     music_settings: MusicSettings
     block_visibility: BlockVisibility
     experience_multiplier: ExperienceMultiplier

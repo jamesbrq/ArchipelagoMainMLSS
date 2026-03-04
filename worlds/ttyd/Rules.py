@@ -79,11 +79,9 @@ def _build_single_lambda(req: typing.Dict, world: "TTYDWorld") -> typing.Callabl
         if "or" in r:
             conditions = [build_expression(condition) for condition in r["or"]]
             return f"({' or '.join(conditions)})"
-
         elif "and" in r:
             conditions = [build_expression(condition) for condition in r["and"]]
             return f"({' and '.join(conditions)})"
-
         elif "has" in r:
             has_value = r["has"]
 
@@ -104,16 +102,28 @@ def _build_single_lambda(req: typing.Dict, world: "TTYDWorld") -> typing.Callabl
                 return f'state.has({escaped_item}, world.player)'
             else:
                 return f'state.has({escaped_item}, world.player, {count})'
-
         elif "function" in r:
-            function_name = r["function"]
-            count = 0
-            if isinstance(function_name, dict):
-                count = function_name.get("count", 0)
-                function_name = function_name.get("name", "")
-            if count > 0:
-                return f'StateLogic.{function_name}(state, world.player, {count})'
-            return f'StateLogic.{function_name}(state, world.player)'
+            fn = r["function"]
+            if isinstance(fn, dict):
+                function_name = fn.get("name", "")
+                count = fn.get("count", None)
+            else:
+                function_name = fn
+                count = None
+
+            # Require count for chapter_completions (and validate it)
+            if function_name == "chapter_completions":
+                if count is None:
+                    raise ValueError("chapter_completions requires 'count'")
+                count = int(count)
+                if count <= 0:
+                    raise ValueError(f"chapter_completions count must be > 0, got {count}")
+                return f"StateLogic.{function_name}(state, world.player, {count})"
+
+            # For other functions, only pass count if provided
+            if count is not None:
+                return f"StateLogic.{function_name}(state, world.player, {int(count)})"
+            return f"StateLogic.{function_name}(state, world.player)"
 
         elif "can_reach" in r:
             location = r["can_reach"]

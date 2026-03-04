@@ -7,12 +7,12 @@ from settings import UserFilePath, Group
 from BaseClasses import Tutorial, ItemClassification, CollectionState, Item, Location
 from worlds.AutoWorld import WebWorld, World
 from .Data import starting_partners, stars, limit_pit, \
-    pit_exclusive_tattle_stars_required, dazzle_counts, dazzle_location_names, star_locations, chapter_keysanity_tags, \
+    pit_exclusive_tattle_stars_required, dazzle_counts, dazzle_location_names, chapter_keysanity_tags, \
     chapter_keys, limited_tags, limited_tag_items
 from .Locations import all_locations, location_table, location_id_to_name, TTYDLocation, locationName_to_data, \
     get_locations_by_tags, get_vanilla_item_names, get_location_names, LocationData
 from .Options import Piecesanity, TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight, Goal, \
-    DazzleRewards, StarShuffle
+    DazzleRewards, StarShuffle, LimitChapterLogic, PartnerShuffle
 from .Items import TTYDItem, itemList, item_table, ItemData, items_by_id
 from .Regions import create_regions, connect_regions, get_regions_dict, register_indirect_connections
 from .Rom import TTYDProcedurePatch, write_files
@@ -147,7 +147,7 @@ class TTYDWorld(World):
                 self.required_chapters.append(chapters.pop(self.multiworld.random.randint(0, len(chapters) - 1)))
         else:
             star_names = self.options.required_stars.value
-            self.required_chapters = [chapter for chapter, star in stars.items() if star in star_names][:self.options.goal_stars.value]
+            self.required_chapters = [chapter for name in star_names for chapter, star in stars.items() if star == name][:self.options.goal_stars.value]
             if len(self.required_chapters) < self.options.goal_stars.value:
                 remaining_chapters = [i for i in range(1, 8) if i not in self.required_chapters]
                 for _ in range(self.options.goal_stars.value - len(self.required_chapters)):
@@ -475,13 +475,8 @@ class TTYDWorld(World):
                 state.prog_items[item.player]["stars"] += 1
             for star in self.required_chapters:
                 if item.location is not None:
-                    if item.name == stars[star] and self.options.star_shuffle == StarShuffle.option_vanilla:
+                    if item.name == stars[star]:
                         state.prog_items[item.player]["required_stars"] += 1
-                        break
-                    elif item.location.name == star_locations[
-                        star - 1] and self.options.star_shuffle == StarShuffle.option_stars_only:
-                        state.prog_items[item.player]["required_stars"] += 1
-                        break
         return change
 
     def remove(self, state: "CollectionState", item: "Item") -> bool:
@@ -491,13 +486,8 @@ class TTYDWorld(World):
                 state.prog_items[item.player]["stars"] -= 1
             for star in self.required_chapters:
                 if item.location is not None:
-                    if item.name == stars[star] and self.options.star_shuffle == StarShuffle.option_vanilla:
+                    if item.name == stars[star]:
                         state.prog_items[item.player]["required_stars"] -= 1
-                        break
-                    elif item.location == star_locations[
-                        star - 1] and self.options.star_shuffle == StarShuffle.option_stars_only:
-                        state.prog_items[item.player]["required_stars"] -= 1
-                        break
         return change
 
     def generate_output(self, output_directory: str) -> None:
