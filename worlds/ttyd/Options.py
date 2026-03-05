@@ -404,8 +404,8 @@ class PartnerFP(Choice):
     """
     display_name = "Partner FP Cost"
     option_vanilla = 0
-    option_shuffled = 2
-    option_random_costs = 3
+    option_shuffled = 1
+    option_random_costs = 2
     default = 0
 
 
