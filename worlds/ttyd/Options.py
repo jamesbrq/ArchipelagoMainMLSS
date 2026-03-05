@@ -285,7 +285,7 @@ class EnemyRandomizer(Choice):
     option_vanilla = 0
     option_within_chapter = 1
     option_randomize = 2
-    default = 1
+    default = 0
 
 
 class EncounterShuffleType(Choice):
@@ -432,7 +432,6 @@ class BlockVisibility(Choice):
     display_name = "Block Visibility"
     option_normal = 0
     option_all_visible = 1
-    option_all_invisible = 2
     default = 1
 
 
