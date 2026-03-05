@@ -370,7 +370,7 @@ class BadgeBP(Choice):
     This will not affect badges with unique costs such as First Attack, Power Bounce, etc.
     vanilla: All badges will have their normal BP cost.
     shuffled: All badges will have their BP cost shuffled among each other.
-    random_costs: All badges will have a random BP cost between 1 and 6.
+    random_costs: All badges will have a random BP cost between 0 and 6.
     """
     display_name = "Badge BP Cost"
     option_vanilla = 0
@@ -385,7 +385,7 @@ class BadgeFP(Choice):
     This will not affect badges with unique costs such as Refresh, etc.
     vanilla: All badges will have their normal FP cost.
     shuffled: All badges will have their FP cost shuffled among each other.
-    random_costs: All badges will have a random FP cost between 1 and 6.
+    random_costs: All badges will have a random FP cost between 0 and 6.
     """
     display_name = "Badge FP Cost"
     option_vanilla = 0
