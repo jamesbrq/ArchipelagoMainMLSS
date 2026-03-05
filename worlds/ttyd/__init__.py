@@ -422,7 +422,7 @@ class TTYDWorld(World):
         if self.options.goal == Goal.option_shadow_queen:
             self.multiworld.completion_condition[self.player] = lambda state: state.has("Victory", self.player)
         elif self.options.goal == Goal.option_crystal_stars:
-            self.multiworld.completion_condition[self.player] = lambda state: state.has("stars", self.player,
+            self.multiworld.completion_condition[self.player] = lambda state: state.has("required_stars", self.player,
                                                                                         self.options.goal_stars.value)
         else:
             self.multiworld.completion_condition[self.player] = lambda state: state.can_reach(
