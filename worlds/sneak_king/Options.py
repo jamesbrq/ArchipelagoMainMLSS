@@ -1,4 +1,6 @@
-from Options import PerGameCommonOptions, StartInventoryPool, DeathLink, Choice, OptionSet, Toggle, Range
+from dataclasses import dataclass
+
+from Options import PerGameCommonOptions, StartInventoryPool, DeathLink, Choice, OptionSet, Toggle, Range, TextChoice
 from worlds.shapez.common.options import FloatRangeText
 
 
@@ -48,7 +50,7 @@ class CivilianSpeedMultiplier(FloatRangeText):
     range_end = 5.0
     default = 1.0
 
-
+@dataclass
 class SneakKingOptions(PerGameCommonOptions):
-    start_inventory_from_pool: StartInventoryPool
     death_link: DeathLink
+    starting_level: StartingLevel

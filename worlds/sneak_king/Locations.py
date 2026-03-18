@@ -9,7 +9,7 @@ class LocationData():
 all_locations: list[LocationData] = []
 index = 0
 for level in ["Sawmill", "Cul-De-Sac", "Construction", "Downtown"]:
-    for rank in ["C" "B", "A"]:
+    for rank in ["C", "B", "A"]:
         all_locations += [LocationData(f"{level}: Mission {i} Rank {rank}", index + i, [level, rank]) for i in range(1, 21)]
         index += 20
 
