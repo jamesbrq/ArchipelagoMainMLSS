@@ -1,7 +1,21 @@
 from dataclasses import dataclass
 
-from Options import PerGameCommonOptions, StartInventoryPool, DeathLink, Choice, OptionSet, Toggle, Range, TextChoice
+from Options import PerGameCommonOptions, DeathLink, Choice, OptionSet, Toggle, Range, DefaultOnToggle
 from worlds.shapez.common.options import FloatRangeText
+
+
+class Goal(Choice):
+    display_name = "Goal"
+    option_complete_x_missions = 0
+    option_complete_x_a_ranks = 1
+    default = 0
+
+
+class GoalRange(Range):
+    display_name = "Goal Range"
+    range_start = 10
+    range_end = 80
+    default = 20
 
 
 class StartingLevel(Choice):
@@ -19,10 +33,6 @@ class EnabledRanks(OptionSet):
     default = ["C", "B", "A"]
 
 
-class LevelShuffle(Toggle):
-    display_name = "Level Shuffle"
-
-
 class LevelUnlockMethod(Choice):
     display_name = "Level Unlock Method"
     option_x_missions = 0
@@ -35,6 +45,10 @@ class LevelUnlockRange(Range):
     range_start = 5
     range_end = 20
     default = 20
+
+
+class LevelShuffle(DefaultOnToggle):
+    display_name = "Level Shuffle"
 
 
 class KingSpeedMultiplier(FloatRangeText):
@@ -50,7 +64,24 @@ class CivilianSpeedMultiplier(FloatRangeText):
     range_end = 5.0
     default = 1.0
 
+
+class TrapPercentage(Range):
+    display_name = "Trap Percentage"
+    range_start = 0
+    range_end = 100
+    default = 0
+
+
 @dataclass
 class SneakKingOptions(PerGameCommonOptions):
     death_link: DeathLink
+    goal: Goal
+    goal_range: GoalRange
     starting_level: StartingLevel
+    enabled_ranks: EnabledRanks
+    level_unlock_method: LevelUnlockMethod
+    level_unlock_range: LevelUnlockRange
+    level_shuffle: LevelShuffle
+    trap_percentage: TrapPercentage
+    king_speed_multiplier: KingSpeedMultiplier
+    civilian_speed_multiplier: CivilianSpeedMultiplier

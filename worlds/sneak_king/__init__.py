@@ -1,12 +1,14 @@
+import logging
 import typing
+import re
 
 import settings
-from BaseClasses import Tutorial, Item
+from BaseClasses import Tutorial, Item, CollectionState
 from worlds.AutoWorld import World, WebWorld
 from .Items import items, SneakKingItem, item_table
 from .Locations import all_locations
 from .Options import SneakKingOptions
-from .Regions import create_regions, connect_regions
+from .Regions import create_regions, connect_regions, get_level_order
 from .Rules import set_rules
 
 
@@ -46,10 +48,30 @@ class SneakKingWorld(World):
 
     disabled_regions: set[str]
     disabled_locations: set[str]
+    level_order: list[str]
 
     def generate_early(self):
         self.disabled_regions = set()
         self.disabled_locations = set()
+        self.level_order = get_level_order(self)
+        # implementing yaml-less UT support
+        if hasattr(self.multiworld, "re_gen_passthrough"):
+            if self.game in self.multiworld.re_gen_passthrough:
+                slot_data = self.multiworld.re_gen_passthrough[self.game]
+                self.options.goal.value = slot_data["goal"]
+                self.options.goal_range.value = slot_data["goal_range"]
+                self.options.starting_level.value = slot_data["starting_level"]
+                self.options.enabled_ranks.value = slot_data["enabled_ranks"]
+                self.options.level_unlock_method.value = slot_data["level_unlock_method"]
+                self.options.level_unlock_range.value = slot_data["level_unlock_range"]
+                self.options.level_shuffle.value = slot_data["level_shuffle"]
+                return
+        if not len(self.options.enabled_ranks.value):
+            logging.warning(f"{self.player_name}'s Enabled ranks is empty. Enabling Rank C for accessability.")
+            self.options.enabled_ranks.value = ["C"]
+        for rank in ["C", "B", "A"]:
+            if rank not in self.options.enabled_ranks.value:
+                self.disabled_locations.update([location.name for location in all_locations if f"Rank {rank}" in location.name])
 
 
     def create_regions(self) -> None:
@@ -62,26 +84,54 @@ class SneakKingWorld(World):
         from .Regions import region_names
         set_rules(self)
 
-        # Victory requires having all mission unlock items (missions 2-20 for all 4 levels = 76 items)
-        mission_unlock_rules = []
-        for level in region_names:
-            for mission_num in range(2, 21):
-                mission_unlock_rules.append(Has(f"{level} Mission {mission_num} Unlock"))
-
-        self.set_completion_rule(And(*mission_unlock_rules))
+        # Victory requires completing level_unlock_range missions in each level.
+        # Mission 1 is always available, so we need (range - 1) mission unlock items per level.
+        required_unlocks = self.options.level_unlock_range.value - 1
+        completion_rules = [
+            Has(f"{level}_Missions", required_unlocks) for level in region_names
+        ]
+        self.set_completion_rule(And(*completion_rules))
 
 
     def create_items(self):
         from .Regions import region_names
+        from .Options import LevelUnlockMethod
+        from BaseClasses import ItemClassification
+
         starting_region = region_names[self.options.starting_level.value]
         starting_region_unlock = f"{starting_region} Unlock"
+        using_x_missions = self.options.level_unlock_method == LevelUnlockMethod.option_x_missions
+        total_locations = len(self.multiworld.get_unfilled_locations(self.player))
 
-        # Create items, excluding the starting region's unlock item
+        # Create items, excluding region unlocks based on unlock method
         _items = []
         for item in items:
-            if item.name == starting_region_unlock:
-                continue  # Skip the starting region's unlock - it's not needed
-            _items += [self.create_item(item.name) for _ in range(item.frequency)]
+            # Skip region unlock items based on unlock method
+            if item.name.endswith(" Unlock") and item.name.replace(" Unlock", "") in region_names:
+                if using_x_missions:
+                    # Skip all region unlocks when using x_missions method
+                    continue
+                elif item.name == starting_region_unlock:
+                    # Skip only starting region unlock when using unlock_item method
+                    continue
+
+            # Reduce Progressive item frequency if not enough locations
+            # This happens when ranks are disabled
+            frequency = item.frequency
+            if item.name in ["Progressive Flourish", "Progressive Chain"]:
+                # Calculate how many progression items we'd have
+                mission_unlocks = 76  # 4 regions × 19 missions
+                region_unlocks = 0 if using_x_missions else 3  # Skip starting region
+                progressive_items = 6  # 3 Flourish + 3 Chain
+                total_progression = mission_unlocks + region_unlocks + progressive_items
+
+                # If we have more progression items than locations, reduce progressive items
+                if total_progression > total_locations:
+                    excess = total_progression - total_locations
+                    # Reduce frequency proportionally, but keep at least 1
+                    frequency = max(1, frequency - (excess // 2))
+
+            _items += [self.create_item(item.name) for _ in range(frequency)]
 
         unfilled = len(self.multiworld.get_unfilled_locations(self.player)) - len(_items)
         _items += [self.create_item("Nothing") for _ in range(unfilled)]
@@ -92,6 +142,39 @@ class SneakKingWorld(World):
         item = item_table[name]
         return SneakKingItem(item.name, item.classification, item.id, self.player)
 
+
+    def collect(self, state: "CollectionState", item: "Item") -> bool:
+        change = super().collect(state, item)
+        level_match = re.match(r"(Sawmill|Cul-De-Sac|Construction|Downtown)", item.name)
+        if change and level_match and "Mission" in item.name:
+            state.prog_items[item.player][f"{level_match.group(1)}_Missions"] += 1
+        return change
+
+
+    def remove(self, state: "CollectionState", item: "Item") -> bool:
+        change = super().remove(state, item)
+        level_match = re.match(r"(Sawmill|Cul-De-Sac|Construction|Downtown)", item.name)
+        if change and level_match and "Mission" in item.name:
+            state.prog_items[item.player][f"{level_match.group(1)}_Missions"] -= 1
+        return change
+
+
+
+    def fill_slot_data(self) -> dict[str, typing.Any]:
+        return {
+            "goal": self.options.goal.value,
+            "goal_range": self.options.goal_range.value,
+            "starting_level": self.options.starting_level.value,
+            "enabled_ranks": list(self.options.enabled_ranks.value),
+            "level_unlock_method": self.options.level_unlock_method.value,
+            "level_unlock_range": self.options.level_unlock_range.value,
+            "level_shuffle": self.options.level_shuffle.value,
+            "level_order": self.level_order,
+            "trap_percentage": self.options.trap_percentage.value,
+            "death_link": self.options.death_link.value,
+            "king_speed_multiplier": self.options.king_speed_multiplier.value,
+            "civilian_speed_multiplier": self.options.civilian_speed_multiplier.value,
+        }
 
     def generate_output(self, output_directory: str) -> None:
         return

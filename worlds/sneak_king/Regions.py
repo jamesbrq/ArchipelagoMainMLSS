@@ -3,6 +3,7 @@ import typing
 from BaseClasses import Region
 from rule_builder.rules import Has
 from .Locations import get_locations_by_tag, LocationData, SneakKingLocation
+from .Options import LevelUnlockMethod
 
 if typing.TYPE_CHECKING:
     from . import SneakKingWorld
@@ -58,16 +59,38 @@ def get_regions_dict():
     }
 
 
-def get_region_connections_dict(world: "SneakKingWorld"):
+def get_level_order(world: "SneakKingWorld") -> list[str]:
+    """Get the ordered list of levels. Starting level is always first.
+    If level_shuffle is enabled, the remaining levels are shuffled."""
     starting_region = region_names[world.options.starting_level.value]
+    other_regions = [r for r in region_names if r != starting_region]
+
+    if world.options.level_shuffle:
+        world.random.shuffle(other_regions)
+
+    return [starting_region] + other_regions
+
+
+def get_region_connections_dict(world: "SneakKingWorld"):
+    level_order = world.level_order
     connections = {
-        ("Menu", starting_region): None,  # Starting region is always accessible
+        ("Menu", level_order[0]): None,  # Starting region is always accessible
     }
 
-    # Add connections to non-starting regions with unlock requirements
-    for region in region_names:
-        if region != starting_region:
+    if world.options.level_unlock_method == LevelUnlockMethod.option_unlock_item:
+        # All non-starting regions connect from Menu with their unlock item
+        for region in level_order[1:]:
             connections[("Menu", region)] = Has(f"{region} Unlock")
+    else:
+        # x_missions: linear chain where completing X missions in region N unlocks region N+1
+        # Mission 1 is always available (no unlock needed), so we need X-1 unlock items
+        required_unlocks = world.options.level_unlock_range.value - 1
+        for i in range(1, len(level_order)):
+            prev_region = level_order[i - 1]
+            curr_region = level_order[i]
+            connections[(prev_region, curr_region)] = Has(
+                f"{prev_region}_Missions", required_unlocks
+            )
 
     return connections
 
