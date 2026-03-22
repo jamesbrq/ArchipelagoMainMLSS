@@ -1,0 +1,103 @@
+{
+  "version": "1.0.0",
+  "game": "Sneak King",
+  "xbe_file": "default.xbe",
+  "fetm_file": "Packages/L_KingMe_fetm.xbp",
+  "va_delta": 65536,
+  "expected_xbe_size": 2998272,
+  "starting_level_addresses": {
+    "0": "FC2F2E00",
+    "1": "00302E00",
+    "2": "04302E00",
+    "3": "08302E00"
+  },
+  "patches": {
+    "required": [
+      {
+        "name": "P1: NOP attempted bitfield write",
+        "description": "Prevents mission completion from cascading unlock bits",
+        "va": "0x61999",
+        "old": "897c1020",
+        "new": "90909090"
+      },
+      {
+        "name": "P2: Validator bypass (JZ to JMP)",
+        "description": "Mission validator always takes available path, no prerequisites block",
+        "va": "0x163CF",
+        "old": "74",
+        "new": "EB"
+      },
+      {
+        "name": "Function entry fix (push ecx)",
+        "description": "Fixes function prologue at VA 0x17EE00 — int3 padding replaced with push ecx",
+        "va": "0x17EE00",
+        "old": "CC",
+        "new": "51"
+      },
+      {
+        "name": "Height/Y-position fix",
+        "description": "Corrects outlier Y-coordinate 100.0 to 3.7986 in position data table (.rdata)",
+        "va": "0x2CA9B0",
+        "old": "0000C842",
+        "new": "1C1C7340"
+      },
+      {
+        "name": "Force level load — mov eax,[global]",
+        "description": "Replaces dynamic level pointer read with hardcoded global address. Default address is Sawmill. The starting_level setting overwrites the address bytes.",
+        "va": "0x13EF9",
+        "old": "8B86980000008B4020",
+        "new": "A1FC2F2E0090909090"
+      },
+      {
+        "name": "Force level load — NOP cmovne",
+        "description": "NOPs the conditional override so forced level is always used",
+        "va": "0x13F04",
+        "old": "0F45C1",
+        "new": "909090"
+      }
+    ],
+    "settings": [
+      {
+        "name": "Starting level address",
+        "description": "Overwrites the 4-byte global address inside the force-level-load patch. The address selects which level global to read.",
+        "va": "0x13EFA",
+        "type": "raw",
+        "mode": "map",
+        "map_name": "starting_level_addresses",
+        "option": "starting_level"
+      },
+      {
+        "name": "Walk speed (K_sneak_crouching)",
+        "va": "0x1D747",
+        "type": "float",
+        "mode": "divide",
+        "base": 1.0,
+        "option": "king_speed_multiplier"
+      },
+      {
+        "name": "Walk speed (K_sneak_upright)",
+        "va": "0x1D7DC",
+        "type": "float",
+        "mode": "divide",
+        "base": 1.0,
+        "option": "king_speed_multiplier"
+      },
+      {
+        "name": "Walk speed (K_walk)",
+        "va": "0x1F737",
+        "type": "float",
+        "mode": "divide",
+        "base": 1.0,
+        "option": "king_speed_multiplier"
+      },
+      {
+        "name": "Run speed (K_run)",
+        "va": "0x1F7CC",
+        "type": "float",
+        "mode": "divide",
+        "base": 0.85,
+        "option": "king_speed_multiplier"
+      }
+    ]
+  }
+}

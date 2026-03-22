@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
 from Options import PerGameCommonOptions, DeathLink, Choice, OptionSet, Toggle, Range, DefaultOnToggle
-from worlds.shapez.common.options import FloatRangeText
 
 
 class Goal(Choice):
@@ -51,18 +50,18 @@ class LevelShuffle(DefaultOnToggle):
     display_name = "Level Shuffle"
 
 
-class KingSpeedMultiplier(FloatRangeText):
+class KingSpeedMultiplier(Range):
     display_name = "King Speed Multiplier"
-    range_start = 1.0
-    range_end = 5.0
-    default = 1.0
+    range_start = 1
+    range_end = 5
+    default = 1
 
 
-class CivilianSpeedMultiplier(FloatRangeText):
+class CivilianSpeedMultiplier(Range):
     display_name = "Civilian Speed Multiplier"
-    range_start = 1.0
-    range_end = 5.0
-    default = 1.0
+    range_start = 1
+    range_end = 5
+    default = 1
 
 
 class TrapPercentage(Range):
