@@ -1,8 +1,11 @@
 import asyncio
+import subprocess
 import typing
 
+import Patch
 import Utils
 import kvui
+import settings
 from CommonClient import ClientCommandProcessor, get_base_parser, gui_enabled, logger, server_loop
 from NetUtils import ClientStatus
 
@@ -124,8 +127,35 @@ async def sneak_king_sync_task(ctx: SneakKingContext):
             await asyncio.sleep(3)
 
 
+async def _run_game(rom: str):
+    import os
+    auto_start = settings.get_settings().sneak_king_options.rom_start
+
+    if auto_start is True:
+        xemu_path = settings.get_settings().sneak_king_options.xemu_path
+        subprocess.Popen(
+            [
+                xemu_path,
+                "-dvd_path",
+                os.path.realpath(rom),
+            ],
+            cwd=Utils.local_path("."),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+
+async def _patch_and_run_game(patch_file: str):
+    metadata, output_file = Patch.create_rom_file(patch_file)
+    Utils.async_start(_run_game(output_file))
+    return metadata
+
+
 def launch(*args):
     async def main(args):
+        if args.patch_file:
+            await asyncio.create_task(_patch_and_run_game(args.patch_file))
         ctx = SneakKingContext(args.connect, args.password)
         ctx.server_task = asyncio.create_task(server_loop(ctx), name="ServerLoop")
         if gui_enabled:

@@ -1,39 +1,37 @@
 """
-xdvdfs.py — Pure Python Xbox DVD Filesystem (XDVDFS/XISO) Reader & Writer
+xdvdfs.py - Pure-Python Xbox DVD Filesystem (XDVDFS / XISO) reader and writer.
 
-Extracts files from Xbox ISOs and creates new Xbox ISOs from directories.
-No external dependencies. MIT-compatible original code.
+Reads, extracts, and creates Xbox ISO images compatible with the original Xbox
+kernel and the xemu emulator.  No external dependencies.
 
-XDVDFS Format:
-  - Sector size: 2048 bytes
-  - Volume descriptor at sector 32 (offset 0x10000)
-  - Magic: "MICROSOFT*XBOX*MEDIA"
-  - Directory entries stored as binary trees
-  - Files stored at sector-aligned offsets
+The ISO creation logic replicates the critical behaviours of extract-xiso:
+  - AVL-balanced directory entry trees serialised in pre-order.
+  - Directory entries never straddle 2048-byte sector boundaries.
+  - ISO 9660 primary volume descriptor at sector 16.
+  - XDVDFS volume descriptor at sector 32.
+  - Root directory at sector 0x108 (264).
 
 Usage:
-  # Extract
-  iso = XDVDFSImage("game.iso")
-  iso.extract_all("output_dir")
-  
-  # Create
-  create_xiso("input_dir", "output.iso")
-  
-  # Patch in-place (extract, modify files, repack)
-  patch_xiso("clean.iso", "patched.iso", {"sneak/default.xbe": "patched_default.xbe"})
+    # Extract
+    with XDVDFSImage("game.iso") as iso:
+        iso.extract_all("output_dir")
+
+    # Create
+    create_xiso("input_dir", "output.iso")
+
+    # Patch in-place (extract, modify files on disk, repack)
+    patch_xiso("clean.iso", "patched.iso", {"default.xbe": "/path/to/patched.xbe"})
 """
 
 import struct
 import os
 import io
-from pathlib import Path
 
 SECTOR_SIZE = 2048
 VOLUME_DESCRIPTOR_SECTOR = 32
 MAGIC = b"MICROSOFT*XBOX*MEDIA"
 MAGIC_LEN = 20
 
-# File attribute flags
 ATTR_READONLY  = 0x01
 ATTR_HIDDEN    = 0x02
 ATTR_SYSTEM    = 0x04
@@ -42,22 +40,24 @@ ATTR_ARCHIVE   = 0x20
 ATTR_NORMAL    = 0x80
 
 
+# ---------------------------------------------------------------------------
+#  Reading
+# ---------------------------------------------------------------------------
+
 class DirectoryEntry:
-    """Represents a file or directory entry in the XDVDFS filesystem."""
-    
+    """A file or directory entry in the XDVDFS filesystem."""
+
     def __init__(self, name="", sector=0, size=0, attributes=0):
         self.name = name
         self.sector = sector
         self.size = size
         self.attributes = attributes
-        self.children = []  # For directories
-        self.left = None    # Binary tree left child (for parsing)
-        self.right = None   # Binary tree right child (for parsing)
-    
+        self.children = []
+
     @property
     def is_directory(self):
         return bool(self.attributes & ATTR_DIRECTORY)
-    
+
     def __repr__(self):
         kind = "DIR" if self.is_directory else "FILE"
         return f"<{kind} '{self.name}' sector={self.sector} size={self.size}>"
@@ -65,141 +65,103 @@ class DirectoryEntry:
 
 class XDVDFSImage:
     """Read and extract files from an Xbox ISO (XDVDFS) image."""
-    
+
     def __init__(self, path):
         self.path = path
         self.f = open(path, "rb")
         self.base_offset = self._find_game_partition()
         self.root_sector, self.root_size = self._read_volume_descriptor()
         self.root_entries = self._read_directory(self.root_sector, self.root_size)
-    
+
     def close(self):
         self.f.close()
-    
+
     def __enter__(self):
         return self
-    
+
     def __exit__(self, *args):
         self.close()
-    
+
+    # -- partition detection --------------------------------------------------
+
     def _find_game_partition(self):
-        """Find the start of the game partition (handles XISO, Redump, and other formats)."""
         file_size = self.f.seek(0, 2)
-        
-        # Try known offsets where the volume descriptor (sector 32) might be
-        known_offsets = [
-            0x00000000,     # Standard XISO (trimmed, game data at start)
-            0x10000000,     # Common Redump offset (256MB video partition)
-            0x18300000,     # Sneak King / BK games Redump offset
-            0xFD90000,      # Another Redump variant
-        ]
-        
-        for base in known_offsets:
+        for base in [0x00000000, 0x10000000, 0x18300000, 0x0FD90000]:
             vd_offset = base + VOLUME_DESCRIPTOR_SECTOR * SECTOR_SIZE
             if vd_offset + MAGIC_LEN > file_size:
                 continue
             try:
                 self.f.seek(vd_offset)
-                magic = self.f.read(MAGIC_LEN)
-                if magic == MAGIC:
+                if self.f.read(MAGIC_LEN) == MAGIC:
                     return base
-            except:
+            except OSError:
                 pass
-        
-        # Fallback: scan the file for the MAGIC string
-        # The MAGIC appears at (base + 0x10000), so base = found - 0x10000
-        scan_chunk = 16 * 1024 * 1024  # 16MB chunks
-        for pos in range(0, min(file_size, 8 * 1024 * 1024 * 1024), scan_chunk):
+        # Fallback: brute-force scan
+        chunk_sz = 16 * 1024 * 1024
+        for pos in range(0, min(file_size, 8 * 1024 * 1024 * 1024), chunk_sz):
             try:
                 self.f.seek(pos)
-                chunk = self.f.read(scan_chunk + MAGIC_LEN)
+                chunk = self.f.read(chunk_sz + MAGIC_LEN)
                 idx = chunk.find(MAGIC)
                 if idx != -1:
-                    found_offset = pos + idx
-                    # MAGIC should be at sector 32 of the partition
-                    base = found_offset - (VOLUME_DESCRIPTOR_SECTOR * SECTOR_SIZE)
+                    base = pos + idx - VOLUME_DESCRIPTOR_SECTOR * SECTOR_SIZE
                     if base >= 0:
-                        # Verify trailing magic
                         self.f.seek(base + VOLUME_DESCRIPTOR_SECTOR * SECTOR_SIZE + 0x7EC)
-                        magic2 = self.f.read(MAGIC_LEN)
-                        if magic2 == MAGIC:
+                        if self.f.read(MAGIC_LEN) == MAGIC:
                             return base
-            except:
+            except OSError:
                 pass
-        
         raise ValueError(f"Could not find XDVDFS volume descriptor in {self.path}")
-    
+
     def _read_volume_descriptor(self):
-        """Read the volume descriptor and return (root_sector, root_size)."""
         self.f.seek(self.base_offset + VOLUME_DESCRIPTOR_SECTOR * SECTOR_SIZE)
         magic = self.f.read(MAGIC_LEN)
         assert magic == MAGIC, f"Invalid magic: {magic}"
-        
         root_sector = struct.unpack("<I", self.f.read(4))[0]
         root_size = struct.unpack("<I", self.f.read(4))[0]
-        filetime = struct.unpack("<Q", self.f.read(8))[0]
-        
-        # Verify trailing magic
+        self.f.read(8)  # filetime
         self.f.seek(self.base_offset + VOLUME_DESCRIPTOR_SECTOR * SECTOR_SIZE + 0x7EC)
-        magic2 = self.f.read(MAGIC_LEN)
-        assert magic2 == MAGIC, f"Trailing magic mismatch: {magic2}"
-        
+        assert self.f.read(MAGIC_LEN) == MAGIC, "Trailing magic mismatch"
         return root_sector, root_size
-    
+
+    # -- directory parsing ----------------------------------------------------
+
     def _read_directory(self, sector, size):
-        """Read a directory table and return a list of DirectoryEntry objects."""
         if sector == 0 and size == 0:
             return []
-        
         self.f.seek(self.base_offset + sector * SECTOR_SIZE)
         data = self.f.read(size)
-        
         entries = []
         self._parse_tree(data, 0, entries)
-        
-        # Recursively read subdirectories
         for entry in entries:
             if entry.is_directory and entry.sector != 0:
                 entry.children = self._read_directory(entry.sector, entry.size)
-        
         return entries
-    
+
     def _parse_tree(self, data, offset_dwords, entries):
-        """Parse the binary tree of directory entries."""
         byte_offset = offset_dwords * 4
         if byte_offset + 14 > len(data):
             return
-        
-        # Check for empty/padding
         if data[byte_offset] == 0xFF and data[byte_offset + 1] == 0xFF:
             return
-        
-        left_offset = struct.unpack_from("<H", data, byte_offset)[0]
-        right_offset = struct.unpack_from("<H", data, byte_offset + 2)[0]
+        left = struct.unpack_from("<H", data, byte_offset)[0]
+        right = struct.unpack_from("<H", data, byte_offset + 2)[0]
         sector = struct.unpack_from("<I", data, byte_offset + 4)[0]
         size = struct.unpack_from("<I", data, byte_offset + 8)[0]
         attributes = data[byte_offset + 12]
         name_len = data[byte_offset + 13]
-        
         if name_len == 0 or byte_offset + 14 + name_len > len(data):
             return
-        
-        name = data[byte_offset + 14:byte_offset + 14 + name_len].decode("ascii", errors="replace")
-        
-        # Traverse left subtree first (alphabetically smaller)
-        if left_offset != 0 and left_offset != 0xFFFF:
-            self._parse_tree(data, left_offset, entries)
-        
-        # Add this entry
-        entry = DirectoryEntry(name, sector, size, attributes)
-        entries.append(entry)
-        
-        # Traverse right subtree (alphabetically greater)
-        if right_offset != 0 and right_offset != 0xFFFF:
-            self._parse_tree(data, right_offset, entries)
-    
+        name = data[byte_offset + 14 : byte_offset + 14 + name_len].decode("ascii", errors="replace")
+        if left != 0 and left != 0xFFFF:
+            self._parse_tree(data, left, entries)
+        entries.append(DirectoryEntry(name, sector, size, attributes))
+        if right != 0 and right != 0xFFFF:
+            self._parse_tree(data, right, entries)
+
+    # -- public API -----------------------------------------------------------
+
     def list_files(self, entries=None, prefix=""):
-        """List all files recursively."""
         if entries is None:
             entries = self.root_entries
         result = []
@@ -210,17 +172,12 @@ class XDVDFSImage:
             else:
                 result.append((path, entry.size))
         return result
-    
+
     def find_entry(self, path):
-        """Find a directory entry by path (e.g., 'sneak/default.xbe')."""
         parts = path.replace("\\", "/").strip("/").split("/")
         entries = self.root_entries
         for i, part in enumerate(parts):
-            found = None
-            for entry in entries:
-                if entry.name.lower() == part.lower():
-                    found = entry
-                    break
+            found = next((e for e in entries if e.name.lower() == part.lower()), None)
             if found is None:
                 return None
             if i < len(parts) - 1:
@@ -230,391 +187,360 @@ class XDVDFSImage:
             else:
                 return found
         return None
-    
+
     def read_file(self, entry):
-        """Read the contents of a file entry."""
         self.f.seek(self.base_offset + entry.sector * SECTOR_SIZE)
         return self.f.read(entry.size)
-    
+
     def extract_file(self, entry, output_path):
-        """Extract a single file to disk."""
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        data = self.read_file(entry)
         with open(output_path, "wb") as out:
-            out.write(data)
-    
+            out.write(self.read_file(entry))
+
     def extract_all(self, output_dir, entries=None, prefix=""):
-        """Extract all files to a directory."""
         if entries is None:
             entries = self.root_entries
-        
         for entry in entries:
             path = os.path.join(output_dir, prefix, entry.name)
             if entry.is_directory:
                 os.makedirs(path, exist_ok=True)
-                self.extract_all(output_dir, entry.children,
-                               os.path.join(prefix, entry.name))
+                self.extract_all(output_dir, entry.children, os.path.join(prefix, entry.name))
             else:
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 self.extract_file(entry, path)
 
 
+# ---------------------------------------------------------------------------
+#  AVL tree  (replicates extract-xiso's avl_insert / avl_compare_key)
+# ---------------------------------------------------------------------------
+
+class _AVLNode:
+    __slots__ = ("entry", "left", "right", "skew")
+
+    def __init__(self, entry):
+        self.entry = entry
+        self.left = None
+        self.right = None
+        self.skew = 0  # -1 left-heavy, 0 balanced, 1 right-heavy
+
+
+def _avl_compare(a, b):
+    au, bu = a.upper(), b.upper()
+    return -1 if au < bu else (1 if au > bu else 0)
+
+
+def _avl_rotate_left(root):
+    nr = root.right;  root.right = nr.left;  nr.left = root
+    return nr
+
+
+def _avl_rotate_right(root):
+    nr = root.left;  root.left = nr.right;  nr.right = root
+    return nr
+
+
+def _avl_insert(root, node):
+    if root is None:
+        return node, True
+    cmp = _avl_compare(node.entry.name, root.entry.name)
+    if cmp < 0:
+        root.left, grew = _avl_insert(root.left, node)
+        if grew:
+            if   root.skew ==  1: root.skew = 0; grew = False
+            elif root.skew ==  0: root.skew = -1
+            else:
+                if root.left.skew == -1:
+                    root = _avl_rotate_right(root);  root.right.skew = 0
+                else:
+                    root.left = _avl_rotate_left(root.left)
+                    root = _avl_rotate_right(root)
+                    root.left.skew  = -1 if root.skew ==  1 else 0
+                    root.right.skew =  1 if root.skew == -1 else 0
+                root.skew = 0; grew = False
+    else:
+        root.right, grew = _avl_insert(root.right, node)
+        if grew:
+            if   root.skew == -1: root.skew = 0; grew = False
+            elif root.skew ==  0: root.skew = 1
+            else:
+                if root.right.skew == 1:
+                    root = _avl_rotate_left(root);  root.left.skew = 0
+                else:
+                    root.right = _avl_rotate_right(root.right)
+                    root = _avl_rotate_left(root)
+                    root.right.skew = -1 if root.skew ==  1 else 0
+                    root.left.skew  =  1 if root.skew == -1 else 0
+                root.skew = 0; grew = False
+    return root, grew
+
+
+def _avl_prefix(node):
+    """Pre-order traversal of an AVL tree."""
+    if node is None:
+        return []
+    return [node] + _avl_prefix(node.left) + _avl_prefix(node.right)
+
+
+# ---------------------------------------------------------------------------
+#  Directory table serialisation
+# ---------------------------------------------------------------------------
+
 def _build_balanced_tree(entries):
-    """
-    Build a balanced binary tree from a sorted list of entries.
-    Returns a list of (entry, left_idx, right_idx) tuples where indices
-    are DWORD offsets in the directory table.
-    """
+    """Build an AVL tree and return ``(entry, left_idx, right_idx)`` tuples in
+    pre-order, matching the layout the Xbox kernel expects."""
     if not entries:
         return []
-    
-    # Sort entries alphabetically (case-insensitive, matching Xbox behavior)
-    sorted_entries = sorted(entries, key=lambda e: e.name.upper())
-    
-    # Build balanced BST using recursive median splitting
-    nodes = []  # (entry, left_dword_offset, right_dword_offset)
-    
-    def build(start, end):
-        """Build balanced BST, return the DWORD offset of the root node."""
-        if start > end:
-            return 0  # NULL pointer
-        
-        mid = (start + end) // 2
-        entry = sorted_entries[mid]
-        
-        # Calculate this node's DWORD offset in the table
-        # We need to know where it will be placed — calculate size of all
-        # preceding nodes
-        node_idx = len(nodes)
-        nodes.append(None)  # placeholder
-        
-        left = build(start, mid - 1)
-        right = build(mid + 1, end)
-        
-        nodes[node_idx] = (entry, left, right)
-        return node_idx  # Will be converted to DWORD offset later
-    
-    build(0, len(sorted_entries) - 1)
-    return nodes
+    avl_root = None
+    for entry in entries:
+        avl_root, _ = _avl_insert(avl_root, _AVLNode(entry))
+    nodes = _avl_prefix(avl_root)
+    idx = {id(n): i for i, n in enumerate(nodes)}
+    return [(n.entry,
+             idx[id(n.left)]  if n.left  else 0,
+             idx[id(n.right)] if n.right else 0) for n in nodes]
 
 
 def _serialize_directory_table(entries):
-    """
-    Serialize a list of DirectoryEntry objects into a binary directory table.
-    Returns bytes.
+    """Serialize directory entries into a binary table.
+
+    Returns ``(sector_padded_bytes, actual_data_size)``.
+
+    Entries that would straddle a 2048-byte sector boundary are preceded by
+    ``0xFF`` padding so they start at the next sector — matching the behaviour
+    of extract-xiso's ``calculate_directory_size()``.
     """
     if not entries:
-        return b""
-    
+        return b"", 0
+
     nodes = _build_balanced_tree(entries)
-    
-    # First pass: calculate DWORD offsets for each node
-    dword_offsets = []
-    current_offset = 0
+
+    # -- pass 1: compute byte offset for every node --------------------------
+    byte_offsets = []
+    pos = 0
     for entry, _, _ in nodes:
-        dword_offsets.append(current_offset)
-        # Entry size: 14 bytes header + name length, padded to DWORD boundary
-        entry_size = 14 + len(entry.name.encode("ascii"))
-        entry_size = (entry_size + 3) & ~3  # Pad to 4-byte boundary
-        current_offset += entry_size // 4
-    
-    # Second pass: serialize
+        entry_len = (14 + len(entry.name.encode("ascii")) + 3) & ~3
+        old_sec = (pos + SECTOR_SIZE - 1) // SECTOR_SIZE if pos else 0
+        new_sec = (pos + entry_len + SECTOR_SIZE - 1) // SECTOR_SIZE
+        if new_sec > old_sec and pos % SECTOR_SIZE:
+            pos += (SECTOR_SIZE - pos % SECTOR_SIZE) % SECTOR_SIZE
+        byte_offsets.append(pos)
+        pos += entry_len
+
+    actual_size = pos
+    dword_offsets = [o // 4 for o in byte_offsets]
+
+    # -- pass 2: write bytes -------------------------------------------------
     buf = io.BytesIO()
-    for i, (entry, left_idx, right_idx) in enumerate(nodes):
-        left_dword = dword_offsets[left_idx] if left_idx != 0 or i != 0 else 0
-        right_dword = dword_offsets[right_idx] if right_idx != 0 or i != 0 else 0
-        
-        # Fix: the root node (index 0) with left=0 means "no left child"
-        # But if index 0 IS the left child, we need its offset
-        if left_idx == 0 and i != 0:
-            # left_idx=0 could mean "the first node" or "no child"
-            # In our tree, 0 means "no child" since build() returns 0 for empty
-            left_dword = 0
-        elif left_idx != 0:
-            left_dword = dword_offsets[left_idx]
-        else:
-            left_dword = 0
-        
-        if right_idx != 0:
-            right_dword = dword_offsets[right_idx]
-        else:
-            right_dword = 0
-        
+    wpos = 0
+    for i, (entry, li, ri) in enumerate(nodes):
+        target = byte_offsets[i]
+        if wpos < target:
+            buf.write(b"\xFF" * (target - wpos))
+            wpos = target
         name_bytes = entry.name.encode("ascii")
-        
-        buf.write(struct.pack("<H", left_dword))
-        buf.write(struct.pack("<H", right_dword))
+        buf.write(struct.pack("<H", 0 if li == 0 else dword_offsets[li]))
+        buf.write(struct.pack("<H", 0 if ri == 0 else dword_offsets[ri]))
         buf.write(struct.pack("<I", entry.sector))
         buf.write(struct.pack("<I", entry.size))
         buf.write(struct.pack("<B", entry.attributes))
         buf.write(struct.pack("<B", len(name_bytes)))
         buf.write(name_bytes)
-        
-        # Pad to DWORD boundary
         pad = (4 - ((14 + len(name_bytes)) % 4)) % 4
-        buf.write(b'\xFF' * pad)
-    
-    data = buf.getvalue()
-    
-    # Pad to sector boundary, fill with 0xFF
-    remainder = len(data) % SECTOR_SIZE
-    if remainder:
-        data += b'\xFF' * (SECTOR_SIZE - remainder)
-    
-    return data
+        buf.write(b"\xFF" * pad)
+        wpos = target + 14 + len(name_bytes) + pad
 
+    data = buf.getvalue()
+    if len(data) % SECTOR_SIZE:
+        data += b"\xFF" * (SECTOR_SIZE - len(data) % SECTOR_SIZE)
+    return data, actual_size
+
+
+# ---------------------------------------------------------------------------
+#  Collecting host files
+# ---------------------------------------------------------------------------
 
 def _collect_files(root_dir):
-    """
-    Collect all files and directories from a host directory.
-    Returns a list of DirectoryEntry objects with .host_path set.
-    """
+    """Walk *root_dir* and return a list of ``DirectoryEntry`` objects (with
+    ``host_path`` set) suitable for packing into an XISO."""
     entries = []
     for item in sorted(os.listdir(root_dir)):
-        full_path = os.path.join(root_dir, item)
+        full = os.path.join(root_dir, item)
         entry = DirectoryEntry(name=item)
-        entry.host_path = full_path
-        
-        if os.path.isdir(full_path):
+        entry.host_path = full
+        if os.path.isdir(full):
             entry.attributes = ATTR_DIRECTORY
-            entry.children = _collect_files(full_path)
+            entry.children = _collect_files(full)
         else:
             entry.attributes = ATTR_ARCHIVE
-            entry.size = os.path.getsize(full_path)
-        
+            entry.size = os.path.getsize(full)
         entries.append(entry)
-    
     return entries
 
 
+# ---------------------------------------------------------------------------
+#  ISO 9660 volume descriptors  (ECMA-119)
+# ---------------------------------------------------------------------------
+
+def _write_iso9660_volume_descriptors(f, total_sectors):
+    """Write a minimal ISO 9660 PVD at sector 16 and a terminator at sector 17.
+    Required by xemu to recognise the disc image."""
+    pvd = bytearray(SECTOR_SIZE)
+    pvd[0] = 0x01;  pvd[1:6] = b"CD001";  pvd[6] = 0x01
+    struct.pack_into("<I", pvd, 80, total_sectors)
+    struct.pack_into(">I", pvd, 84, total_sectors)
+    struct.pack_into("<H", pvd, 120, 1);  struct.pack_into(">H", pvd, 122, 1)
+    struct.pack_into("<H", pvd, 124, 1);  struct.pack_into(">H", pvd, 126, 1)
+    struct.pack_into("<H", pvd, 128, SECTOR_SIZE)
+    struct.pack_into(">H", pvd, 130, SECTOR_SIZE)
+    pvd[0xBE:0x32D] = b"\x20" * (0x32D - 0xBE)
+    for dt in (0x32D, 0x33F, 0x351, 0x363):
+        pvd[dt:dt + 17] = b"0" * 17
+        if dt + 17 < SECTOR_SIZE:
+            pvd[dt + 17] = 0x00
+    pvd[0x366] = 0x01
+    f.seek(16 * SECTOR_SIZE);  f.write(pvd)
+
+    vdst = bytearray(SECTOR_SIZE)
+    vdst[0] = 0xFF;  vdst[1:6] = b"CD001";  vdst[6] = 0x01
+    f.seek(17 * SECTOR_SIZE);  f.write(vdst)
+
+
+# ---------------------------------------------------------------------------
+#  ISO creation
+# ---------------------------------------------------------------------------
+
+_ROOT_DIRECTORY_SECTOR = 0x108   # 264 — matches extract-xiso
+
 def create_xiso(input_dir, output_path):
-    """
-    Create an XISO image from a directory.
-    
-    Args:
-        input_dir: Path to directory containing game files
-        output_path: Path for the output ISO file
-    """
+    """Create an XISO image from a directory on disk."""
     entries = _collect_files(input_dir)
-    
+
     with open(output_path, "wb") as f:
-        # Reserve space for volume descriptor (sectors 0-32)
-        # Sector 0-31: empty (zeros)
-        # Sector 32: volume descriptor
-        f.write(b'\x00' * (VOLUME_DESCRIPTOR_SECTOR * SECTOR_SIZE))
-        
-        # Write volume descriptor placeholder (will update later)
-        vd_offset = f.tell()
-        f.write(b'\x00' * SECTOR_SIZE)
-        
-        # Sector 33 is also part of the volume descriptor area
-        f.write(b'\x00' * SECTOR_SIZE)
-        
-        # Now write directory tables and file data
-        # We need to:
-        # 1. Calculate all directory table sizes
-        # 2. Assign sectors to all files and directories
-        # 3. Write everything
-        
-        next_sector = VOLUME_DESCRIPTOR_SECTOR + 2  # Start after volume descriptor
-        
-        def assign_sectors(entries, depth=0):
-            """Assign sectors to directory tables and files (depth-first)."""
+        # Sectors 0-33: reserved (zeros)
+        f.write(b"\x00" * (VOLUME_DESCRIPTOR_SECTOR + 2) * SECTOR_SIZE)
+
+        next_sector = _ROOT_DIRECTORY_SECTOR
+
+        def assign_sectors(entries, is_root=False):
             nonlocal next_sector
-            
-            # First, serialize this directory's table to know its size
-            dir_table = _serialize_directory_table(entries)
+            dir_table, actual_size = _serialize_directory_table(entries)
             dir_sector = next_sector
-            dir_size = len(dir_table)
-            next_sector += (dir_size + SECTOR_SIZE - 1) // SECTOR_SIZE
-            
-            # Assign sectors to files and recurse into subdirectories
+            next_sector += (len(dir_table) + SECTOR_SIZE - 1) // SECTOR_SIZE
             for entry in entries:
                 if entry.is_directory:
                     if entry.children:
-                        child_sector, child_size = assign_sectors(entry.children, depth + 1)
-                        entry.sector = child_sector
-                        entry.size = child_size
+                        entry.sector, entry.size = assign_sectors(entry.children)
                     else:
-                        entry.sector = 0
-                        entry.size = 0
+                        entry.sector = entry.size = 0
                 else:
-                    entry.sector = next_sector
                     sectors_needed = (entry.size + SECTOR_SIZE - 1) // SECTOR_SIZE
                     if sectors_needed == 0:
-                        sectors_needed = 0
                         entry.sector = 0
-                    next_sector += sectors_needed
-            
-            return dir_sector, dir_size
-        
-        root_sector, root_size = assign_sectors(entries)
-        
-        # Now write everything
-        f.seek(0)
-        f.write(b'\x00' * (VOLUME_DESCRIPTOR_SECTOR * SECTOR_SIZE))
-        
+                    else:
+                        entry.sector = next_sector
+                        next_sector += sectors_needed
+            return (dir_sector, actual_size) if is_root else (dir_sector, len(dir_table))
+
+        root_sector, root_size = assign_sectors(entries, is_root=True)
+
+        # -- write file data --------------------------------------------------
+        f.seek(0);  f.write(b"\x00" * VOLUME_DESCRIPTOR_SECTOR * SECTOR_SIZE)
+
         def write_all(entries, assigned_sector):
-            """Write directory table and all file data."""
-            # Re-serialize directory table (now with correct sectors)
-            dir_table = _serialize_directory_table(entries)
-            f.seek(assigned_sector * SECTOR_SIZE)
-            f.write(dir_table)
-            
-            # Write file data
+            dir_table, _ = _serialize_directory_table(entries)
+            f.seek(assigned_sector * SECTOR_SIZE);  f.write(dir_table)
             for entry in entries:
                 if entry.is_directory:
-                    if entry.children and entry.sector != 0:
+                    if entry.children and entry.sector:
                         write_all(entry.children, entry.sector)
-                else:
-                    if entry.sector != 0 and hasattr(entry, 'host_path'):
-                        f.seek(entry.sector * SECTOR_SIZE)
-                        with open(entry.host_path, "rb") as src:
-                            data = src.read()
-                            f.write(data)
-                            # Pad to sector boundary
-                            remainder = len(data) % SECTOR_SIZE
-                            if remainder:
-                                f.write(b'\x00' * (SECTOR_SIZE - remainder))
-        
+                elif entry.sector and hasattr(entry, "host_path"):
+                    f.seek(entry.sector * SECTOR_SIZE)
+                    with open(entry.host_path, "rb") as src:
+                        data = src.read()
+                    f.write(data)
+                    rem = len(data) % SECTOR_SIZE
+                    if rem:
+                        f.write(b"\x00" * (SECTOR_SIZE - rem))
+
         write_all(entries, root_sector)
-        
-        # Write volume descriptor
+
+        # -- XDVDFS volume descriptor (sector 32) ----------------------------
         f.seek(VOLUME_DESCRIPTOR_SECTOR * SECTOR_SIZE)
         f.write(MAGIC)
         f.write(struct.pack("<I", root_sector))
         f.write(struct.pack("<I", root_size))
-        f.write(struct.pack("<Q", 0))  # Filetime (0 = not set)
-        # Pad to offset 0x7EC
-        current = MAGIC_LEN + 4 + 4 + 8
-        f.write(b'\x00' * (0x7EC - current))
+        f.write(struct.pack("<Q", 127805472000000000))  # 2005-01-01 filetime
+        f.write(b"\x00" * (0x7EC - (MAGIC_LEN + 4 + 4 + 8)))
         f.write(MAGIC)
-        # Pad rest of sector
-        remaining = SECTOR_SIZE - 0x7EC - MAGIC_LEN
-        f.write(b'\x00' * remaining)
-        
-        # Pad file to 0x10000 boundary
-        file_size = f.tell()
-        pad_target = (file_size + 0xFFFF) & ~0xFFFF
-        if pad_target > file_size:
-            f.seek(pad_target - 1)
-            f.write(b'\x00')
+        f.write(b"\x00" * (SECTOR_SIZE - 0x7EC - MAGIC_LEN))
 
+        # -- 64 KiB alignment ------------------------------------------------
+        f.seek(0, 2)
+        sz = f.tell()
+        target = (sz + 0xFFFF) & ~0xFFFF
+        if target > sz:
+            f.seek(target - 1);  f.write(b"\x00")
+
+        # -- ISO 9660 descriptors (sectors 16-17) ----------------------------
+        f.seek(0, 2)
+        _write_iso9660_volume_descriptors(f, f.tell() // SECTOR_SIZE)
+
+
+# ---------------------------------------------------------------------------
+#  High-level patching helpers
+# ---------------------------------------------------------------------------
 
 def patch_xiso(input_iso, output_iso, file_replacements):
-    """
-    Create a patched copy of an Xbox ISO, replacing specified files.
-    
-    Args:
-        input_iso: Path to the clean input ISO
-        output_iso: Path for the patched output ISO
-        file_replacements: Dict of {iso_path: host_file_path}
-            e.g., {"sneak/default.xbe": "/path/to/patched_default.xbe"}
-    """
+    """Extract *input_iso*, replace files from *file_replacements* dict, repack."""
+    import shutil, tempfile
     with XDVDFSImage(input_iso) as iso:
-        # Extract everything to a temp directory
-        import tempfile
         with tempfile.TemporaryDirectory() as tmpdir:
             iso.extract_all(tmpdir)
-            
-            # Apply file replacements
             for iso_path, host_path in file_replacements.items():
                 dest = os.path.join(tmpdir, iso_path.replace("/", os.sep))
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
-                import shutil
                 shutil.copy2(host_path, dest)
-            
-            # Repack
             create_xiso(tmpdir, output_iso)
 
 
-def patch_xbe_in_iso(input_iso, output_iso, xbe_patches, xbe_path="sneak/default.xbe"):
-    """
-    Convenience function: extract ISO, patch XBE binary, repack ISO.
-    
-    Args:
-        input_iso: Path to clean input ISO
-        output_iso: Path for patched output ISO
-        xbe_patches: List of (va, old_bytes, new_bytes) tuples
-        xbe_path: Path to XBE within the ISO
-    """
-    VA_DELTA = 0x10000
-    
-    with XDVDFSImage(input_iso) as iso:
-        import tempfile
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Extract everything
-            iso.extract_all(tmpdir)
-            
-            # Patch XBE
-            xbe_full = os.path.join(tmpdir, xbe_path.replace("/", os.sep))
-            with open(xbe_full, "r+b") as f:
-                data = bytearray(f.read())
-                for va, old, new in xbe_patches:
-                    off = va - VA_DELTA
-                    actual = bytes(data[off:off+len(old)])
-                    assert actual == old, \
-                        f"XBE mismatch at VA 0x{va:X}: expected {old.hex()}, got {actual.hex()}"
-                    data[off:off+len(new)] = new
-                f.seek(0)
-                f.write(data)
-                f.truncate()
-            
-            # Repack
-            create_xiso(tmpdir, output_iso)
+# ---------------------------------------------------------------------------
+#  CLI
+# ---------------------------------------------------------------------------
 
-
-# =============================================================================
-# CLI interface
-# =============================================================================
 if __name__ == "__main__":
     import sys
-    
+
     if len(sys.argv) < 2:
-        print("Xbox DVD Filesystem (XDVDFS) Tool")
-        print()
-        print("Usage:")
-        print(f"  {sys.argv[0]} list <iso>              — List files in ISO")
-        print(f"  {sys.argv[0]} extract <iso> <dir>      — Extract ISO to directory")
-        print(f"  {sys.argv[0]} create <dir> <iso>       — Create ISO from directory")
-        print(f"  {sys.argv[0]} info <iso>               — Show ISO information")
+        print("Xbox DVD Filesystem (XDVDFS) Tool\n")
+        print(f"  {sys.argv[0]} list <iso>")
+        print(f"  {sys.argv[0]} extract <iso> <dir>")
+        print(f"  {sys.argv[0]} create <dir> <iso>")
+        print(f"  {sys.argv[0]} info <iso>")
         sys.exit(0)
-    
+
     cmd = sys.argv[1].lower()
-    
+
     if cmd == "list":
         with XDVDFSImage(sys.argv[2]) as iso:
-            files = iso.list_files()
-            for path, size in files:
+            for path, size in iso.list_files():
                 print(f"  {size:>12,d}  {path}")
-            print(f"\n  {len(files)} files")
-    
+
     elif cmd == "extract":
-        output = sys.argv[3] if len(sys.argv) > 3 else "."
+        out = sys.argv[3] if len(sys.argv) > 3 else "."
         with XDVDFSImage(sys.argv[2]) as iso:
-            print(f"Extracting to {output}...")
-            iso.extract_all(output)
-            files = iso.list_files()
-            print(f"  Extracted {len(files)} files")
-    
+            iso.extract_all(out)
+            print(f"Extracted {len(iso.list_files())} files")
+
     elif cmd == "create":
-        input_dir = sys.argv[2]
-        output_iso = sys.argv[3]
-        print(f"Creating {output_iso} from {input_dir}...")
-        create_xiso(input_dir, output_iso)
-        print("  Done")
-    
+        create_xiso(sys.argv[2], sys.argv[3])
+        print("Done")
+
     elif cmd == "info":
         with XDVDFSImage(sys.argv[2]) as iso:
-            print(f"ISO: {sys.argv[2]}")
-            print(f"  Base offset: 0x{iso.base_offset:X}")
-            print(f"  Root sector: {iso.root_sector}")
-            print(f"  Root size: {iso.root_size}")
             files = iso.list_files()
-            total_size = sum(s for _, s in files)
-            print(f"  Files: {len(files)}")
-            print(f"  Total size: {total_size:,d} bytes")
-    
+            print(f"  Base: 0x{iso.base_offset:X}  Root: sector {iso.root_sector}  "
+                  f"Files: {len(files)}  Total: {sum(s for _, s in files):,d} bytes")
+
     else:
         print(f"Unknown command: {cmd}")
         sys.exit(1)

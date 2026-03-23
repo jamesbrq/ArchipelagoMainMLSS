@@ -1,11 +1,14 @@
 """
 Sneak King Archipelago ROM Patcher
 
-Uses APProcedurePatch with one procedure:
-  patch_xbe — Extract XBE from XISO, apply binary patches from patches.json, repack ISO.
+Patches and repacks the ISO without loading it into memory:
+  1. Extract all ISO files to a temp directory on disk
+  2. Read just the XBE (~3MB), apply patches, write it back to disk
+  3. Read just the FETM (~662KB), apply patches, write it back to disk
+  4. Repack the temp directory into a new ISO at the target path (~1.5GB vs ~7GB vanilla)
+  5. Clean up temp directory
 
-Patch definitions are stored in patches.json for easy editing.
-ISO handling uses xdvdfs.py (pure Python, no external dependencies).
+The full ISO is never held in Python memory.
 """
 
 import json
@@ -17,15 +20,16 @@ import tempfile
 
 from typing import TYPE_CHECKING
 
-from worlds.Files import APProcedurePatch, APTokenMixin, APPatchExtension
+from settings import get_settings
+from worlds.Files import APProcedurePatch
 
 from .xdvdfs import XDVDFSImage, create_xiso
+import subprocess
 
 if TYPE_CHECKING:
     from . import SneakKingWorld
 
 
-VA_DELTA = 0x10000
 XBE_MAGIC = b"XBEH"
 
 # XBE section layout for VA-to-file-offset conversion
@@ -42,162 +46,151 @@ def va_to_file_offset(va: int) -> int:
     for sec_va, sec_file, sec_size in XBE_SECTIONS:
         if sec_va <= va < sec_va + sec_size:
             return va - sec_va + sec_file
-    # Fallback: assume .text section delta
     return va - 0x10000
 
 
-def get_base_rom_as_bytes() -> bytes:
-    with open(SneakKingWorld.settings.rom_file, "rb") as f:
-        return f.read()
+def _apply_xbe_patches(xbe_data: bytearray, patches: dict, seed_options: dict) -> None:
+    """Apply all required and settings-driven patches to the XBE bytearray in-place."""
+    for patch in patches["patches"]["required"]:
+        new = bytes.fromhex(patch["new"])
+        offset = va_to_file_offset(int(patch["va"], 16))
+        xbe_data[offset:offset + len(new)] = new
+
+    for patch in patches["patches"].get("settings", []):
+        offset = va_to_file_offset(int(patch["va"], 16))
+        option_key = patch["option"]
+        mode = patch.get("mode", "set")
+
+        if mode == "multiply":
+            value = patch["base"] * seed_options.get(option_key, 1.0)
+        elif mode == "divide":
+            divisor = seed_options.get(option_key, 1.0)
+            value = patch["base"] / divisor if divisor != 0 else patch["base"]
+        elif mode == "map":
+            mapping = patches.get(patch["map_name"], {})
+            value = mapping.get(str(seed_options.get(option_key, 0)), 0)
+        else:
+            value = seed_options.get(option_key, patch.get("default", 0))
+
+        if patch["type"] == "float":
+            xbe_data[offset:offset + 4] = struct.pack("<f", value)
+        elif patch["type"] == "byte":
+            xbe_data[offset] = int(value) & 0xFF
+        elif patch["type"] == "word":
+            xbe_data[offset:offset + 2] = struct.pack("<H", int(value) & 0xFFFF)
+        elif patch["type"] == "dword":
+            xbe_data[offset:offset + 4] = struct.pack("<I", int(value) & 0xFFFFFFFF)
+        elif patch["type"] == "raw":
+            raw_bytes = bytes.fromhex(value)
+            xbe_data[offset:offset + len(raw_bytes)] = raw_bytes
 
 
-class SneakKingPatchExtension(APPatchExtension):
-    game = "Sneak King"
+def _apply_fetm_patches(fetm_data: bytearray, patches: dict, seed_options: dict) -> None:
+    """Apply settings-driven patches to the FETM bytearray in-place.
 
-    @staticmethod
-    def patch_xbe(caller: APProcedurePatch, rom: bytes) -> bytes:
-        """Extract XBE from XISO, apply all binary patches, repack and return new ISO bytes."""
-        patch_data = pkgutil.get_data(__name__, "data/patches.json")
-        if patch_data is None:
-            raise FileNotFoundError("Missing patches.json in APWorld")
-        patches = json.loads(patch_data.decode("utf-8"))
+    FETM patches use raw file offsets (not virtual addresses) since the
+    fetm.xbp is a data file, not an executable.
+    """
+    for patch in patches["patches"].get("fetm_settings", []):
+        offset = int(patch["offset"], 16)
+        option_key = patch["option"]
+        mode = patch.get("mode", "set")
 
-        xbe_path = patches["xbe_file"]
-        expected_size = patches["expected_xbe_size"]
+        if mode == "multiply":
+            value = patch["base"] * seed_options.get(option_key, 1.0)
+        elif mode == "divide":
+            divisor = seed_options.get(option_key, 1.0)
+            value = patch["base"] / divisor if divisor != 0 else patch["base"]
+        else:
+            value = seed_options.get(option_key, patch.get("default", 0))
 
-        tmpdir = tempfile.mkdtemp()
-        try:
-            # Write source ISO bytes to a temp file so XDVDFSImage can open it
-            source_path = os.path.join(tmpdir, "source.iso")
-            with open(source_path, "wb") as f:
-                f.write(rom)
-
-            # Extract all files from source ISO
-            extracted_files: dict[str, bytes] = {}
-            with XDVDFSImage(source_path) as iso:
-                for path, _size in iso.list_files():
-                    entry = iso.find_entry(path)
-                    if entry is not None:
-                        extracted_files[path] = iso.read_file(entry)
-
-            # Delete source ISO immediately — no longer needed
-            os.remove(source_path)
-
-            if xbe_path not in extracted_files:
-                raise FileNotFoundError(f"Could not find {xbe_path} in ISO")
-
-            xbe_data = bytearray(extracted_files[xbe_path])
-
-            # Validate XBE
-            if len(xbe_data) != expected_size:
-                raise ValueError(
-                    f"XBE size mismatch: {len(xbe_data)} (expected {expected_size}). "
-                    f"Is this the correct Sneak King ROM?"
-                )
-            if xbe_data[:4] != XBE_MAGIC:
-                raise ValueError("Invalid XBE: missing XBEH magic")
-
-            # Apply required patches (byte replacement at VA offsets)
-            for patch in patches["patches"]["required"]:
-                va = int(patch["va"], 16)
-                old = bytes.fromhex(patch["old"])
-                new = bytes.fromhex(patch["new"])
-                offset = va_to_file_offset(va)
-
-                actual = bytes(xbe_data[offset:offset + len(old)])
-                if actual != old:
-                    raise ValueError(
-                        f"Patch '{patch['name']}' failed at VA {patch['va']}: "
-                        f"expected {patch['old']}, found {actual.hex()}. "
-                        f"ROM may already be patched or is wrong version."
-                    )
-                xbe_data[offset:offset + len(new)] = new
-
-            # Apply settings-driven patches (values come from player options)
-            seed_options = json.loads(caller.get_file("options.json").decode("utf-8"))
-
-            for patch in patches["patches"].get("settings", []):
-                va = int(patch["va"], 16)
-                offset = va_to_file_offset(va)
-                option_key = patch["option"]
-                mode = patch.get("mode", "set")
-
-                if mode == "multiply":
-                    base = patch["base"]
-                    multiplier = seed_options.get(option_key, 1.0)
-                    value = base * multiplier
-                elif mode == "divide":
-                    base = patch["base"]
-                    divisor = seed_options.get(option_key, 1.0)
-                    value = base / divisor if divisor != 0 else base
-                elif mode == "map":
-                    map_name = patch["map_name"]
-                    mapping = patches.get(map_name, {})
-                    raw_value = seed_options.get(option_key, 0)
-                    value = mapping.get(str(raw_value), raw_value)
-                else:
-                    value = seed_options.get(option_key, patch.get("default", 0))
-
-                if patch["type"] == "float":
-                    xbe_data[offset:offset + 4] = struct.pack("<f", value)
-                elif patch["type"] == "byte":
-                    xbe_data[offset] = int(value) & 0xFF
-                elif patch["type"] == "word":
-                    xbe_data[offset:offset + 2] = struct.pack("<H", int(value) & 0xFFFF)
-                elif patch["type"] == "dword":
-                    xbe_data[offset:offset + 4] = struct.pack("<I", int(value) & 0xFFFFFFFF)
-                elif patch["type"] == "raw":
-                    raw_bytes = bytes.fromhex(value)
-                    xbe_data[offset:offset + len(raw_bytes)] = raw_bytes
-
-            extracted_files[xbe_path] = bytes(xbe_data)
-
-            # Write all files to a staging dir and repack into a new ISO
-            stage_dir = os.path.join(tmpdir, "stage")
-            for path, data in extracted_files.items():
-                full_path = os.path.join(stage_dir, path.replace("/", os.sep))
-                os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                with open(full_path, "wb") as f:
-                    f.write(data)
-
-            output_path = os.path.join(tmpdir, "output.iso")
-            create_xiso(stage_dir, output_path)
-
-            # Read output into memory, then delete it before returning
-            with open(output_path, "rb") as f:
-                result = f.read()
-            os.remove(output_path)
-
-            return result
-        finally:
-            shutil.rmtree(tmpdir, ignore_errors=True)
+        if patch["type"] == "float":
+            fetm_data[offset:offset + 4] = struct.pack("<f", value)
+        elif patch["type"] == "byte":
+            fetm_data[offset] = int(value) & 0xFF
+        elif patch["type"] == "dword":
+            fetm_data[offset:offset + 4] = struct.pack("<I", int(value) & 0xFFFFFFFF)
 
 
 class SneakKingProcedurePatch(APProcedurePatch):
     game = "Sneak King"
     patch_file_ending = ".apsk"
     result_file_ending = ".iso"
-
-    procedure = [
-        ("patch_xbe", []),
-    ]
+    procedure = []
 
     @classmethod
     def get_source_data(cls) -> bytes:
-        return get_base_rom_as_bytes()
+        raise NotImplementedError
+
+    def patch(self, target: str) -> None:
+        self.read()
+
+        patch_data = pkgutil.get_data(__name__, "json/patches.json")
+        if patch_data is None:
+            raise FileNotFoundError("Missing patches.json in APWorld")
+        patches = json.loads(patch_data.decode("utf-8"))
+        xbe_path = patches["xbe_file"]
+        fetm_path = patches.get("fetm_file", "")
+
+        seed_options = json.loads(self.get_file("options.json").decode("utf-8"))
+        source = str(get_settings().sneak_king_options.rom_file)
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            # Extract all files from the source ISO to disk — nothing held in memory
+            with XDVDFSImage(source) as iso:
+                iso.extract_all(tmpdir)
+
+            # Patch just the XBE on disk
+            xbe_file = os.path.join(tmpdir, xbe_path.replace("/", os.sep))
+            with open(xbe_file, "rb") as f:
+                xbe_data = bytearray(f.read())
+
+            if xbe_data[:4] != XBE_MAGIC:
+                raise ValueError("Invalid XBE: missing XBEH magic")
+
+            _apply_xbe_patches(xbe_data, patches, seed_options)
+
+            with open(xbe_file, "wb") as f:
+                f.write(xbe_data)
+
+            # Patch the FETM on disk (civilian speeds, etc.)
+            if fetm_path and patches["patches"].get("fetm_settings"):
+                fetm_file = os.path.join(tmpdir, fetm_path.replace("/", os.sep))
+                with open(fetm_file, "rb") as f:
+                    fetm_data = bytearray(f.read())
+
+                _apply_fetm_patches(fetm_data, patches, seed_options)
+
+                with open(fetm_file, "wb") as f:
+                    f.write(fetm_data)
+
+            # Repack into the target ISO
+            # Prefer extract-xiso (xiso.exe) if available — its AVL tree layout
+            # is required by xemu. Fall back to pure-Python create_xiso.
+            xiso_exe = os.path.join(os.path.dirname(__file__), "xiso.exe")
+            if os.path.isfile(xiso_exe):
+                result = subprocess.run(
+                    [xiso_exe, "-c", tmpdir, target],
+                    capture_output=True, timeout=300,
+                )
+                if result.returncode != 0:
+                    raise RuntimeError(
+                        f"xiso.exe failed (rc={result.returncode}): "
+                        f"{result.stderr.decode(errors='replace')[:200]}"
+                    )
+            else:
+                create_xiso(tmpdir, target)
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 def write_files(world: "SneakKingWorld", patch: SneakKingProcedurePatch) -> None:
-    """
-    Called by the Archipelago world generator to write seed-specific data
-    into the patch file. This runs on the server during generation.
-    """
     options_dict = {
         "seed": world.multiworld.seed,
         "seed_name": world.multiworld.seed_name,
         "player": world.player,
         "player_name": world.multiworld.player_name[world.player],
-        # Settings-driven patch values (keys match "option" in patches.json)
         "starting_level": world.options.starting_level.value,
         "king_speed_multiplier": world.options.king_speed_multiplier.value,
         "civilian_speed_multiplier": world.options.civilian_speed_multiplier.value,

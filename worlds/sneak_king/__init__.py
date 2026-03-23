@@ -1,4 +1,5 @@
 import logging
+import os
 import typing
 import re
 
@@ -8,8 +9,26 @@ from worlds.AutoWorld import World, WebWorld
 from .Items import items, SneakKingItem, item_table
 from .Locations import all_locations
 from .Options import SneakKingOptions
+from .Patcher import SneakKingProcedurePatch, write_files
 from .Regions import create_regions, connect_regions, get_level_order
 from .Rules import set_rules
+from worlds.LauncherComponents import launch, components, Component, Type, SuffixIdentifier
+
+
+def launch_client(*args):
+    from .SneakKingClient import launch as _launch
+    launch(_launch, name="SneakKingClient", args=args)
+
+
+components.append(
+    Component(
+        "SneakKingClient",
+        func=launch_client,
+        component_type=Type.CLIENT,
+        file_identifier=SuffixIdentifier(".apsk"),
+        description="Open the Sneak King client.",
+    ),
+)
 
 
 class SneakKingWebWorld(WebWorld):
@@ -28,12 +47,21 @@ class SneakKingWebWorld(WebWorld):
 
 
 class SneakKingSettings(settings.Group):
+    class XemuPath(settings.UserFilePath):
+        """
+        The location of the Dolphin you want to auto launch patched ROMs with
+        """
+        is_exe = True
+        description = "Xemu Executable"
+
+
     class RomFile(settings.UserFilePath):
-        """File name of the MLSS US rom"""
+        """File name of the Sneak King rom"""
 
         copy_to = "Sneak King.iso"
         description = "Sneak King ROM File"
 
+    xemu_path: XemuPath = XemuPath(None)
     rom_file: RomFile = RomFile(RomFile.copy_to)
     rom_start: bool = False
 
@@ -41,8 +69,9 @@ class SneakKingWorld(World):
     game = "Sneak King"
     web = SneakKingWebWorld()
     options_dataclass = SneakKingOptions
-    options = SneakKingOptions
-    settings = typing.ClassVar[SneakKingSettings]
+    options: SneakKingOptions
+    settings: typing.ClassVar[SneakKingSettings]
+    required_client_version = (0, 6, 7)
     location_name_to_id = {location.name: location.id for location in all_locations}
     item_name_to_id = {item.name: item.id for item in items}
 
@@ -96,7 +125,6 @@ class SneakKingWorld(World):
     def create_items(self):
         from .Regions import region_names
         from .Options import LevelUnlockMethod
-        from BaseClasses import ItemClassification
 
         starting_region = region_names[self.options.starting_level.value]
         starting_region_unlock = f"{starting_region} Unlock"
@@ -177,4 +205,9 @@ class SneakKingWorld(World):
         }
 
     def generate_output(self, output_directory: str) -> None:
-        return
+        patch = SneakKingProcedurePatch(player=self.player, player_name=self.multiworld.player_name[self.player])
+        write_files(self, patch)
+        rom_path = os.path.join(
+            output_directory, f"{self.multiworld.get_out_file_name_base(self.player)}" f"{patch.patch_file_ending}"
+        )
+        patch.write(rom_path)
