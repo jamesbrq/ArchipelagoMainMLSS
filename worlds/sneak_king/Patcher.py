@@ -116,6 +116,7 @@ class SneakKingProcedurePatch(APProcedurePatch):
     game = "Sneak King"
     patch_file_ending = ".apsk"
     result_file_ending = ".iso"
+    hash = ''
     procedure = []
 
     @classmethod

@@ -16,8 +16,10 @@ class SneakKingItem(Item):
 
 
 items: list[ItemData] = []
+index = 0
 for level in ["Sawmill", "Cul-De-Sac", "Construction", "Downtown"]:
-    items += [ItemData(f"{level} Mission {i} Unlock", i, ItemClassification.progression) for i in range(2, 21)]  # start at 2
+    items += [ItemData(f"{level} Mission {i} Unlock", i + index, ItemClassification.progression) for i in range(2, 21)]  # start at 2
+    index += 20
 items += [
     ItemData("Sawmill Unlock", 81, ItemClassification.progression),
     ItemData("Cul-De-Sac Unlock", 82, ItemClassification.progression),
