@@ -198,10 +198,6 @@ class SneakKingWorld(World):
             "level_unlock_range": self.options.level_unlock_range.value,
             "level_shuffle": self.options.level_shuffle.value,
             "level_order": self.level_order,
-            "trap_percentage": self.options.trap_percentage.value,
-            "death_link": self.options.death_link.value,
-            "king_speed_multiplier": self.options.king_speed_multiplier.value,
-            "civilian_speed_multiplier": self.options.civilian_speed_multiplier.value,
         }
 
     def generate_output(self, output_directory: str) -> None:

@@ -53,14 +53,14 @@ class LevelShuffle(DefaultOnToggle):
 class KingSpeedMultiplier(Range):
     display_name = "King Speed Multiplier"
     range_start = 1
-    range_end = 5
+    range_end = 2
     default = 1
 
 
 class CivilianSpeedMultiplier(Range):
     display_name = "Civilian Speed Multiplier"
     range_start = 1
-    range_end = 5
+    range_end = 2
     default = 1
 
 
@@ -73,7 +73,7 @@ class TrapPercentage(Range):
 
 @dataclass
 class SneakKingOptions(PerGameCommonOptions):
-    death_link: DeathLink
+    #death_link: DeathLink
     goal: Goal
     goal_range: GoalRange
     starting_level: StartingLevel
@@ -81,6 +81,6 @@ class SneakKingOptions(PerGameCommonOptions):
     level_unlock_method: LevelUnlockMethod
     level_unlock_range: LevelUnlockRange
     level_shuffle: LevelShuffle
-    trap_percentage: TrapPercentage
+    #trap_percentage: TrapPercentage
     king_speed_multiplier: KingSpeedMultiplier
     civilian_speed_multiplier: CivilianSpeedMultiplier
