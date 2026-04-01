@@ -48,16 +48,13 @@ class SneakKingWebWorld(WebWorld):
 
 class SneakKingSettings(settings.Group):
     class XemuPath(settings.UserFilePath):
-        """
-        The location of the Dolphin you want to auto launch patched ROMs with
-        """
+        """Path to the xemu executable."""
         is_exe = True
         description = "Xemu Executable"
 
 
     class RomFile(settings.UserFilePath):
         """File name of the Sneak King rom"""
-
         copy_to = "Sneak King.iso"
         description = "Sneak King ROM File"
 

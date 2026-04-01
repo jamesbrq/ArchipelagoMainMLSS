@@ -11,11 +11,9 @@ if typing.TYPE_CHECKING:
 region_names = ["Sawmill", "Cul-De-Sac", "Construction", "Downtown"]
 
 def create_regions(world: "SneakKingWorld"):
-    # Create menu region (always included)
     menu_region = Region("Menu", world.player, world.multiworld)
     world.multiworld.regions.append(menu_region)
 
-    # Create other regions from dictionary, excluding any in disabled_regions
     regions_dict = get_regions_dict()
     for name, locations in regions_dict.items():
         if name not in world.disabled_regions:
@@ -35,13 +33,10 @@ def connect_regions(world: "SneakKingWorld"):
     connections_dict = get_region_connections_dict(world)
     names: typing.Dict[str, int] = {}
 
-    # Connect regions based on the connections dictionary, excluding any with excluded regions
     for (source, target), rule in connections_dict.items():
-        # Skip connections where either the source or target is in excluded_regions
         if source in world.disabled_regions or target in world.disabled_regions:
             continue
 
-        # Verify that both regions exist before trying to connect them
         try:
             world.multiworld.get_region(source, world.player)
             world.multiworld.get_region(target, world.player)
@@ -74,16 +69,13 @@ def get_level_order(world: "SneakKingWorld") -> list[str]:
 def get_region_connections_dict(world: "SneakKingWorld"):
     level_order = world.level_order
     connections = {
-        ("Menu", level_order[0]): None,  # Starting region is always accessible
+        ("Menu", level_order[0]): None,
     }
 
     if world.options.level_unlock_method == LevelUnlockMethod.option_unlock_item:
-        # All non-starting regions connect from Menu with their unlock item
         for region in level_order[1:]:
             connections[("Menu", region)] = Has(f"{region} Unlock")
     else:
-        # x_missions: linear chain where completing X missions in region N unlocks region N+1
-        # Mission 1 is always available (no unlock needed), so we need X-1 unlock items
         required_unlocks = world.options.level_unlock_range.value - 1
         for i in range(1, len(level_order)):
             prev_region = level_order[i - 1]

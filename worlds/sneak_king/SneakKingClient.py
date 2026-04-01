@@ -21,89 +21,37 @@ except ModuleNotFoundError:
 from .SneakKingMemory import SneakKingMemory, gid_to_group_slot, group_slot_to_gid
 from .Locations import interactable_objects, all_locations
 
-# ============================================================
-# AP World <-> Game Memory Mapping
-# ============================================================
-
-# The AP world uses level names; the game uses group indices
 LEVEL_NAMES = ["Sawmill", "Cul-De-Sac", "Construction", "Downtown"]
 LEVEL_TO_GROUP = {"Sawmill": 0, "Cul-De-Sac": 1, "Construction": 2, "Downtown": 3}
 GROUP_TO_LEVEL = {0: "Sawmill", 1: "Cul-De-Sac", 2: "Construction", 3: "Downtown"}
 
-# Rank score thresholds (from [Manager+0xE0] entity data at +0x33/34/35)
-# The cache stores raw score bytes (0-255). The game converts to rank via:
-#   score >= 100 -> A rank
-#   score >= 50  -> B rank
-#   score >= 1   -> C rank
-#   score == 0   -> not completed
 THRESH_C = 1
 THRESH_B = 50
 THRESH_A = 100
 
 
-def location_id_to_gid_rank(loc_id: int) -> typing.Optional[typing.Tuple[int, int]]:
-    """Convert an AP location ID to (global_mission_id, required_rank).
-
-    Location IDs are laid out as (Locations.py uses range(1,21), so 1-indexed):
-      Sawmill C: 1-20, B: 21-40, A: 41-60
-      Cul-De-Sac C: 61-80, B: 81-100, A: 101-120
-      Construction C: 121-140, B: 141-160, A: 161-180
-      Downtown C: 181-200, B: 201-220, A: 221-240
-
-    Each block of 60 = one level (3 ranks × 20 missions).
-    """
-    if loc_id < 1 or loc_id > 240:
-        return None  # not a mission location (could be interactable)
-
-    adj = loc_id - 1  # convert to 0-indexed
-    level_idx = adj // 60          # 0=Sawmill, 1=Cul-De-Sac, 2=Construction, 3=Downtown
-    within_level = adj % 60
-    rank_idx = within_level // 20  # 0=C, 1=B, 2=A
-    slot = within_level % 20       # mission slot 0-19
-
-    level_name = LEVEL_NAMES[level_idx]
-    group = LEVEL_TO_GROUP[level_name]
-    gid = group_slot_to_gid(group, slot)
-    required_rank = rank_idx + 1   # 1=C, 2=B, 3=A
-
-    return gid, required_rank
-
 
 def gid_rank_to_location_id(gid: int, rank: int) -> int:
-    """Convert (global_mission_id, rank) to AP location ID."""
+    """Convert (global_mission_id, rank) to a location ID."""
     group, slot = gid_to_group_slot(gid)
-    level_name = GROUP_TO_LEVEL[group]
-    level_idx = LEVEL_NAMES.index(level_name)
-    rank_idx = rank - 1  # C=0, B=1, A=2
-    return level_idx * 60 + rank_idx * 20 + slot + 1  # +1 for 1-indexed IDs
+    level_idx = LEVEL_NAMES.index(GROUP_TO_LEVEL[group])
+    return level_idx * 60 + (rank - 1) * 20 + slot + 1
 
 
 def item_name_to_gid(item_name: str) -> typing.Optional[int]:
-    """Convert an item name like 'Sawmill Mission 5 Unlock' to a GID.
-
-    Mission 1 is always available (no unlock item exists for it).
-    Mission N unlock → slot N-1 (0-indexed).
-    """
+    """Convert a mission unlock item name to a GID, or None if not a mission unlock."""
     match = re.match(r"(Sawmill|Cul-De-Sac|Construction|Downtown) Mission (\d+) Unlock", item_name)
     if not match:
         return None
-    level_name = match.group(1)
-    mission_num = int(match.group(2))
-    group = LEVEL_TO_GROUP[level_name]
-    slot = mission_num - 1  # mission 1 = slot 0, mission 2 = slot 1, etc.
+    group = LEVEL_TO_GROUP[match.group(1)]
+    slot = int(match.group(2)) - 1
     return group_slot_to_gid(group, slot)
 
 
 def _item_name_to_level_unlock(item_name: str) -> typing.Optional[str]:
-    """Check if an item is a level unlock. Returns level name or None.
-
-    Expected item names: 'Sawmill Unlock', 'Cul-De-Sac Unlock',
-    'Construction Unlock', 'Downtown Unlock'.
-    """
+    """Return the level name if item_name is a level unlock item, otherwise None."""
     match = re.match(r"(Sawmill|Cul-De-Sac|Construction|Downtown) Unlock$", item_name)
-    if match:
-        return match.group(1)
-    return None
+    return match.group(1) if match else None
 
 
 def _check_universal_tracker_version() -> bool:
@@ -115,21 +63,9 @@ def _check_universal_tracker_version() -> bool:
     return False
 
 
-# ============================================================
-# Interactable Location Detection
-# ============================================================
-
-# Build entity_name -> AP location ID lookup from Locations.py
-# interactable_objects maps level -> [(entity_name, display_name), ...]
-# In Locations.py, mission IDs use range(1,21) so occupy IDs 1-240,
-# then index += 1 before interactables, so interactable IDs start at 241.
 def _build_interactable_id_map() -> dict:
-    """Build entity_name -> AP location ID from Locations.py interactable data."""
     result = {}
-    # Mission locations consume IDs: 4 levels * 3 ranks * 20 missions = 240
-    # In Locations.py: index starts at 0, each batch uses index+i for i in range(1,21),
-    # then index += 20. After all missions, index = 240, then index += 1 = 241.
-    loc_id = 241  # first interactable ID (240 mission slots + 1 offset)
+    loc_id = 241
     for level in ["Sawmill", "Cul-De-Sac", "Construction", "Downtown"]:
         for entity_name, display_name in interactable_objects[level]:
             result[entity_name] = loc_id
@@ -138,10 +74,6 @@ def _build_interactable_id_map() -> dict:
 
 INTERACTABLE_ID_MAP = _build_interactable_id_map()
 
-# Local transform positions of each interactable entity, extracted from the FETM scene graph.
-# These match the child entity's transform at runtime (entity+0x64 on depth=0 in the
-# parent chain). Stable across sessions/seeds.
-# Used to identify which interactable the King entered by matching runtime entity position.
 INTERACTABLE_POSITIONS: dict[str, list] = {
     "1A_Int_Door01": [3339.7, 231.2, 1263.5],
     "1A_Int_Door02": [-2500.4, 3.6, 2003.7],
@@ -220,21 +152,10 @@ INTERACTABLE_POSITIONS: dict[str, list] = {
     "2A_Int_Door 009": [-2428.6, 100.0, -3372.3],
     "2A_Int_Door 010": [-2985.3, 86.2, -1119.0],
     "2A_Int_Door 011": [-2394.6, 100.0, 1038.0],
-    "2A_Int_Door 012": [271.5, 99.3, 2777.1],
     "2A_Int_Door 013": [3502.0, 100.0, 1039.8],
     "2A_Int_Door 014": [3295.4, 81.8, -3274.2],
     "2A_Int_Door 015": [3822.3, 81.8, -1384.4],
-    "2A_Mailbox 001": [-2566.4, 26.4, 1101.1],
-    "2A_Mailbox 002": [-15.3, 26.4, 2800.6],
-    "2A_Mailbox1": [-852.5, 22.3, -663.3],
     "2A_Mailbox2": [-426.6, 29.6, -2350.0],
-    "2A_Mailbox3": [-528.7, 26.4, -67.5],
-    "2A_Mailbox4": [170.7, 24.9, 387.7],
-    "2A_Mailbox5": [1558.7, 25.0, -69.1],
-    "2A_Mailbox6": [1905.5, 22.8, -1276.2],
-    "2A_Mailbox7": [1485.5, 30.9, -3169.2],
-    "2A_conserv_glass 008": [429.1, 0.0, 1833.7],
-    "2A_conservatory 001": [410.2, 0.0, 1831.2],
     "2A_crate 001": [573.5, 14.1, -1839.3],
     "2A_crate 002": [619.5, 14.1, -1709.8],
     "2A_treehouse 001": [3075.3, 23.2, 2816.2],
@@ -254,9 +175,7 @@ INTERACTABLE_POSITIONS: dict[str, list] = {
     "3A_Crate07": [2081.1, 347.8, 996.3],
     "3A_DiggerScoop": [30.7, -0.0, -1193.9],
     "3A_Door01": [502.7, 0.0, 2014.5],
-    "3A_Door02": [-841.8, 0.0, 647.8],
     "3A_Door02_knocker": [-845.4, -0.0, 618.0],
-    "3A_Door03": [-1713.6, -0.0, 473.1],
     "3A_Door03_knocker": [-1707.9, -0.4, 487.9],
     "3A_Door_Portaloo": [-3846.4, -0.0, -2959.4],
     "3A_LadderBase": [1089.2, 0.0, -2934.3],
@@ -288,12 +207,6 @@ INTERACTABLE_POSITIONS: dict[str, list] = {
     "4A_HP 025": [-2384.9, -0.0, -1904.8],
     "4A_HP 027": [-831.2, 10.0, -2355.3],
     "4A_HPskip 001": [-2378.7, 10.0, -26.4],
-    "4A_Int_AptDoor_ 001": [81.3, 147.8, -2794.6],
-    "4A_Int_AptDoor_ 03": [781.1, 147.2, 2723.3],
-    "4A_Int_AptDoor_ 04": [3112.4, 147.2, 410.3],
-    "4A_Int_AptDoor_01": [-2780.7, 147.8, -2540.7],
-    "4A_Int_AptDoor_02": [-299.1, 147.2, 2723.3],
-    "4A_Int_NewspaperMachine01": [-88.9, 10.0, -734.3],
     "4A_Int_SC03": [2201.5, -0.3, -880.0],
     "4A_Int_SC04": [-888.0, 0.0, 1437.2],
     "4A_Int_StoreDoor02": [-2522.7, 10.0, 729.6],
@@ -304,44 +217,16 @@ INTERACTABLE_POSITIONS: dict[str, list] = {
     "4A_Subway2_exit": [-676.7, 9.2, -2278.1],
     "4A_Telemaphone_door": [-550.0, 10.0, -1038.6],
     "4A_Telemaphone_door2": [-169.9, 10.0, -1038.6],
-    "Prop Tree 001": [5707.3, 22.6, -2517.7],
-    "Prop Tree 002": [4716.5, 22.6, 324.7],
-    "Prop Tree 003": [4716.5, 22.6, 1477.5],
-    "Prop Tree 004": [4716.5, 22.6, 2528.0],
-    "Prop Tree 005": [5891.0, 22.6, -88.8],
-    "Prop Tree 006": [7498.2, 22.6, -748.3],
-    "Prop Tree 007": [3940.8, 22.6, 3623.4],
-    "Prop Tree 008": [6185.3, 22.6, 3022.4],
-    "Prop Tree 009": [3940.8, 22.6, -4946.5],
-    "Prop Tree 010": [5207.8, 22.6, -4633.4],
-    "Prop Tree 011": [-1714.4, 22.6, 4581.5],
-    "Prop Tree 012": [-487.7, 22.6, 4006.7],
-    "Prop Tree 013": [-4439.3, 22.6, -2517.7],
-    "Prop Tree 014": [-4439.3, 22.6, -4077.5],
-    "Prop Tree 015": [-5148.3, 22.6, -88.8],
-    "Prop Tree 016": [-6120.7, 22.6, 2752.2],
-    "Prop Tree 017": [-4223.9, 22.6, 3412.4],
-    "Prop Tree 018": [-3446.6, 22.6, 6118.4],
-    "Prop Tree 019": [-7218.2, 11.1, 1740.9],
-    "Prop Tree 020": [-4439.3, 22.6, -7960.6],
-    "Prop Tree 021": [2039.0, 22.6, -7960.6],
-    "Prop Tree 022": [4010.7, 22.6, -7960.6],
-    "Prop Tree 023": [-461.2, 22.6, -7960.6],
-    "Prop Tree001": [5373.5, 22.6, -3548.8],
 }
 
-# Position tolerance for matching runtime entity positions to known positions.
-# Sneak King world coordinates are large (thousands), so 5.0 units is very tight.
 POSITION_MATCH_TOLERANCE = 5.0
 
 def _positions_match(pos1: tuple, pos2: tuple) -> bool:
-    """Check if two (x, y, z) positions are close enough to be the same interactable."""
     return (abs(pos1[0] - pos2[0]) < POSITION_MATCH_TOLERANCE and
             abs(pos1[1] - pos2[1]) < POSITION_MATCH_TOLERANCE and
             abs(pos1[2] - pos2[2]) < POSITION_MATCH_TOLERANCE)
 
 
-# Entity name prefix -> AP level name
 _ENTITY_PREFIX_TO_LEVEL = {
     "1A_": "Sawmill",
     "1PA_": "Sawmill",
@@ -352,42 +237,15 @@ _ENTITY_PREFIX_TO_LEVEL = {
 }
 
 def _entity_name_to_level(entity_name: str) -> typing.Optional[str]:
-    """Determine which level an interactable entity belongs to from its name prefix."""
     for prefix, level in _ENTITY_PREFIX_TO_LEVEL.items():
         if entity_name.startswith(prefix):
             return level
     return None
 
 
-# ============================================================
-# Client
-# ============================================================
-
 class SneakKingCommandProcessor(ClientCommandProcessor):
     def __init__(self, ctx: cmmCtx):
         super().__init__(ctx)
-
-    def _cmd_status(self):
-        """Show current game connection and mission status."""
-        ctx: SneakKingContext = self.ctx
-        if not ctx.game_connected:
-            logger.info("Not connected to game.")
-            return
-        mem = ctx.mem
-        if not mem.ensure_ready():
-            logger.info("Connected to xemu but cache not available.")
-            return
-        vis = sum(1 for g in range(80) if mem.read_ap_visible(g))
-        done = sum(1 for g in range(80) if mem.read_rank(g) > 0)
-        a_rank = sum(1 for g in range(80) if mem.read_rank(g) >= THRESH_A)
-        logger.info(f"Visible: {vis}/80 | Completed: {done}/80 | A-rank: {a_rank}/80")
-        logger.info(f"Locations checked: {len(ctx.checked_locations)}")
-
-    def _cmd_resync(self):
-        """Force re-sync of all received items to game memory."""
-        ctx: SneakKingContext = self.ctx
-        ctx._items_synced_index = 0
-        logger.info("Will re-sync all items on next cycle.")
 
 
 class SneakKingContext(cmmCtx):
@@ -402,12 +260,12 @@ class SneakKingContext(cmmCtx):
         super().__init__(server_address, password)
         self.items_handling = 0b111
         self.mem = SneakKingMemory()
-        self._items_synced_index = 0  # tracks how many received items we've processed
-        self._last_ranks: dict[int, int] = {}  # gid -> rank, for change detection
-        # Interactable detection state
-        self._last_interaction_va: int = 0  # last entity pointer seen at King+0x32C
-        self._interactable_positions: dict[str, tuple] = {}  # entity_name -> (x, y, z) runtime positions
-        self._position_to_entity: dict = {}  # will be built from slot_data or discovered at runtime
+        self._items_synced_index = 0
+        self._last_ranks: dict[int, int] = {}
+        self._last_interaction_va: int = 0
+        self._interactable_positions: dict[str, tuple] = {}
+        self._position_to_entity: dict = {}
+        self._unlocked_levels: set[str] = set()
 
     async def server_auth(self, password_requested: bool = False):
         if password_requested and not self.password:
@@ -428,7 +286,6 @@ class SneakKingContext(cmmCtx):
 
     def on_deathlink(self, data: typing.Dict[str, typing.Any]) -> None:
         super().on_deathlink(data)
-        # TODO: Send death to game (freeze king? force mission fail?)
 
     async def disconnect(self, allow_autoreconnect: bool = False):
         await super().disconnect()
@@ -440,6 +297,7 @@ class SneakKingContext(cmmCtx):
         self._items_synced_index = 0
         self._last_ranks.clear()
         self._last_interaction_va = 0
+        self._unlocked_levels.clear()
 
     def make_gui(self) -> "type[kvui.GameManager]":
         from kvui import GameManager
@@ -453,91 +311,74 @@ class SneakKingContext(cmmCtx):
             base_title = f"Archipelago Sneak King Client with {UT_VERSION}"
         return TrackerManager
 
-    # ----------------------------------------------------------
-    # Game Integration
-    # ----------------------------------------------------------
-
     def _has_level_access(self, level_name: str) -> bool:
-        """Check if the player currently has access to a level."""
+        """Check if the player currently has access to a level.
+
+        Starting level is always accessible. Level unlock items are always
+        checked regardless of settings. x_missions chain is additionally
+        checked when level_unlock_method is set to that mode.
+        """
         if not self.slot_data:
             return False
 
         starting_level = self.slot_data.get("starting_level", 0)
         starting_name = LEVEL_NAMES[starting_level]
 
-        unlock_method = self.slot_data.get("level_unlock_method", 1)
+        if level_name == starting_name:
+            return True
 
-        if unlock_method == 1:
-            # unlock_item: starting level is free, others need the unlock item
-            if level_name == starting_name:
+        level_unlock = f"{level_name} Unlock"
+        for item in self.items_received:
+            if self.item_names.lookup_in_game(item.item) == level_unlock:
                 return True
-            level_unlock = f"{level_name} Unlock"
-            for item in self.items_received:
-                received_name = self.item_names.lookup_in_game(item.item)
-                if received_name == level_unlock:
-                    return True
-            return False
-        else:
-            # x_missions: levels unlock in a chain based on completing X missions
-            # in the previous level. level_order from slot_data defines the chain,
-            # but must always start from starting_level.
+
+        unlock_method = self.slot_data.get("level_unlock_method", 1)
+        if unlock_method != 1:
             level_order = self.slot_data.get("level_order", LEVEL_NAMES)
             unlock_range = self.slot_data.get("level_unlock_range", 20)
 
-            # Rebuild the chain so it starts from starting_level
-            if starting_name in level_order:
-                start_idx = level_order.index(starting_name)
-                # Rotate so starting_level is first
-                level_order = level_order[start_idx:] + level_order[:start_idx]
+            if level_name in level_order:
+                level_idx = level_order.index(level_name)
+                prev_level = level_order[level_idx - 1]
+                prev_group = LEVEL_TO_GROUP[prev_level]
+                completions = sum(
+                    1 for s in range(20)
+                    if self.mem.read_rank(group_slot_to_gid(prev_group, s)) >= THRESH_C
+                )
+                if completions >= unlock_range:
+                    return True
 
-            if level_name not in level_order:
-                return False
-
-            level_idx = level_order.index(level_name)
-            if level_idx == 0:
-                return True  # starting level is always accessible
-
-            # Need unlock_range completions in previous level
-            prev_level = level_order[level_idx - 1]
-            prev_group = LEVEL_TO_GROUP[prev_level]
-            completions = sum(
-                1 for s in range(20)
-                if self.mem.read_rank(group_slot_to_gid(prev_group, s)) >= THRESH_C
-            )
-            return completions >= unlock_range
+        return False
 
     async def receive_items(self):
-        """Process newly received items and write AP visibility bits to game memory."""
         if not self.mem.ensure_ready():
             return
 
         items = self.items_received
         changed = False
 
-        # Process new items since last sync
         if self._items_synced_index < len(items):
             for i in range(self._items_synced_index, len(items)):
                 item = items[i]
                 item_name = self.item_names.lookup_in_game(item.item)
 
-                # Level unlock item -> set availability bit in cache+0xA4
                 level_unlock = _item_name_to_level_unlock(item_name)
                 if level_unlock is not None:
                     group = LEVEL_TO_GROUP[level_unlock]
-                    self.mem.set_level_available(group)
+                    mission1_gid = group_slot_to_gid(group, 0)
+                    if not self.mem.read_visible(mission1_gid):
+                        self.mem.write_visible(mission1_gid, True)
                     changed = True
                     logger.info(f"Level unlocked: {level_unlock} (group {group})")
 
-                # Mission unlock item -> set AP visibility bit
                 gid = item_name_to_gid(item_name)
                 if gid is not None:
-                    if not self.mem.read_ap_visible(gid):
-                        self.mem.write_ap_visible(gid, True)
+                    group, _ = gid_to_group_slot(gid)
+                    level_name = GROUP_TO_LEVEL[group]
+                    if self._has_level_access(level_name) and not self.mem.read_visible(gid):
+                        self.mem.write_visible(gid, True)
                         changed = True
                         logger.debug(f"Unlocked mission GID {gid}: {item_name}")
-
-                # TODO: Handle other item types (Progressive Flourish, Progressive Chain,
-                #       traps, etc.)
 
             self._items_synced_index = len(items)
 
@@ -545,32 +386,31 @@ class SneakKingContext(cmmCtx):
             self.mem.set_dirty()
 
     async def check_locations(self):
-        """Read mission scores from game memory and report completed locations."""
         if not self.mem.ensure_ready():
             return
 
         new_locations = set()
         enabled_ranks = self.slot_data.get("enabled_ranks", ["C", "B", "A"]) if self.slot_data else ["C", "B", "A"]
         thresh_map = {"C": THRESH_C, "B": THRESH_B, "A": THRESH_A}
-        # gid_rank_to_location_id expects rank 1=C, 2=B, 3=A (location index, not score)
         rank_index_map = {"C": 1, "B": 2, "A": 3}
 
         for gid in range(80):
+            group, slot = gid_to_group_slot(gid)
+            level_name = GROUP_TO_LEVEL[group]
+            if not self._has_level_access(level_name):
+                continue
+
             score = self.mem.read_rank(gid)
 
-            # Check each enabled rank threshold
             for rank_name in enabled_ranks:
-                threshold = thresh_map[rank_name]
-                if score >= threshold:
+                if score >= thresh_map[rank_name]:
                     loc_id = gid_rank_to_location_id(gid, rank_index_map[rank_name])
                     if loc_id not in self.checked_locations:
                         new_locations.add(loc_id)
 
-            # Track score changes for logging
             prev = self._last_ranks.get(gid, 0)
             if score != prev:
                 if score > 0:
-                    group, slot = gid_to_group_slot(gid)
                     level = GROUP_TO_LEVEL[group]
                     if score >= THRESH_A:
                         rank_str = "A"
@@ -588,14 +428,6 @@ class SneakKingContext(cmmCtx):
             await self.send_msgs([{"cmd": "LocationChecks", "locations": list(new_locations)}])
 
     async def check_interactables(self):
-        """Detect interactable usage by reading King+0x32C entity pointer.
-
-        When the King enters a hiding spot, climbs a ladder, opens a door, etc.,
-        [King+0x32C] is set to the entity pointer. When idle, it's 0.
-
-        We detect new interactions, read the entity's local transform position,
-        and match against INTERACTABLE_POSITIONS to identify the AP location.
-        """
         if not self.mem.ensure_ready():
             return
 
@@ -606,44 +438,42 @@ class SneakKingContext(cmmCtx):
                 self._last_interaction_va = 0
             return
 
-        entity_va, x, y, z = result
+        entity_va, positions = result
 
-        # Only trigger on NEW interactions
         if entity_va == self._last_interaction_va:
             return
         self._last_interaction_va = entity_va
 
-        pos = (round(x, 1), round(y, 1), round(z, 1))
-
-        # Match position against known interactable positions
         matched_entity = None
         best_dist = float('inf')
         best_name = None
-        for ent_name, known_pos in INTERACTABLE_POSITIONS.items():
-            dist = max(abs(pos[0] - known_pos[0]),
-                       abs(pos[1] - known_pos[1]),
-                       abs(pos[2] - known_pos[2]))
-            if dist < best_dist:
-                best_dist = dist
-                best_name = ent_name
-            if _positions_match(pos, tuple(known_pos)):
-                matched_entity = ent_name
+        for _va, x, y, z in positions:
+            pos = (round(x, 1), round(y, 1), round(z, 1))
+            for ent_name, known_pos in INTERACTABLE_POSITIONS.items():
+                dist = max(abs(pos[0] - known_pos[0]),
+                           abs(pos[1] - known_pos[1]),
+                           abs(pos[2] - known_pos[2]))
+                if dist < best_dist:
+                    best_dist = dist
+                    best_name = ent_name
+                if _positions_match(pos, tuple(known_pos)):
+                    matched_entity = ent_name
+                    break
+            if matched_entity:
                 break
 
         if matched_entity is None:
-            logger.info(f"[Interactable] NO MATCH at {pos} (closest: {best_name} dist={best_dist:.1f})")
+            logger.info(f"[Interactable] NO MATCH (closest: {best_name} dist={best_dist:.1f})")
             return
 
-        # Check level access
         entity_level = _entity_name_to_level(matched_entity)
         if entity_level and not self._has_level_access(entity_level):
             logger.info(f"[Interactable] Matched {matched_entity} but {entity_level} not unlocked")
             return
 
-        # Look up the AP location ID
         loc_id = INTERACTABLE_ID_MAP.get(matched_entity)
         if loc_id is None:
-            logger.info(f"[Interactable] {matched_entity} has no AP location ID")
+            logger.info(f"[Interactable] {matched_entity} has no location ID")
             return
 
         if loc_id not in self.checked_locations:
@@ -657,7 +487,6 @@ class SneakKingContext(cmmCtx):
             await self.send_msgs([{"cmd": "LocationChecks", "locations": [loc_id]}])
 
     async def check_goal(self):
-        """Check if the goal condition is met."""
         if not self.slot_data or not self.mem.ensure_ready():
             return
 
@@ -665,42 +494,48 @@ class SneakKingContext(cmmCtx):
         goal_range = self.slot_data.get("goal_range", 20)
 
         if goal_type == 0:
-            # complete_x_missions: count missions with score >= C threshold
             completed = sum(1 for gid in range(80) if self.mem.read_rank(gid) >= THRESH_C)
             if completed >= goal_range:
                 await self.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
 
         elif goal_type == 1:
-            # complete_x_a_ranks: count missions with score >= A threshold
             a_count = sum(1 for gid in range(80) if self.mem.read_rank(gid) >= THRESH_A)
             if a_count >= goal_range:
                 await self.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
 
     def update_level_availability(self):
-        """Check all levels and set availability bits for accessible ones.
-
-        Called every tick so x_missions unlocks happen immediately
-        when the completion threshold is met, not just on item receipt.
-        Also ensures mission 1 is visible for each accessible level.
-        """
         if not self.slot_data or not self.mem.ensure_ready():
             return
 
         for level_name in LEVEL_NAMES:
-            if self._has_level_access(level_name):
-                group = LEVEL_TO_GROUP[level_name]
-                self.mem.set_level_available(group)
-                # Ensure mission 1 scroll is visible
+            if not self._has_level_access(level_name):
+                continue
+
+            group = LEVEL_TO_GROUP[level_name]
+            changed = False
+
+            if level_name not in self._unlocked_levels:
+                self._unlocked_levels.add(level_name)
+
                 gid = group_slot_to_gid(group, 0)
-                if not self.mem.read_ap_visible(gid):
-                    self.mem.write_ap_visible(gid, True)
-                    self.mem.set_dirty()
-                    logger.info(f"Mission 1 visible for {level_name}")
+                if not self.mem.read_visible(gid):
+                    self.mem.write_visible(gid, True)
+                    changed = True
 
+                for item in self.items_received:
+                    item_name = self.item_names.lookup_in_game(item.item)
+                    gid = item_name_to_gid(item_name)
+                    if gid is not None:
+                        item_group, _ = gid_to_group_slot(gid)
+                        if item_group == group and not self.mem.read_visible(gid):
+                            self.mem.write_visible(gid, True)
+                            changed = True
 
-# ============================================================
-# Sync Task
-# ============================================================
+                logger.info(f"Level unlocked: {level_name}")
+
+            if changed:
+                self.mem.set_dirty()
+
 
 async def sneak_king_sync_task(ctx: SneakKingContext):
     logger.info("Starting Sneak King connector...")
@@ -708,7 +543,6 @@ async def sneak_king_sync_task(ctx: SneakKingContext):
         if ctx.game_connected:
             if ctx.slot:
                 try:
-                    # Validate game connection is still alive
                     if not ctx.mem.ensure_ready():
                         logger.info("Lost connection to game. Reconnecting...")
                         ctx.game_connected = False
@@ -729,12 +563,11 @@ async def sneak_king_sync_task(ctx: SneakKingContext):
             else:
                 await asyncio.sleep(1)
         else:
-            # Attempt connection to xemu
             try:
                 if ctx.mem.connect():
                     logger.info("Connected to Sneak King!")
                     ctx.game_connected = True
-                    ctx._items_synced_index = 0  # re-sync items on reconnect
+                    ctx._items_synced_index = 0
                     ctx._last_ranks.clear()
                     ctx._last_interaction_va = 0
                 else:
@@ -742,10 +575,6 @@ async def sneak_king_sync_task(ctx: SneakKingContext):
             except Exception:
                 await asyncio.sleep(3)
 
-
-# ============================================================
-# Launch
-# ============================================================
 
 async def _run_game(rom: str):
     import os

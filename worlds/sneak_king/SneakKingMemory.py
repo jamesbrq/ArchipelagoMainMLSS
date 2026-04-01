@@ -1,16 +1,11 @@
 """
-Sneak King — pymem Memory Helper for Archipelago Client
+Sneak King — pymem Memory Helper
 
-AP visibility bits stored in per-group padding within MissionStateCache:
+Mission visibility bits stored in per-group padding within MissionStateCache:
   Group 0 (Sawmill):      cache+0x38, +0x39, +0x3A  (slots 0-19)
   Group 1 (Construction): cache+0x58, +0x59, +0x5A  (slots 0-19)
   Group 2 (Suburbia):     cache+0x78, +0x79, +0x7A  (slots 0-19)
   Group 3 (Urban):        cache+0x98, +0x99, +0x9A  (slots 0-19)
-
-XBE code cave computes: cache + 0x38 + group*32 + slot/8, bit = slot%8
-Python computes:        cache + GROUP_BASE + group*STRIDE + AP_OFFSET + slot/8
-  where GROUP_BASE=0x20, STRIDE=32, AP_OFFSET=0x18 (padding start within group)
-  → 0x20 + g*32 + 0x18 = 0x38 + g*32  ✓
 """
 
 import struct
@@ -38,9 +33,6 @@ KING_PTR_OFFSET   = 0xEB8
 # King object offsets (from [globals+KING_PTR_OFFSET] → King entity)
 KING_INTERACT_PROMPT = 0x258    # u32: 1=near interactable (prompt visible), 0=idle or inside
 KING_INTERACTION_PTR = 0x32C    # ptr: entity the King is near/inside (0 when no interactable nearby)
-# Detection: +0x32C != 0 AND +0x258 == 0 means King is INSIDE the interactable.
-#            +0x32C != 0 AND +0x258 == 1 means King is NEAR but hasn't entered yet.
-# Entity world position: [entity+0x64] → transform node, then +0x04/0x08/0x0C = X/Y/Z floats
 
 CACHE_VTABLE       = 0x002B8F6C
 CACHE_SIZE         = 0xD0
@@ -71,19 +63,13 @@ def group_slot_to_gid(group: int, slot: int) -> int:
     return -1
 
 
-def _ap_cache_offset(group: int, slot: int) -> tuple[int, int]:
-    """Return (byte_offset_in_cache, bit_index) for an AP visibility bit."""
+def _cache_offset(group: int, slot: int) -> tuple[int, int]:
+    """Return (byte_offset_in_cache, bit_index) for a mission visibility bit."""
     byte_in_group = slot // 8
     bit_in_byte = slot % 8
-    # cache + 0x20 + group*32 + 0x18 + byte_in_group
-    # = cache + 0x38 + group*32 + byte_in_group
     offset = CACHE_GROUP_BASE + group * CACHE_GROUP_STRIDE + CACHE_AP_OFFSET + byte_in_group
     return offset, bit_in_byte
 
-
-def _ap_group_offset(group: int) -> int:
-    """Return cache offset of the 3 AP bytes for a group."""
-    return CACHE_GROUP_BASE + group * CACHE_GROUP_STRIDE + CACHE_AP_OFFSET
 
 
 class SneakKingMemory:
@@ -140,7 +126,6 @@ class SneakKingMemory:
         if not self._connected:
             return False
 
-        # If _read_king_phys detected junk and cleared globals, force re-scan
         if self.globals_phys is None:
             if not self._find_globals():
                 return False
@@ -157,14 +142,11 @@ class SneakKingMemory:
                 pass
             self.cache_phys = None
 
-        # Try loading cache from known globals page
         if self.globals_phys is not None:
             if self._load_cache():
                 return True
-            # Globals page might have gone stale (game reloaded), reset it
             self.globals_phys = None
 
-        # Re-scan for globals page (includes cache validation)
         if not self._find_globals():
             return False
         return self._load_cache()
@@ -218,7 +200,6 @@ class SneakKingMemory:
             v_cd8 = struct.unpack_from("<I", page, GAME_STATE_OFFSET)[0]
             if not is_high_va(v_cd8): continue
 
-            # Candidate found — validate by checking cache pointer + vtable
             cache_ptr = struct.unpack_from("<I", page, CACHE_PTR_OFFSET)[0]
             if cache_ptr == 0 or cache_ptr < 0x80000000:
                 logger.debug(f"Globals candidate at 0x{phys:X}: cache ptr null/invalid (0x{cache_ptr:08X}), skipping")
@@ -257,8 +238,6 @@ class SneakKingMemory:
         logger.info(f"Cache loaded at phys 0x{phys:08X}")
         return True
 
-    # --- Low-level ---
-
     def _read_phys(self, phys, size):
         return self.pm.read_bytes(self.xbox_base + phys, size)
 
@@ -276,8 +255,6 @@ class SneakKingMemory:
 
     def _write_phys_u32(self, phys, val):
         self._write_phys(phys, struct.pack('<I', val))
-
-    # --- Cache access ---
 
     def read_cache_byte(self, offset):
         return self._read_phys_u8(self.cache_phys + offset)
@@ -297,8 +274,6 @@ class SneakKingMemory:
     def write_cache_bytes(self, offset, data):
         self._write_phys(self.cache_phys + offset, data)
 
-    # --- Ranks ---
-
     def read_rank(self, gid):
         g, s = gid_to_group_slot(gid)
         return self.read_cache_byte(CACHE_GROUP_BASE + g * CACHE_GROUP_STRIDE + 4 + s)
@@ -307,119 +282,22 @@ class SneakKingMemory:
         g, s = gid_to_group_slot(gid)
         self.write_cache_byte(CACHE_GROUP_BASE + g * CACHE_GROUP_STRIDE + 4 + s, rank)
 
-    def read_all_ranks(self):
-        ranks = {}
-        for g in range(4):
-            base = CACHE_GROUP_BASE + g * CACHE_GROUP_STRIDE + 4
-            data = self.read_cache_bytes(base, 20)
-            for s in range(20):
-                ranks[group_slot_to_gid(g, s)] = data[s]
-        return ranks
-
-    # --- Attempted ---
-
-    def read_attempted(self, gid):
+    def read_visible(self, gid):
         g, s = gid_to_group_slot(gid)
-        bits = self.read_cache_u32(CACHE_GROUP_BASE + g * CACHE_GROUP_STRIDE)
-        return bool(bits & (1 << s))
-
-    def write_attempted(self, gid, val=True):
-        g, s = gid_to_group_slot(gid)
-        off = CACHE_GROUP_BASE + g * CACHE_GROUP_STRIDE
-        bits = self.read_cache_u32(off)
-        if val:  bits |= (1 << s)
-        else:    bits &= ~(1 << s)
-        self.write_cache_u32(off, bits)
-
-    # --- AP visibility (per-group padding) ---
-
-    def read_ap_visible(self, gid):
-        g, s = gid_to_group_slot(gid)
-        off, bit = _ap_cache_offset(g, s)
+        off, bit = _cache_offset(g, s)
         return bool(self.read_cache_byte(off) & (1 << bit))
 
-    def write_ap_visible(self, gid, val=True):
+    def write_visible(self, gid, val=True):
         g, s = gid_to_group_slot(gid)
-        off, bit = _ap_cache_offset(g, s)
+        off, bit = _cache_offset(g, s)
         b = self.read_cache_byte(off)
         if val:  b |= (1 << bit)
         else:    b &= ~(1 << bit)
         self.write_cache_byte(off, b)
 
-    def read_ap_group(self, group):
-        return self.read_cache_bytes(_ap_group_offset(group), CACHE_AP_BYTES)
-
-    def write_ap_group(self, group, data):
-        assert len(data) == CACHE_AP_BYTES
-        self.write_cache_bytes(_ap_group_offset(group), data)
-
-    # --- Dirty flag ---
-
     def set_dirty(self):
         flags = self.read_cache_u32(CACHE_DIRTY)
         self.write_cache_u32(CACHE_DIRTY, flags | 1)
-
-    # --- Level availability ---
-
-    def set_level_available(self, group: int):
-        """Set the availability bit for a group (0-3) in cache+0xA4."""
-        if group < 0 or group > 3:
-            return
-        avail = self.read_cache_u32(CACHE_AVAILABILITY)
-        bit = 1 << group
-        if not (avail & bit):
-            self.write_cache_u32(CACHE_AVAILABILITY, avail | bit)
-            self.set_dirty()
-
-    # --- Convenience ---
-
-    def unlock_mission(self, gid):
-        self.write_attempted(gid, True)
-        if self.read_rank(gid) == 0:
-            self.write_rank(gid, 1)
-        self.write_ap_visible(gid, True)
-
-    def reset_mission(self, gid):
-        self.write_attempted(gid, False)
-        self.write_rank(gid, 0)
-        self.write_ap_visible(gid, False)
-
-    def show_all(self):
-        ap_bytes = b'\xFF\xFF\x0F'
-        for g in range(4):
-            self.write_ap_group(g, ap_bytes)
-
-    def hide_all(self):
-        for g in range(4):
-            self.write_ap_group(g, b'\x00\x00\x00')
-
-    # --- State snapshot ---
-
-    def read_full_state(self):
-        if not self.ensure_ready():
-            return None
-        raw = self.read_cache_bytes(0x00, CACHE_SIZE)
-        state = {
-            'raw': raw,
-            'groups': {},
-            'mission_counter': raw[CACHE_COUNTER],
-            'availability': struct.unpack_from('<I', raw, CACHE_AVAILABILITY)[0],
-            'dirty': struct.unpack_from('<I', raw, CACHE_DIRTY)[0],
-        }
-        for g in range(4):
-            gb = CACHE_GROUP_BASE + g * CACHE_GROUP_STRIDE
-            attempted = struct.unpack_from('<I', raw, gb)[0]
-            ranks = [raw[gb + 4 + s] for s in range(20)]
-            ap_off = gb + CACHE_AP_OFFSET
-            ap_bits = raw[ap_off:ap_off + CACHE_AP_BYTES]
-            state['groups'][g] = {
-                'attempted': attempted,
-                'ranks': ranks,
-                'ap_bits': ap_bits,
-            }
-        return state
-
-    # --- King interaction detection ---
 
     def _read_king_phys(self) -> Optional[int]:
         """Get the King entity's physical address from the globals page.
@@ -473,17 +351,14 @@ class SneakKingMemory:
             if entity_va == 0 or not (0x83000000 <= entity_va <= 0x87FFFFFF):
                 return None
 
-            # Check prompt flag — must be 0 (inside), not 1 (just nearby)
             prompt = self._read_phys_u32(king_phys + KING_INTERACT_PROMPT)
-            logger.debug(f"[InteractDbg] +0x32C=0x{entity_va:08X} +0x258={prompt}")
             if prompt != 0:
-                return None  # near but not entered
+                return None
 
-            # Read positions from the entity AND its parent chain (entity+0x30)
             positions = []
             current_va = entity_va
             seen = set()
-            for depth in range(5):  # max 5 hops to avoid infinite loops
+            for depth in range(5):
                 if current_va in seen:
                     break
                 seen.add(current_va)
@@ -493,7 +368,6 @@ class SneakKingMemory:
                     positions.append((current_va, pos[0], pos[1], pos[2]))
                     logger.debug(f"[InteractDbg] depth={depth} entity=0x{current_va:08X} pos=({pos[0]:.1f}, {pos[1]:.1f}, {pos[2]:.1f})")
 
-                # Follow parent pointer at +0x30
                 try:
                     parent_va = self._read_phys_u32(current_phys + 0x30)
                     if parent_va == 0 or not (0x83000000 <= parent_va <= 0x87FFFFFF):
@@ -507,16 +381,12 @@ class SneakKingMemory:
             if not positions:
                 return None
 
-            # Return the original entity_va plus ALL positions found in the chain
-            # Client will try matching each one
             return (entity_va, positions)
         except Exception as e:
             logger.info(f"[InteractDbg] exception: {e}")
             return None
 
     def _read_entity_position(self, entity_phys: int) -> Optional[tuple]:
-        """Read world position from entity+0x64 transform node.
-        Returns (x, y, z) or None."""
         try:
             transform_va = self._read_phys_u32(entity_phys + 0x64)
             if not (0x83000000 <= transform_va <= 0x87FFFFFF):
@@ -524,51 +394,9 @@ class SneakKingMemory:
             transform_phys = transform_va & 0x0FFFFFFF
             pos_data = self._read_phys(transform_phys + 0x04, 12)
             x, y, z = struct.unpack('<fff', pos_data)
-            # Sanity check — filter out garbage floats
             if abs(x) > 100000 or abs(y) > 100000 or abs(z) > 100000:
                 return None
             return (x, y, z)
         except:
             return None
 
-    def dump_entity_debug(self, entity_phys: int):
-        """Dump entity structure for debugging. Logs first 256 bytes as hex
-        and any string-like data found at pointer offsets."""
-        try:
-            raw = self._read_phys(entity_phys, 256)
-            # Log hex dump in 16-byte rows
-            for row in range(0, 256, 16):
-                hex_str = ' '.join(f'{raw[row+i]:02X}' for i in range(16))
-                ascii_str = ''.join(chr(b) if 0x20 <= b <= 0x7E else '.' for b in raw[row:row+16])
-                logger.info(f"[EntityDump] +0x{row:03X}: {hex_str}  {ascii_str}")
-
-            # Check every 4-byte aligned offset for pointers to strings (min 5 chars to avoid false positives)
-            for off in range(0, 256, 4):
-                val = struct.unpack_from('<I', raw, off)[0]
-                if 0x80000000 <= val <= 0x87FFFFFF:
-                    try:
-                        str_data = self._read_phys(val & 0x0FFFFFFF, 64)
-                        name = ""
-                        for b in str_data:
-                            if b == 0: break
-                            if 0x20 <= b <= 0x7E:
-                                name += chr(b)
-                            else:
-                                name = ""
-                                break
-                        if len(name) >= 5:
-                            logger.info(f"[EntityDump] +0x{off:02X} -> 0x{val:08X} -> '{name}'")
-                    except:
-                        pass
-        except Exception as e:
-            logger.info(f"[EntityDump] failed: {e}")
-
-    def read_interact_prompt(self) -> int:
-        """Read King+0x258 prompt flag. 1=near interactable, 0=idle or inside."""
-        king_phys = self._read_king_phys()
-        if king_phys is None:
-            return 0
-        try:
-            return self._read_phys_u32(king_phys + KING_INTERACT_PROMPT)
-        except:
-            return 0

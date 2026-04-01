@@ -42,7 +42,7 @@
         "new": "8b0dd82c2e0083b9ec000000017426e975feffff9084c0741c"
       },
       {
-        "name": "P5: Code cave — AP bitfield lookup (per-group padding)",
+        "name": "P5: Code cave \u2014 AP bitfield lookup (per-group padding)",
         "description": "Reads group from [esi+0x118] and slot from [esi+0x114], looks up AP visibility bit at cache + 0x38 + group*32 + slot/8, bit = slot%8. Each group's 3-byte AP field lives in the unused padding bytes of that group's 32-byte block in the MissionStateCache. This avoids writing to high offsets (+0xA8+) that caused controller corruption.",
         "va": "0x62240",
         "old": "51a1cc2c2e0085c0568bf1578bbe18010000c644240800752c68011000005068ecff2a0068d0000000e8b2c5000083c41085c074098bc8e8d4faffffeb0233c0a3cc2c2e000fb69614",
@@ -77,32 +77,25 @@
         "new": "1C1C7340"
       },
       {
-        "name": "Force level load — mov eax,[global]",
+        "name": "Force level load \u2014 mov eax,[global]",
         "description": "Replaces dynamic level pointer read with hardcoded global address.",
         "va": "0x13EF9",
         "old": "8B86980000008B4020",
         "new": "A1FC2F2E0090909090"
       },
       {
-        "name": "Force level load — NOP cmovne",
+        "name": "Force level load \u2014 NOP cmovne",
         "description": "NOPs the conditional override so forced level is always used",
         "va": "0x13F04",
         "old": "0F45C1",
         "new": "909090"
       },
       {
-        "name": "Level select — patchable starting level check",
-        "description": "Replaces hardcoded if(index==0) with if(index==N) for starting level unlock.",
-        "va": "0x619F6",
-        "old": "85c97508b801000000c20400",
-        "new": "83f900750731c040c2040090"
-      },
-      {
-        "name": "Level select — mask out bit 0 in unlock checker",
-        "description": "Changes and eax,0x0F to and eax,0x0E so Sawmill isn't always unlocked via bitfield.",
-        "va": "0x61A13",
-        "old": "0F",
-        "new": "0E"
+        "name": "All levels unlocked in level select",
+        "description": "Level unlock checker always returns 1. All levels selectable from menu regardless of availability bits.",
+        "va": "0x619F0",
+        "old": "8bc18b4c240485c97508b801000000c204008b80a4000000ba01000000d3e223c283e00fc20400",
+        "new": "b801000000c2040090909090909090909090909090909090909090909090909090909090909090"
       }
     ],
     "settings": [
@@ -146,93 +139,561 @@
         "mode": "divide",
         "base": 0.85,
         "option": "king_speed_multiplier"
-      },
-      {
-        "name": "Starting level unlock index",
-        "description": "Overwrites the immediate byte in cmp at VA 0x619F8.",
-        "va": "0x619F8",
-        "type": "raw",
-        "mode": "map",
-        "map_name": "starting_level_unlock_indices",
-        "option": "starting_level"
       }
     ],
     "fetm_settings": [
-      { "name": "Civilian speed — Urban 01", "offset": "0x020af9", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 02", "offset": "0x021544", "type": "float", "mode": "multiply", "base": 2.2, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 03", "offset": "0x021c30", "type": "float", "mode": "multiply", "base": 1.6, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 04", "offset": "0x0228cb", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 05", "offset": "0x023015", "type": "float", "mode": "multiply", "base": 1.4, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 06", "offset": "0x023607", "type": "float", "mode": "multiply", "base": 1.6, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 07", "offset": "0x023cff", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 08", "offset": "0x024e0c", "type": "float", "mode": "multiply", "base": 1.4, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 09", "offset": "0x0255f0", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 10", "offset": "0x025c56", "type": "float", "mode": "multiply", "base": 1.6, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 11", "offset": "0x026339", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 12", "offset": "0x02696d", "type": "float", "mode": "multiply", "base": 1.4, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 13", "offset": "0x02766b", "type": "float", "mode": "multiply", "base": 1.4, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 14", "offset": "0x028588", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 15", "offset": "0x02936d", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 16", "offset": "0x029d09", "type": "float", "mode": "multiply", "base": 1.4, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 17", "offset": "0x02b0c9", "type": "float", "mode": "multiply", "base": 1.6, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 18", "offset": "0x02bcc8", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 19", "offset": "0x02fd49", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Urban 20", "offset": "0x031a51", "type": "float", "mode": "multiply", "base": 1.6, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 01", "offset": "0x03f9df", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 02", "offset": "0x041f67", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 03", "offset": "0x042823", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 04", "offset": "0x042d3b", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 05", "offset": "0x04332d", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 06", "offset": "0x04391c", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 07", "offset": "0x04405a", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 08", "offset": "0x044a17", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 09", "offset": "0x045421", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 10", "offset": "0x0463a6", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 11", "offset": "0x046d29", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 12", "offset": "0x047207", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 13", "offset": "0x048152", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 14", "offset": "0x048d64", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 15", "offset": "0x04992d", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 16", "offset": "0x04a971", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 17", "offset": "0x04b6b5", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Suburbia 18", "offset": "0x04bf67", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 01", "offset": "0x064723", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 02", "offset": "0x065730", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 03", "offset": "0x066090", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 04", "offset": "0x066870", "type": "float", "mode": "multiply", "base": 1.6, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 05", "offset": "0x066e85", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 06", "offset": "0x06757a", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 07", "offset": "0x067f5c", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 08", "offset": "0x0687ec", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 09", "offset": "0x068dfe", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 10", "offset": "0x069f63", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 11", "offset": "0x06adaf", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 12", "offset": "0x06c1bd", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 13", "offset": "0x06d9a4", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 14", "offset": "0x06e0f7", "type": "float", "mode": "multiply", "base": 1.75, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 15", "offset": "0x06e671", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Sawmill 16", "offset": "0x06ee1d", "type": "float", "mode": "multiply", "base": 1.5, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 01", "offset": "0x0872f0", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 02", "offset": "0x088c28", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 03", "offset": "0x08a0c1", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 04", "offset": "0x08b94e", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 05", "offset": "0x08c6a5", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 06", "offset": "0x08d1a9", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 07", "offset": "0x08df36", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 08", "offset": "0x08e3ab", "type": "float", "mode": "multiply", "base": 3.0, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 09", "offset": "0x08eebd", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 10", "offset": "0x08fd51", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 11", "offset": "0x090872", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 12", "offset": "0x091515", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 13", "offset": "0x091a1f", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 14", "offset": "0x092b4f", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" },
-      { "name": "Civilian speed — Construction 15", "offset": "0x0997ba", "type": "float", "mode": "multiply", "base": 1.8, "option": "civilian_speed_multiplier" }
+      {
+        "name": "Civilian speed \u2014 Urban 01",
+        "offset": "0x020af9",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 02",
+        "offset": "0x021544",
+        "type": "float",
+        "mode": "multiply",
+        "base": 2.2,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 03",
+        "offset": "0x021c30",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.6,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 04",
+        "offset": "0x0228cb",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 05",
+        "offset": "0x023015",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.4,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 06",
+        "offset": "0x023607",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.6,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 07",
+        "offset": "0x023cff",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 08",
+        "offset": "0x024e0c",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.4,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 09",
+        "offset": "0x0255f0",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 10",
+        "offset": "0x025c56",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.6,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 11",
+        "offset": "0x026339",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 12",
+        "offset": "0x02696d",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.4,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 13",
+        "offset": "0x02766b",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.4,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 14",
+        "offset": "0x028588",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 15",
+        "offset": "0x02936d",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 16",
+        "offset": "0x029d09",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.4,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 17",
+        "offset": "0x02b0c9",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.6,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 18",
+        "offset": "0x02bcc8",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 19",
+        "offset": "0x02fd49",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Urban 20",
+        "offset": "0x031a51",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.6,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 01",
+        "offset": "0x03f9df",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 02",
+        "offset": "0x041f67",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 03",
+        "offset": "0x042823",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 04",
+        "offset": "0x042d3b",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 05",
+        "offset": "0x04332d",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 06",
+        "offset": "0x04391c",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 07",
+        "offset": "0x04405a",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 08",
+        "offset": "0x044a17",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 09",
+        "offset": "0x045421",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 10",
+        "offset": "0x0463a6",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 11",
+        "offset": "0x046d29",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 12",
+        "offset": "0x047207",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 13",
+        "offset": "0x048152",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 14",
+        "offset": "0x048d64",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 15",
+        "offset": "0x04992d",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 16",
+        "offset": "0x04a971",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 17",
+        "offset": "0x04b6b5",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Suburbia 18",
+        "offset": "0x04bf67",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 01",
+        "offset": "0x064723",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 02",
+        "offset": "0x065730",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 03",
+        "offset": "0x066090",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 04",
+        "offset": "0x066870",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.6,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 05",
+        "offset": "0x066e85",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 06",
+        "offset": "0x06757a",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 07",
+        "offset": "0x067f5c",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 08",
+        "offset": "0x0687ec",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 09",
+        "offset": "0x068dfe",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 10",
+        "offset": "0x069f63",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 11",
+        "offset": "0x06adaf",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 12",
+        "offset": "0x06c1bd",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 13",
+        "offset": "0x06d9a4",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 14",
+        "offset": "0x06e0f7",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.75,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 15",
+        "offset": "0x06e671",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Sawmill 16",
+        "offset": "0x06ee1d",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.5,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 01",
+        "offset": "0x0872f0",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 02",
+        "offset": "0x088c28",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 03",
+        "offset": "0x08a0c1",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 04",
+        "offset": "0x08b94e",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 05",
+        "offset": "0x08c6a5",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 06",
+        "offset": "0x08d1a9",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 07",
+        "offset": "0x08df36",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 08",
+        "offset": "0x08e3ab",
+        "type": "float",
+        "mode": "multiply",
+        "base": 3.0,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 09",
+        "offset": "0x08eebd",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 10",
+        "offset": "0x08fd51",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 11",
+        "offset": "0x090872",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 12",
+        "offset": "0x091515",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 13",
+        "offset": "0x091a1f",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 14",
+        "offset": "0x092b4f",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      },
+      {
+        "name": "Civilian speed \u2014 Construction 15",
+        "offset": "0x0997ba",
+        "type": "float",
+        "mode": "multiply",
+        "base": 1.8,
+        "option": "civilian_speed_multiplier"
+      }
     ]
-  },
-  "starting_level_unlock_indices": {
-    "0": "00",
-    "1": "01",
-    "2": "02",
-    "3": "03"
   }
 }

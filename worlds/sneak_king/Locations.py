@@ -9,13 +9,11 @@ class LocationData():
 all_locations: list[LocationData] = []
 index = 0
 
-# Mission rank locations
 for level in ["Sawmill", "Cul-De-Sac", "Construction", "Downtown"]:
     for rank in ["C", "B", "A"]:
         all_locations += [LocationData(f"{level}: Mission {i} Rank {rank}", index + i, [level, rank, "mission"]) for i in range(1, 21)]
         index += 20
 
-# Interactable object locations
 interactable_objects: dict[str, list[tuple[str, str]]] = {
     "Sawmill": [
         ("1A_Int_Door01", "Door 1"),
@@ -122,8 +120,8 @@ interactable_objects: dict[str, list[tuple[str, str]]] = {
         ("3A_Crate07", "Crate 7"),
         ("3A_DiggerScoop", "Raised Truck Scoop"),
         ("3A_Door01", "Door 1"),
-        ("3A_Door02_knocker", "Knock on Door 1"),
-        ("3A_Door03_knocker", "Knock on Door 2"),
+        ("3A_Door02_knocker", "Knock on Door 2"),
+        ("3A_Door03_knocker", "Knock on Door 3"),
         ("3A_Door_Portaloo", "Porta-Potty"),
         ("3A_LadderBase", "Ladder"),
         ("3A_Manhole1", "Manhole 1"),
@@ -166,8 +164,6 @@ interactable_objects: dict[str, list[tuple[str, str]]] = {
     ],
 }
 
-# Mission IDs used: index+1 through index+20 per batch, so max mission ID = index
-# Interactable IDs start after
 index += 1
 
 for level, objects in interactable_objects.items():

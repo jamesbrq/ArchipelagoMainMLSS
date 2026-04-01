@@ -18,15 +18,15 @@ class SneakKingItem(Item):
 items: list[ItemData] = []
 index = 0
 for level in ["Sawmill", "Cul-De-Sac", "Construction", "Downtown"]:
-    items += [ItemData(f"{level} Mission {i} Unlock", i + index, ItemClassification.progression) for i in range(2, 21)]  # start at 2
+    items += [ItemData(f"{level} Mission {i} Unlock", i + index, ItemClassification.progression) for i in range(2, 21)]
     index += 20
 items += [
     ItemData("Sawmill Unlock", 81, ItemClassification.progression),
     ItemData("Cul-De-Sac Unlock", 82, ItemClassification.progression),
     ItemData("Construction Unlock", 83, ItemClassification.progression),
     ItemData("Downtown Unlock", 84, ItemClassification.progression),
-    ItemData("Progressive Flourish", 85, ItemClassification.progression, 3),
-    ItemData("Progressive Chain", 86, ItemClassification.progression, 3),
+    ItemData("Progressive Flourish", 85, ItemClassification.progression, 0),
+    ItemData("Progressive Chain", 86, ItemClassification.progression, 0),
     ItemData("Nothing", 87, ItemClassification.filler, 0),
 ]
 
