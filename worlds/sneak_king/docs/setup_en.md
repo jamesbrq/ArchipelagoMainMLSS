@@ -3,8 +3,9 @@
 ## Required Software
 
 - [xemu](https://xemu.app/) — original Xbox emulator
-- The built-in Sneak King client, included with [Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases)
-- A copy of Sneak King for the original Xbox in .iso format
+- [Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases)
+- Latest Release of [Sneak King](https://github.com/jamesbrq/SneakKingAP/releases/latest)
+- A copy of Sneak King for the original Xbox in .iso format (Hosts do not need this to generate, only players for patching)
 
 ## Configuring your YAML file
 
@@ -28,13 +29,6 @@ files. Your data file should have a `.apsk` extension.
 
 Double-click your `.apsk` file to launch the Sneak King client and automatically patch your ROM.
 
-### Configure xemu
-
-Before connecting, ensure xemu is set up with your patched Sneak King ISO:
-
-1. Open xemu and go to **Settings → System**.
-2. Set the HDD image path to a valid Xbox HDD image.
-3. Load your patched Sneak King ISO via **Machine → Load Disc**.
 
 ### Connect to the Multiserver
 

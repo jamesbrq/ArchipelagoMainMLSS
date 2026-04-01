@@ -1,16 +1,3 @@
-"""
-Sneak King Archipelago ROM Patcher
-
-Patches and repacks the ISO without loading it into memory:
-  1. Extract all ISO files to a temp directory on disk
-  2. Read just the XBE (~3MB), apply patches, write it back to disk
-  3. Read just the FETM (~662KB), apply patches, write it back to disk
-  4. Repack the temp directory into a new ISO at the target path (~1.5GB vs ~7GB vanilla)
-  5. Clean up temp directory
-
-The full ISO is never held in Python memory.
-"""
-
 import json
 import os
 import pkgutil
@@ -32,7 +19,6 @@ if TYPE_CHECKING:
 
 XBE_MAGIC = b"XBEH"
 
-# XBE section layout for VA-to-file-offset conversion
 XBE_SECTIONS = [
     # (va_start, file_offset, size)
     (0x00011000, 0x00001000, 0x1DB5BC),  # .text
@@ -42,7 +28,6 @@ XBE_SECTIONS = [
 
 
 def va_to_file_offset(va: int) -> int:
-    """Convert a Virtual Address to a file offset, handling all XBE sections."""
     for sec_va, sec_file, sec_size in XBE_SECTIONS:
         if sec_va <= va < sec_va + sec_size:
             return va - sec_va + sec_file
@@ -50,7 +35,6 @@ def va_to_file_offset(va: int) -> int:
 
 
 def _apply_xbe_patches(xbe_data: bytearray, patches: dict, seed_options: dict) -> None:
-    """Apply all required and settings-driven patches to the XBE bytearray in-place."""
     for patch in patches["patches"]["required"]:
         new = bytes.fromhex(patch["new"])
         offset = va_to_file_offset(int(patch["va"], 16))
@@ -86,11 +70,6 @@ def _apply_xbe_patches(xbe_data: bytearray, patches: dict, seed_options: dict) -
 
 
 def _apply_fetm_patches(fetm_data: bytearray, patches: dict, seed_options: dict) -> None:
-    """Apply settings-driven patches to the FETM bytearray in-place.
-
-    FETM patches use raw file offsets (not virtual addresses) since the
-    fetm.xbp is a data file, not an executable.
-    """
     for patch in patches["patches"].get("fetm_settings", []):
         offset = int(patch["offset"], 16)
         option_key = patch["option"]
@@ -166,22 +145,7 @@ class SneakKingProcedurePatch(APProcedurePatch):
                 with open(fetm_file, "wb") as f:
                     f.write(fetm_data)
 
-            # Repack into the target ISO
-            # Prefer extract-xiso (xiso.exe) if available — its AVL tree layout
-            # is required by xemu. Fall back to pure-Python create_xiso.
-            xiso_exe = os.path.join(os.path.dirname(__file__), "xiso.exe")
-            if os.path.isfile(xiso_exe):
-                result = subprocess.run(
-                    [xiso_exe, "-c", tmpdir, target],
-                    capture_output=True, timeout=300,
-                )
-                if result.returncode != 0:
-                    raise RuntimeError(
-                        f"xiso.exe failed (rc={result.returncode}): "
-                        f"{result.stderr.decode(errors='replace')[:200]}"
-                    )
-            else:
-                create_xiso(tmpdir, target)
+            create_xiso(tmpdir, target)
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
 

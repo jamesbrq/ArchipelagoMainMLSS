@@ -1,28 +1,3 @@
-"""
-xdvdfs.py - Pure-Python Xbox DVD Filesystem (XDVDFS / XISO) reader and writer.
-
-Reads, extracts, and creates Xbox ISO images compatible with the original Xbox
-kernel and the xemu emulator.  No external dependencies.
-
-The ISO creation logic replicates the critical behaviours of extract-xiso:
-  - AVL-balanced directory entry trees serialised in pre-order.
-  - Directory entries never straddle 2048-byte sector boundaries.
-  - ISO 9660 primary volume descriptor at sector 16.
-  - XDVDFS volume descriptor at sector 32.
-  - Root directory at sector 0x108 (264).
-
-Usage:
-    # Extract
-    with XDVDFSImage("game.iso") as iso:
-        iso.extract_all("output_dir")
-
-    # Create
-    create_xiso("input_dir", "output.iso")
-
-    # Patch in-place (extract, modify files on disk, repack)
-    patch_xiso("clean.iso", "patched.iso", {"default.xbe": "/path/to/patched.xbe"})
-"""
-
 import struct
 import os
 import io
@@ -40,13 +15,7 @@ ATTR_ARCHIVE   = 0x20
 ATTR_NORMAL    = 0x80
 
 
-# ---------------------------------------------------------------------------
-#  Reading
-# ---------------------------------------------------------------------------
-
 class DirectoryEntry:
-    """A file or directory entry in the XDVDFS filesystem."""
-
     def __init__(self, name="", sector=0, size=0, attributes=0):
         self.name = name
         self.sector = sector
@@ -64,8 +33,6 @@ class DirectoryEntry:
 
 
 class XDVDFSImage:
-    """Read and extract files from an Xbox ISO (XDVDFS) image."""
-
     def __init__(self, path):
         self.path = path
         self.f = open(path, "rb")
@@ -82,7 +49,6 @@ class XDVDFSImage:
     def __exit__(self, *args):
         self.close()
 
-    # -- partition detection --------------------------------------------------
 
     def _find_game_partition(self):
         file_size = self.f.seek(0, 2)
@@ -124,7 +90,6 @@ class XDVDFSImage:
         assert self.f.read(MAGIC_LEN) == MAGIC, "Trailing magic mismatch"
         return root_sector, root_size
 
-    # -- directory parsing ----------------------------------------------------
 
     def _read_directory(self, sector, size):
         if sector == 0 and size == 0:
@@ -159,7 +124,6 @@ class XDVDFSImage:
         if right != 0 and right != 0xFFFF:
             self._parse_tree(data, right, entries)
 
-    # -- public API -----------------------------------------------------------
 
     def list_files(self, entries=None, prefix=""):
         if entries is None:
@@ -209,10 +173,6 @@ class XDVDFSImage:
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 self.extract_file(entry, path)
 
-
-# ---------------------------------------------------------------------------
-#  AVL tree  (replicates extract-xiso's avl_insert / avl_compare_key)
-# ---------------------------------------------------------------------------
 
 class _AVLNode:
     __slots__ = ("entry", "left", "right", "skew")
@@ -275,19 +235,12 @@ def _avl_insert(root, node):
 
 
 def _avl_prefix(node):
-    """Pre-order traversal of an AVL tree."""
     if node is None:
         return []
     return [node] + _avl_prefix(node.left) + _avl_prefix(node.right)
 
 
-# ---------------------------------------------------------------------------
-#  Directory table serialisation
-# ---------------------------------------------------------------------------
-
 def _build_balanced_tree(entries):
-    """Build an AVL tree and return ``(entry, left_idx, right_idx)`` tuples in
-    pre-order, matching the layout the Xbox kernel expects."""
     if not entries:
         return []
     avl_root = None
@@ -301,14 +254,6 @@ def _build_balanced_tree(entries):
 
 
 def _serialize_directory_table(entries):
-    """Serialize directory entries into a binary table.
-
-    Returns ``(sector_padded_bytes, actual_data_size)``.
-
-    Entries that would straddle a 2048-byte sector boundary are preceded by
-    ``0xFF`` padding so they start at the next sector — matching the behaviour
-    of extract-xiso's ``calculate_directory_size()``.
-    """
     if not entries:
         return b"", 0
 
@@ -355,10 +300,6 @@ def _serialize_directory_table(entries):
     return data, actual_size
 
 
-# ---------------------------------------------------------------------------
-#  Collecting host files
-# ---------------------------------------------------------------------------
-
 def _collect_files(root_dir):
     """Walk *root_dir* and return a list of ``DirectoryEntry`` objects (with
     ``host_path`` set) suitable for packing into an XISO."""
@@ -376,10 +317,6 @@ def _collect_files(root_dir):
         entries.append(entry)
     return entries
 
-
-# ---------------------------------------------------------------------------
-#  ISO 9660 volume descriptors  (ECMA-119)
-# ---------------------------------------------------------------------------
 
 def _write_iso9660_volume_descriptors(f, total_sectors):
     """Write a minimal ISO 9660 PVD at sector 16 and a terminator at sector 17.
@@ -403,11 +340,6 @@ def _write_iso9660_volume_descriptors(f, total_sectors):
     vdst = bytearray(SECTOR_SIZE)
     vdst[0] = 0xFF;  vdst[1:6] = b"CD001";  vdst[6] = 0x01
     f.seek(17 * SECTOR_SIZE);  f.write(vdst)
-
-
-# ---------------------------------------------------------------------------
-#  ISO creation
-# ---------------------------------------------------------------------------
 
 _ROOT_DIRECTORY_SECTOR = 0x108   # 264 — matches extract-xiso
 
@@ -486,10 +418,6 @@ def create_xiso(input_dir, output_path):
         _write_iso9660_volume_descriptors(f, f.tell() // SECTOR_SIZE)
 
 
-# ---------------------------------------------------------------------------
-#  High-level patching helpers
-# ---------------------------------------------------------------------------
-
 def patch_xiso(input_iso, output_iso, file_replacements):
     """Extract *input_iso*, replace files from *file_replacements* dict, repack."""
     import shutil, tempfile
@@ -501,46 +429,3 @@ def patch_xiso(input_iso, output_iso, file_replacements):
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 shutil.copy2(host_path, dest)
             create_xiso(tmpdir, output_iso)
-
-
-# ---------------------------------------------------------------------------
-#  CLI
-# ---------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) < 2:
-        print("Xbox DVD Filesystem (XDVDFS) Tool\n")
-        print(f"  {sys.argv[0]} list <iso>")
-        print(f"  {sys.argv[0]} extract <iso> <dir>")
-        print(f"  {sys.argv[0]} create <dir> <iso>")
-        print(f"  {sys.argv[0]} info <iso>")
-        sys.exit(0)
-
-    cmd = sys.argv[1].lower()
-
-    if cmd == "list":
-        with XDVDFSImage(sys.argv[2]) as iso:
-            for path, size in iso.list_files():
-                print(f"  {size:>12,d}  {path}")
-
-    elif cmd == "extract":
-        out = sys.argv[3] if len(sys.argv) > 3 else "."
-        with XDVDFSImage(sys.argv[2]) as iso:
-            iso.extract_all(out)
-            print(f"Extracted {len(iso.list_files())} files")
-
-    elif cmd == "create":
-        create_xiso(sys.argv[2], sys.argv[3])
-        print("Done")
-
-    elif cmd == "info":
-        with XDVDFSImage(sys.argv[2]) as iso:
-            files = iso.list_files()
-            print(f"  Base: 0x{iso.base_offset:X}  Root: sector {iso.root_sector}  "
-                  f"Files: {len(files)}  Total: {sum(s for _, s in files):,d} bytes")
-
-    else:
-        print(f"Unknown command: {cmd}")
-        sys.exit(1)
