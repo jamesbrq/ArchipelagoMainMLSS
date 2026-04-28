@@ -1,5 +1,5 @@
 import asyncio
-import math
+import collections
 import struct
 import subprocess
 import traceback
@@ -26,40 +26,29 @@ GSWF_BASE = 0x178
 GSW0 = 0x174
 GSW_BASE = 0x578
 ROOM = 0x803DF728
-SHOP_POINTER = 0x8041EB60
-SHOP_ITEM_OFFSET = 0x2F
-SHOP_ITEM_PURCHASED = 0xD7
 
 MARIO_PTR_ADDR = 0x8041E900
-PLAYER_ANIM_NAME_OFFSET = 0x18   # const char* into game's static string pool
-PLAYER_POSITION_OFFSET  = 0x8C   # vec3 (3 floats, big-endian)
-PLAYER_ROTATION_Y_OFFSET = 0x1AC  # float
-ANIM_NAME_READ_LEN = 32
 
-# Mod-side scratch slots in Dolphin RAM (matches GhostPeers.h).
-# Edited live with Dolphin's memory editor for tuning, or read/written
-# by this client for inter-process events.
-HIT_POSE_NAME_ADDR  = 0x80003B70  # 16 bytes, ASCII pose name (live-tunable)
-HIT_REACH_SCALE_ADDR = 0x80003B80  # float, attacker reach multiplier
-HIT_PEER_WIDTH_ADDR  = 0x80003B84  # float, peer hitbox radius
-PENDING_HIT_ADDR    = 0x80003B60  # u32, client -> mod: byte 0 = hit kind
-OUTBOUND_HIT_ADDR   = 0x80003B88  # u32, mod -> client: hit detected
-                                   # byte 0 = kind, byte 1 = peer index
-HIT_GRACE_ADDR      = 0x80003B8C  # u8, mod -> client: 1 = in iframes, 0 = hittable
-                                   # ORed into the published `hammerable` field
-                                   # so other attackers skip us during grace.
-SELF_TEAM_ID_ADDR        = 0x80003B8D  # u8, client -> mod: local team id (0..4)
-SELF_FRIENDLY_FIRE_ADDR  = 0x80003B8E  # u8, client -> mod: 1 = FF on, 0 = FF off
-                                       # Mod reads both in CheckPeerHammerHits
+PENDING_HIT_ADDR    = 0x80003B60
+OUTBOUND_HIT_ADDR   = 0x80003B88
 
-# Hit-kind codes (must match GhostPeers.h's kHitKind* constants).
+HIT_GRACE_ADDR      = 0x80003B8C
+
+SELF_TEAM_ID_ADDR        = 0x80003B8D
+SELF_FRIENDLY_FIRE_ADDR  = 0x80003B8E
+
+SFX_RING_ADDR        = 0x80003BA0
+SFX_RING_HEAD_ADDR   = SFX_RING_ADDR + 0
+SFX_RING_TAIL_ADDR   = SFX_RING_ADDR + 1
+SFX_RING_SEQ_ADDR    = SFX_RING_ADDR + 2
+SFX_RING_EVENTS_ADDR = SFX_RING_ADDR + 4
+SFX_RING_CAPACITY    = 32
+SFX_EVENT_BYTES      = 4
+
 HIT_KIND_HAMMER = 1
 
-# How far to the right of the player the ghost should appear, so it's
-# actually visible rather than co-located inside our model.
 GHOST_TEST_OFFSET_X = 50.0
 
-# GameCube disc header Game ID - used to verify DME is hooked to the correct process
 GAME_ID_ADDRESS = 0x80000000
 EXPECTED_GAME_ID = b"G8ME01"
 
@@ -135,7 +124,6 @@ def gsw_set(index, value):
 def gsw_check(index):
     return dolphin.read_word(GP_BASE + GSW0) if index == 0 else dolphin.read_byte(GP_BASE + index + GSW_BASE)
 
-
 def _strip_anim_suffix(name: str) -> str:
     """TTYD's animation names have suffixes encoding facing direction:
     M_S_1   = standing, front-facing
@@ -146,35 +134,10 @@ def _strip_anim_suffix(name: str) -> str:
     Side effect: the ghost will always play the front-facing variant
     even when the source player is facing away. That's a known limitation
     of the single-AGB approach we're using."""
-    # The suffix is 1-3 trailing capital letters from {L, R, W}. Walk
-    # backwards from the end stripping any of these letters.
+
     while name and name[-1] in "LRW":
         name = name[:-1]
     return name
-
-
-# ---------------------------------------------------------------------------
-# Feature mask at 0x80003C54 (mod-side bisection probe). Each bit gates
-# one piece of mod behavior; we touch only bit 3 (kFeatNameTags) here.
-# Default in mod is 0xFF (all on); we read-modify-write to flip just our
-# bit. Silent on Dolphin errors - the toggle is best-effort; the per-peer
-# `show_name` field in the published peer block is the authoritative path
-# for hiding our own name from other players. This bit only controls
-# whether WE locally render any name tags at all.
-# ---------------------------------------------------------------------------
-_FEATURE_MASK_ADDR = 0x80003C54
-_FEAT_NAMETAGS_BIT = 0x08
-
-def _feature_mask_set_nametags(visible: bool) -> None:
-    """Flip bit 3 of the mod's feature mask, leaving other bits alone."""
-    try:
-        cur = int.from_bytes(dolphin.read_bytes(_FEATURE_MASK_ADDR, 4), "big")
-        new = (cur | _FEAT_NAMETAGS_BIT) if visible else (cur & ~_FEAT_NAMETAGS_BIT)
-        if new != cur:
-            dolphin.write_bytes(_FEATURE_MASK_ADDR, new.to_bytes(4, "big"))
-    except Exception as e:
-        logger.warning(f"ghost_names: feature-mask write failed: {e}")
-
 
 def _read_self_state() -> dict | None:
     """Read the local Player struct in ONE IPC call and parse offsets
@@ -195,41 +158,17 @@ def _read_self_state() -> dict | None:
         if not (0x80000000 <= player_ptr < 0x81800000):
             return None
 
-        # One big read covering everything we need.
-        # Largest offset we read is mp+0x2D3 (jabara held-rest anim
-        # playhead, signed byte). 0x2D4 = 724 bytes is still a single
-        # IPC trip via Dolphin; the read isn't truly atomic against the
-        # running game but it's near-instantaneous and dramatically
-        # tighter than separate round-trips.
         buf = dolphin.read_bytes(player_ptr, 0x2D4)
 
-        # Parse fields by offset directly from the buffer.
-        # (No more multi-call tearing.)
         (flags2,) = struct.unpack_from(">I", buf, 0x4)
         (flags3,) = struct.unpack_from(">I", buf, 0xC)
         anim_ptr  = int.from_bytes(buf[0x18:0x1C], "big")
-        # mp+0x1C is a pointer to a C string for the active paper anim.
-        # NULL when paper mode is inactive. marioChgPaper sets this to
-        # an anim name string, marioPaperOff clears it to 0.
+
         paper_anim_ptr = int.from_bytes(buf[0x1C:0x20], "big")
         (motion_timer,) = struct.unpack_from(">H", buf, 0x28)
-        # motion_id at mp+0x2E identifies which mot_* function drives Mario's
-        # state. Used by the mod to apply per-motion fixups (e.g. tube/roll
-        # mode = 0x16 needs an extra 0.75 X scale). See marioMotTbl at
-        # 0x80310030 for the full enum: 0x15=slit, 0x16=roll, 0x18=plane,
-        # 0x19=ship, etc.
+
         (motion_id,) = struct.unpack_from(">H", buf, 0x2E)
-        # Position is computed as:
-        #   render_x = pos[0] + posOfs1[0] + posOfs2[0]
-        #   render_y = pos[1] + posOfs1[1] + posOfs2[1]
-        #   render_z = pos[2] + posOfs1[2] + posOfs2[2]
-        # (matches marioDisp at 0x80056FB8-FF8: it sums mp+0x8C, mp+0x98,
-        # and mp+0xA4 vectors before passing to PSMTXTrans).
-        #
-        # Without summing, mot_ship's bobble (encoded in posOfs1) and the
-        # dock-to-water lerp (encoded in posOfs2) are lost on the ghost,
-        # which appears stuck at its base position. Same applies to any
-        # other motion that uses positional offsets (jumps, hits, etc).
+
         (base_x,  base_y,  base_z)  = struct.unpack_from(">fff", buf, 0x8C)
         (ofs1_x,  ofs1_y,  ofs1_z)  = struct.unpack_from(">fff", buf, 0x98)
         (ofs2_x,  ofs2_y,  ofs2_z)  = struct.unpack_from(">fff", buf, 0xA4)
@@ -238,63 +177,30 @@ def _read_self_state() -> dict | None:
         z = base_z + ofs1_z + ofs2_z
         (camera_angle,) = struct.unpack_from(">f", buf, 0x19C)
         (rot_y,) = struct.unpack_from(">f", buf, 0x1AC)
-        # Pitch (mp+0xBC) and roll (mp+0xC4), in degrees. Used by:
-        #   - plane mode (motionId 0x18): rotX nose-up/down, rotZ banks turn
-        #   - tube/roll mode (motionId 0x16): both axes used for spinning
-        # marioDisp branches on mp+0x2E to choose rotation order, but the
-        # ghost just gets the same X/Y/Z values applied in the same order
-        # so visual ends up matching.
+
         (rot_x,) = struct.unpack_from(">f", buf, 0xBC)
         (rot_z,) = struct.unpack_from(">f", buf, 0xC4)
-        # Rotation pivot at mp+0xB0..0xBB (3 floats). marioDisp at
-        # 0x80056DA0 translates by -(B0,B4,B8) BEFORE rotations and by
-        # +(B0,B4,B8) AFTER, so rotations happen around this point and
-        # not the model origin. In idle this is (0,0,0) and the
-        # translates cancel out, but paper modes set it to wing-tip /
-        # tube-center / etc. Without applying it, paper-mode rotations
-        # spin the wrong axis or distort the model.
+
         (pivot_x, pivot_y, pivot_z) = struct.unpack_from(">fff", buf, 0xB0)
-        # Per-axis scale at mp+0xC8..0xD3. marioDisp at 0x80056C0C reads
-        # these and multiplies each by 2.0 (the base scale, or 1.2 in
-        # mini-Mario mode flag) for the final scale. Idle: (1,1,1).
-        # Paper modes: non-uniform - the tube/plane meshes have specific
-        # aspect ratios that need scaling beyond the bounds of the original
-        # Mario mesh. Without this the ghost is squished/stretched.
+
         (scale_x, scale_y, scale_z) = struct.unpack_from(">fff", buf, 0xC8)
-        # stretchY: additional Y-axis scale from mp+0x130, gated by flags1
-        # bit 0x01000000. marioDisp at 0x80056F8C tests this bit and only
-        # then applies PSMTXScale(1, mp+0x130, 1) after rotations. We
-        # pre-resolve here so the mod doesn't need to know about flags1:
-        # publish either mp+0x130 (when flag set) or 1.0 (a no-op scale).
-        # In normal play this is always 1.0; tube mode toggles the flag and
-        # sets mp+0x130 to compress the model on Y.
+
         (flags1,) = struct.unpack_from(">I", buf, 0x0)
         if flags1 & 0x01000000:
             (stretch_y,) = struct.unpack_from(">f", buf, 0x130)
         else:
             stretch_y = 1.0
 
-        # anim_name dereference - small extra read since the anim string
-        # lives elsewhere in memory, but we only do one extra read instead
-        # of doing it inline with all the others.
         anim_name = ""
         if 0x80000000 <= anim_ptr < 0x81800000:
             raw = dolphin.read_bytes(anim_ptr, 16)
             anim_name = raw.split(b"\x00", 1)[0].decode("ascii", errors="replace")
 
-        # paper_anim dereference - same pattern. Empty string when
-        # paper_anim_ptr is null/invalid -> mod treats this as "no paper
-        # anim" and clears any active one via SetPaperAnimGroup.
         paper_anim = ""
         if 0x80000000 <= paper_anim_ptr < 0x81800000:
             raw = dolphin.read_bytes(paper_anim_ptr, 16)
             paper_anim = raw.split(b"\x00", 1)[0].decode("ascii", errors="replace")
 
-        # paper_agb is the paper-pose AGB type (e.g. "a_kuru" for curl).
-        # Python can't call animPoseGetGroupName on the GameCube's pose
-        # objects, so the mod publishes it for us at a fixed address.
-        # When local Mario isn't in paper mode, the mod writes an empty
-        # string (zero bytes), which we read here as "".
         paper_agb = ""
         try:
             agb_raw = dolphin.read_bytes(
@@ -302,32 +208,15 @@ def _read_self_state() -> dict | None:
             paper_agb = agb_raw.split(b"\x00", 1)[0].decode(
                 "ascii", errors="replace")
         except Exception:
-            # If the read fails (e.g. mod not loaded yet), treat as "no paper"
+
             pass
-        # paper_local_time: a per-frame anim-playhead override for held
-        # anims that don't progress on their own. Two known cases:
-        #
-        # 1. mot_hammer2 (motion 0x13) at line 80097B94 with paper anim
-        #    "P_H_1A": animPoseSetLocalTime(activePoseId, mp+0x2C8 / 6.0).
-        #    mp+0x2C8 is the accumulated spin charge.
-        #
-        # 2. mot_jabara (motion 0x14) at line 80097738 with regular anim
-        #    "M_W_6" (held-shimmy on the pipe after the swing):
-        #      animPoseSetLocalTime(activePoseId, (float)(int8_t)mp+0x2D3)
-        #    mp+0x2D3 is a byte that increments 0..8 each frame then
-        #    clamps - so the held animation freezes at frame 8.
-        #    Without the override, the ghost keeps cycling M_W_6 instead
-        #    of holding still like local Mario.
-        #
-        # Sentinel: -1.0 means "no override" (since both mp+0x2C8 and
-        # mp+0x2D3 are non-negative). We publish 0.0 as a real override
-        # in case the playhead should genuinely be 0.
+
         paper_local_time = -1.0
         if motion_id == 0x13 and paper_anim == "P_H_1A":
             (spin_charge,) = struct.unpack_from(">f", buf, 0x2C8)
             paper_local_time = spin_charge / 6.0
         elif motion_id == 0x14 and anim_name == "M_W_6":
-            # mp+0x2D3 is a signed byte (int8_t).
+
             (mp_2d3,) = struct.unpack_from(">b", buf, 0x2D3)
             paper_local_time = float(mp_2d3)
     except Exception:
@@ -363,7 +252,6 @@ def _read_self_state() -> dict | None:
         "paper_local_time": paper_local_time,
     }
 
-
 def _write_peer_block(ctx) -> None:
     """Pack the current peer table into the binary block format and write
     it to Dolphin. Called from the sync loop each tick."""
@@ -376,6 +264,63 @@ def _write_peer_block(ctx) -> None:
     except Exception as e:
         logger.warning(f"Failed to write ghost block to Dolphin: {e}")
 
+async def _drain_sfx_ring(ctx) -> list:
+    """Read the mod's SFX event ring and return up to SFX_EVENTS_PER_SLOT
+    most-recent events as a list of {sfx_id, seq, flags} dicts. Advances
+    the ring's tail to mark events as consumed.
+
+    The ring is SPSC: mod pushes on every psndSFXOn[/3D] call (filtered),
+    Python pops once per publish tick. Capacity is 16 events; if more
+    than 4 fired since the last drain we keep only the most recent 4.
+
+    Returns [] on read failure or empty ring.
+
+    NOTE: dolphin_memory_engine's read/write_bytes are SYNCHRONOUS. Do
+    NOT wrap them in asyncio.wait_for - it raises TypeError silently
+    swallowed by bare except, leaving the ring undrained. (Was the bug
+    that stalled SFX sync v22-v23.)"""
+    try:
+        head_b = dolphin.read_bytes(SFX_RING_HEAD_ADDR, 1)
+        tail_b = dolphin.read_bytes(SFX_RING_TAIL_ADDR, 1)
+    except Exception:
+        return []
+    if not head_b or not tail_b:
+        return []
+
+    head = head_b[0]
+    tail = tail_b[0]
+    if head == tail:
+        return []
+
+    available = (head - tail) & 0xFF
+    if available > SFX_RING_CAPACITY:
+        available = SFX_RING_CAPACITY
+
+    events = []
+    cur = tail
+    for _ in range(available):
+        try:
+            raw = dolphin.read_bytes(
+                SFX_RING_EVENTS_ADDR + cur * SFX_EVENT_BYTES,
+                SFX_EVENT_BYTES)
+        except Exception:
+            break
+        if not raw or len(raw) < SFX_EVENT_BYTES:
+            break
+        sfx_id = (raw[0] << 8) | raw[1]
+        seq    = raw[2]
+        flags  = raw[3]
+        events.append({"sfx_id": sfx_id, "seq": seq, "flags": flags})
+        cur = (cur + 1) % SFX_RING_CAPACITY
+
+    try:
+        dolphin.write_bytes(SFX_RING_TAIL_ADDR, bytes([head]))
+    except Exception:
+        pass
+
+    if len(events) > Ghosts.SFX_EVENTS_PER_SLOT:
+        events = events[-Ghosts.SFX_EVENTS_PER_SLOT:]
+    return events
 
 async def _publish_self_state(ctx) -> None:
     """Read the local player's state from the game's Player struct and
@@ -387,67 +332,38 @@ async def _publish_self_state(ctx) -> None:
     if state is None:
         return
 
-    # Attach our display name so peers can render a name tag above our ghost.
-    # ctx.player_names is keyed by slot id; if missing, fall back to a stub.
     own_name = ""
     try:
         own_name = ctx.player_names.get(ctx.slot, "") or ""
     except Exception:
         pass
     state["slot_name"] = own_name[:16]
-    # Per-peer "hide my name tag" toggle (v18). Default (attribute
-    # missing) = 0 (show). Mod reads PeerSlot.showName: 0 = show,
-    # 1 = hide. Distinct from the local feature_mask bit which only
-    # affects what WE render.
+
     state["show_name"] = 1 if getattr(ctx, "_ghost_names_hidden", False) else 0
-    # Per-peer "I don't want to be hammered" toggle (v19). Default
-    # (attribute missing) = 0 (hammerable). Mod packs into
-    # PeerSlot.hammerable; attackers read this to decide whether to
-    # send a Bounce. The /ghost_hammer command flips
-    # ctx._ghost_hammer_optout for manual per-session control.
-    #
-    # We OR with the mod's iframe byte at HIT_GRACE_ADDR. The mod sets
-    # that byte to 1 for ~1.5s after a hit lands so we get post-hit
-    # invulnerability. Either source -> hammerable=1 on the wire.
+
     optout_manual = 1 if getattr(ctx, "_ghost_hammer_optout", False) else 0
     optout_grace = 0
     try:
-        grace_byte = await asyncio.wait_for(
-            dolphin.read_bytes(HIT_GRACE_ADDR, 1), timeout=0.05)
+        grace_byte = dolphin.read_bytes(HIT_GRACE_ADDR, 1)
         if grace_byte and grace_byte[0] != 0:
             optout_grace = 1
     except Exception:
-        # Dolphin not connected, hooks not installed, etc. - fall back
-        # to manual optout only. Worst case during grace is we get hit
-        # again; the mod's queue-side check still drops it.
         pass
     state["hammerable"] = 1 if (optout_manual or optout_grace) else 0
 
-    # Per-peer team membership (v20). Default 0 = no team. Set via
-    # /team join <color>. Other peers read PeerSlot.teamId; their
-    # attackers compare against their own self-team byte and skip
-    # same-team hits unless friendly fire is enabled.
     team_id = int(getattr(ctx, "_ghost_team_id", Ghosts.TEAM_NONE)) & 0xFF
     state["team_id"] = team_id
 
-    # Mirror local team + friendly-fire state into the mod's self-team
-    # scratch bytes. The mod reads these in CheckPeerHammerHits to
-    # decide whether to skip a candidate victim on team grounds.
-    # Friendly fire is local-only (we don't publish it - each player's
-    # own attacker logic reads their own FF flag).
     friendly_fire = 1 if getattr(ctx, "_ghost_friendly_fire", False) else 0
     try:
-        await asyncio.wait_for(
-            dolphin.write_bytes(SELF_TEAM_ID_ADDR, bytes([team_id])),
-            timeout=0.05)
-        await asyncio.wait_for(
-            dolphin.write_bytes(SELF_FRIENDLY_FIRE_ADDR, bytes([friendly_fire])),
-            timeout=0.05)
+        dolphin.write_bytes(SELF_TEAM_ID_ADDR, bytes([team_id]))
+        dolphin.write_bytes(SELF_FRIENDLY_FIRE_ADDR, bytes([friendly_fire]))
     except Exception:
-        # Dolphin not connected yet, hook not installed, etc. - the
-        # write fails silently. Mod will read whatever was last there
-        # (zeros at boot) which means "no team, FF off" - safe default.
         pass
+
+    sfx_events = await _drain_sfx_ring(ctx)
+    if sfx_events:
+        state["sfx_events"] = sfx_events
 
     await ctx.send_msgs([{
         "cmd":         "Set",
@@ -456,7 +372,6 @@ async def _publish_self_state(ctx) -> None:
         "want_reply":  False,
         "operations":  [{"operation": "replace", "value": state}],
     }])
-
 
 async def _publish_lobby_hud(ctx) -> None:
     """Serialize the local lobby state and write it to the mod's scratch
@@ -469,21 +384,16 @@ async def _publish_lobby_hud(ctx) -> None:
     if not getattr(ctx, "dolphin_connected", False):
         return
     if not getattr(ctx, "_lobby_hud_enabled", True):
-        # User toggled HUD off - mod sees magic mismatch and skips.
+
         await _clear_lobby_hud(ctx)
         return
 
     state = getattr(ctx, "_lobby", None)
     block = Ghosts.pack_lobby_block(state)
     try:
-        await asyncio.wait_for(
-            dolphin.write_bytes(Ghosts.LOBBY_HUD_ADDR, block),
-            timeout=0.2)
+        dolphin.write_bytes(Ghosts.LOBBY_HUD_ADDR, block)
     except Exception:
-        # Dolphin not ready, hooks not installed, etc. - silently
-        # retry on the next periodic tick.
         pass
-
 
 async def _clear_lobby_hud(ctx) -> None:
     """Write 4 zero bytes to the lobby HUD magic field. Mod sees the
@@ -492,12 +402,9 @@ async def _clear_lobby_hud(ctx) -> None:
     if not getattr(ctx, "dolphin_connected", False):
         return
     try:
-        await asyncio.wait_for(
-            dolphin.write_bytes(Ghosts.LOBBY_HUD_ADDR, Ghosts.LOBBY_CLEAR_MAGIC),
-            timeout=0.2)
+        dolphin.write_bytes(Ghosts.LOBBY_HUD_ADDR, Ghosts.LOBBY_CLEAR_MAGIC)
     except Exception:
         pass
-
 
 async def _subscribe_to_peers(ctx) -> None:
     if ctx.team is None or getattr(ctx, "_ghost_subscribed", False):
@@ -505,9 +412,7 @@ async def _subscribe_to_peers(ctx) -> None:
 
     keys = []
     for slot_id, slot_info in (ctx.slot_info or {}).items():
-        # Skip the synthetic Archipelago server slot (id 0), ourselves,
-        # and any non-player slots (groups, spectators) which won't be
-        # publishing ghost data.
+
         if slot_id == 0 or slot_id == ctx.slot:
             continue
         if slot_info.type != SlotType.player:
@@ -521,7 +426,6 @@ async def _subscribe_to_peers(ctx) -> None:
     await ctx.send_msgs([{"cmd": "Get",       "keys": keys}])
     ctx._ghost_subscribed = True
 
-
 def _on_ghost_update(ctx, args: dict) -> None:
     """Handle SetReply (live broadcast) and Retrieved (response to our Get).
     Both deliver peer state in slightly different shapes; we normalize and
@@ -530,13 +434,12 @@ def _on_ghost_update(ctx, args: dict) -> None:
         ctx._ghost_peers = {}
 
     if "keys" in args and isinstance(args["keys"], dict):
-        # Retrieved: {"keys": {key: value, ...}}
+
         for key, value in args["keys"].items():
             Ghosts.ingest_peer_update(ctx._ghost_peers, key, value)
     elif "key" in args:
-        # SetReply: {"key": ..., "value": ...}
-        Ghosts.ingest_peer_update(ctx._ghost_peers, args["key"], args.get("value"))
 
+        Ghosts.ingest_peer_update(ctx._ghost_peers, args["key"], args.get("value"))
 
 def _on_ghost_disconnect(ctx) -> None:
     """Reset subscription state, clear known peers, and zero the magic in
@@ -547,7 +450,6 @@ def _on_ghost_disconnect(ctx) -> None:
         dolphin.write_bytes(Ghosts.GHOSTS_ADDR, Ghosts.CLEAR_MAGIC)
     except Exception:
         pass
-
 
 def _peer_index_to_ap_slot(ctx, peer_index: int) -> typing.Optional[int]:
     """Translate a 0..31 peer-block index back to its AP slot ID.
@@ -567,12 +469,10 @@ def _peer_index_to_ap_slot(ctx, peer_index: int) -> typing.Optional[int]:
         return None
     key = sorted_keys[peer_index]
     try:
-        # Same parse Ghosts.pack_peer_block uses:
-        #   "ttyd_ghost_<team>_<slot>"  ->  int(slot)
+
         return int(key.rsplit("_", 1)[-1])
     except (ValueError, IndexError):
         return None
-
 
 async def _drain_outbound_hits(ctx) -> None:
     """Poll the mod's outbound-hit scratch slot. If non-zero, decode the
@@ -618,32 +518,18 @@ async def _drain_outbound_hits(ctx) -> None:
     kind = (word >> 24) & 0xFF
     peer_index = (word >> 16) & 0xFF
 
-    # Always clear the scratch before processing - this prevents a
-    # malformed event (unknown kind, bad index) from re-firing every
-    # tick if we early-return.
     try:
         dolphin.write_word(OUTBOUND_HIT_ADDR, 0)
     except Exception:
         pass
 
     if kind != HIT_KIND_HAMMER:
-        # Unknown hit kind; ignore.
+
         return
 
     target_slot = _peer_index_to_ap_slot(ctx, peer_index)
     if target_slot is None:
-        # Peer block index doesn't map to a real AP slot. This happens
-        # in two cases:
-        #   1. We're in a single-client test (e.g. /ghost_stress active)
-        #      and there are no real peers in _ghost_peers.
-        #   2. A peer disconnected between the mod's check and our drain.
-        #
-        # For (1), it's useful to short-circuit by writing PENDING_HIT
-        # ourselves so the local Mario plays the stagger as if we'd
-        # gotten a Bounce back. That gives a self-contained single-
-        # client test path: hit a stress ghost, see your own Mario react.
-        # For (2) the same fallback runs but harmlessly - we just play
-        # our own animation when there was nobody to send to.
+
         logger.debug(
             f"hit peer index {peer_index} doesn't resolve to an AP slot; "
             f"playing local stagger as a single-client loopback"
@@ -664,7 +550,6 @@ async def _drain_outbound_hits(ctx) -> None:
     except Exception:
         logger.exception("failed to send hammer hit Bounce")
 
-
 def _on_inbound_hit(ctx, data: dict) -> None:
     """Handle an inbound 'ttyd_hit' Bounce. Writes a kind code to the
     mod's PENDING_HIT scratch slot; the mod's per-frame consumer reads
@@ -684,17 +569,18 @@ def _on_inbound_hit(ctx, data: dict) -> None:
     if kind == "hammer":
         kind_code = HIT_KIND_HAMMER
     else:
-        return  # unknown / future kinds
+        return
 
     try:
-        # Write kind code into byte 0 (high byte of the big-endian u32).
-        # Matches GhostPeers.h's u8-in-byte-0 layout for kPendingHit.
+
         dolphin.write_word(PENDING_HIT_ADDR, (kind_code & 0xFF) << 24)
     except Exception:
         logger.exception("failed to write inbound hit to mod scratch")
 
+GHOST_TEST_DELAY_S = 0.0
 
-def _ghost_loopback_tick(ctx) -> None:
+
+async def _ghost_loopback_tick(ctx) -> None:
     if not getattr(ctx, "_ghost_loopback_active", False):
         return
 
@@ -710,181 +596,110 @@ def _ghost_loopback_tick(ctx) -> None:
         logger.info(f"ghost_test: state={state}")
         ctx._loopback_logged_state = True
 
-    fake_peer_state = dict(state)
-    fake_peer_state["x"] = state["x"] + GHOST_TEST_OFFSET_X
+    # Drain the SFX ring NOW (events that just fired on local Mario).
+    # Events go into a SEPARATE per-event delay deque so a flood doesn't
+    # exceed the wire format's 4-event-per-tick budget. The wire format
+    # cap was previously a loss point: drain could return up to 16
+    # events but only 4 fit in the slot, the other 12 were thrown away.
+    # Now they queue up and bleed out 4-at-a-time across ticks. With
+    # GHOST_TEST_DELAY_S delay applied per-event, a burst of 16 hammer
+    # SFX plays back over ~67ms (4 ticks at 60Hz) starting at delay.
+    sfx_events = await _drain_sfx_ring(ctx)
+    if sfx_events and not getattr(ctx, "_loopback_logged_first_drain", False):
+        logger.info(f"ghost_test: drained {len(sfx_events)} SFX events on first capture - example: {sfx_events[0]}")
+        ctx._loopback_logged_first_drain = True
+
+    pending_sfx = getattr(ctx, "_loopback_sfx_pending", None)
+    if pending_sfx is None:
+        # Cap at 256 events (~4 sec at peak engine SFX rate). Drops
+        # the OLDEST events on overflow, since recent events are more
+        # contextually relevant (e.g. you'd rather hear the current
+        # hammer impact than one that fired 5 seconds ago).
+        pending_sfx = collections.deque(maxlen=256)
+        ctx._loopback_sfx_pending = pending_sfx
+    now = asyncio.get_event_loop().time()
+    for ev in sfx_events:
+        pending_sfx.append((now, ev))
+
+    # Append (timestamp, state) to the position delay buffer. The
+    # buffer is a deque on ctx; if missing, init it.
+    buf = getattr(ctx, "_loopback_delay_buf", None)
+    if buf is None:
+        buf = collections.deque()
+        ctx._loopback_delay_buf = buf
+    buf.append((now, state))
+
+    # Pop everything older than (now - delay). Keep the most recently
+    # popped sample as our fake peer state - that's the snapshot from
+    # ~1s ago. Older samples are simply discarded - their SFX events
+    # are NOT lost because they live in the separate pending_sfx deque.
+    cutoff = now - GHOST_TEST_DELAY_S
+    delayed = None
+    while buf and buf[0][0] <= cutoff:
+        delayed = buf.popleft()
+
+    if delayed is None:
+        # Not enough history yet (first 1s after toggling on). Don't
+        # render anything; clear the magic so the mod doesn't keep
+        # rendering a stale ghost from before the toggle.
+        try:
+            dolphin.write_bytes(Ghosts.GHOSTS_ADDR, Ghosts.CLEAR_MAGIC)
+        except Exception:
+            pass
+        return
+
+    _, delayed_state = delayed
+
+    # Pull events from the pending deque whose delay has elapsed.
+    # Maintain a sliding window of the last SFX_EVENTS_PER_SLOT events
+    # in the wire format - events persist for multiple ticks, giving
+    # the mod multiple read opportunities. The mod's seq-based dedup
+    # naturally handles duplicate reads: events that have already been
+    # replayed get filtered out by lastConsumedSfxSeq.
+    #
+    # Why this matters: Python writes the wire format at 60Hz, the mod
+    # reads it at 60Hz, but the two clocks aren't synchronized. If
+    # Python emits an event for one tick only and the mod's frame
+    # boundary falls between the write and the next overwrite, the
+    # event is silently lost. Persisting events across ticks gives
+    # multiple read chances, eliminating this race.
+    sliding = getattr(ctx, "_loopback_sfx_window", None)
+    if sliding is None:
+        sliding = collections.deque(maxlen=Ghosts.SFX_EVENTS_PER_SLOT)
+        ctx._loopback_sfx_window = sliding
+
+    # Bleed events from pending into the wire-format window at a rate
+    # of 1 event per tick. Combined with the sliding window's
+    # SFX_EVENTS_PER_SLOT (=4) capacity, this guarantees each event
+    # spends ~4 ticks in the wire format before being evicted, giving
+    # the mod 4 independent read opportunities even under timing
+    # jitter. At 60Hz that's ~67ms of persistence per event.
+    #
+    # Burst handling: 16 rapid events drain across 16 ticks (~267ms),
+    # but each event gets its full ~67ms window. The seq dedup on the
+    # mod side handles repeated reads of the same window correctly.
+    if pending_sfx:
+        ts, ev = pending_sfx[0]
+        if ts <= cutoff:
+            pending_sfx.popleft()
+            sliding.append(ev)
+
+    fake_peer_state = dict(delayed_state)
+    fake_peer_state["x"] = delayed_state["x"] + GHOST_TEST_OFFSET_X
     fake_peer_state["slot_name"] = "GHOST"
+    if sliding:
+        fake_peer_state["sfx_events"] = list(sliding)
+
     fake_peers = {Ghosts.ghost_key(0, 99): fake_peer_state}
 
     try:
         payload = Ghosts.pack_peer_block(fake_peers)
         dolphin.write_bytes(Ghosts.GHOSTS_ADDR, payload)
         if not getattr(ctx, "_loopback_logged_write", False):
-            logger.info(f"ghost_test: wrote {len(payload)} bytes to 0x{Ghosts.GHOSTS_ADDR:08X}")
+            logger.info(f"ghost_test: wrote {len(payload)} bytes to 0x{Ghosts.GHOSTS_ADDR:08X} (delay={GHOST_TEST_DELAY_S:.1f}s)")
             ctx._loopback_logged_write = True
     except Exception as e:
         logger.warning(f"ghost_test write failed: {e}")
-
-
-# Radius (in game units) of the ring of synthetic ghosts around the anchor.
-# 100 is roughly 2-3 Mario widths, distinct enough to see all 8 separately.
-GHOST_STRESS_RADIUS = 100.0
-
-
-def _ghost_stress_tick(ctx) -> None:
-    """Publish N synthetic peers in a static ring around the toggle-on
-    anchor point. Each peer holds the idle animation regardless of what
-    the local player is doing - they don't follow you, they don't turn
-    with you, they don't mirror your walk/run/hammer. Distinct palette
-    colors (assigned by Ghosts.pack_peer_block based on slot index) let
-    you tell them apart visually.
-
-    Anchored at the position captured when /ghost_stress was toggled on.
-    To re-anchor, toggle off and on again at the new spot.
-
-    Count is read from ctx._ghost_stress_count (set when the test is
-    toggled on). Defaults to 8 if missing for any reason."""
-    if not getattr(ctx, "_ghost_stress_active", False):
-        return
-
-    count = getattr(ctx, "_ghost_stress_count", 8)
-
-    anchor = getattr(ctx, "_ghost_stress_anchor", None)
-    if anchor is None:
-        return
-    ax, ay, az, amap = anchor
-
-    # Read self-state only to get a few baseline scalar fields we need
-    # in the published peer block (slot_name source, etc.). We do NOT
-    # use anim / rot_y / flags2 / flags3 / motion_timer / position from
-    # the local player - those are explicitly overridden below to keep
-    # the ghosts static.
-    #
-    # If the read fails (player on a load screen, between maps, etc.)
-    # we just skip this tick - no harm, the ghosts will resume on the
-    # next successful read.
-    state = _read_self_state()
-    if state is None:
-        return
-
-    # Larger rings need a bigger radius to not overlap. Scale roughly
-    # with sqrt(count) so 32 ghosts fit nicely without overlapping.
-    radius = GHOST_STRESS_RADIUS * math.sqrt(count / 8.0)
-
-    # Read the live hit-pose-name buffer from mod RAM. Whatever's there
-    # gets applied to ghost P90 (the first ring slot) so we can iterate
-    # on which animation feels right by editing 0x80003B70 in Dolphin's
-    # memory editor and watching P90 play it. The ghost's animPoseSetAnim
-    # transition path (in GhostPeers.cpp) fires forceReset=1 every time
-    # the published anim name changes, so the new anim takes effect on
-    # the first tick after we edit the buffer.
-    #
-    # Other ghosts (P91..) stay on "M_S_1" idle as a visual baseline.
-    #
-    # If the read fails or the buffer is empty/unterminated, fall back
-    # to "M_S_1" (same as the other ghosts - test ghost won't appear
-    # different until you write a valid name to the buffer).
-    test_anim = "M_S_1"
-    try:
-        # 16 bytes, NUL-terminated ASCII. The buffer address matches
-        # GhostPeers.h's kHitPoseNameAddress.
-        raw = dolphin.read_bytes(0x80003B70, 16)
-        nul = raw.find(b"\x00")
-        if nul > 0:
-            candidate = raw[:nul].decode("ascii", errors="ignore")
-            # Only override if it's a non-trivial anim name. Empty or
-            # whitespace falls through to the M_S_1 default.
-            if candidate.strip():
-                test_anim = candidate
-    except Exception:
-        # Couldn't read RAM (Dolphin not connected?). Stick with default.
-        pass
-
-    fake_peers = {}
-    for i in range(count):
-        angle = (i / float(count)) * 2.0 * math.pi
-
-        # Build a static peer from scratch instead of cloning self-state.
-        # Every motion-derived field is fixed: idle anim, zero rotation
-        # (or use angle to face outward), zeroed flags / timers.
-        #
-        # The first TWO ghosts in the ring are anim test slots:
-        #
-        #   P90 (i==0): test_anim played on the FORWARD/body pose
-        #               (AGB: a_mario). flags2 = 0 routes here.
-        #
-        #   P91 (i==1): test_anim played on the EFFECTS pose
-        #               (AGB: e_mario). flags2 = 0x10000000 routes here.
-        #
-        # Whichever AGB the anim actually lives in, one of the two will
-        # play it; the other will silently no-op (animPoseSetAnim
-        # returns without effect when the anim isn't in the pose's AGB).
-        #
-        # This means we can edit 0x80003B70 with any anim name from
-        # either AGB and immediately see which ghost picks it up.
-        # P90 = body anims (M_S_1, M_W_1, M_R_1, M_H_*, M_D_2, M_D_6, etc.)
-        # P91 = effects/expression anims (M_F_1, M_D_7, M_I_5, M_N_*, etc.)
-        if i == 0:
-            anim_for_peer = test_anim
-            flags2_for_peer = 0
-        elif i == 1:
-            anim_for_peer = test_anim
-            flags2_for_peer = 0x10000000
-        else:
-            anim_for_peer = "M_S_1"
-            flags2_for_peer = 0
-
-        peer = {
-            "map":              amap,
-            "anim":             anim_for_peer,
-            "x":                ax + radius * math.cos(angle),
-            "y":                ay,
-            "z":                az + radius * math.sin(angle),
-            # Face each ghost outward from the ring center so they're
-            # visually distinguishable but still don't rotate as the
-            # local player turns. Yaw in degrees; angle is in radians.
-            "rot_y":            math.degrees(angle),
-            "flags2":           flags2_for_peer,
-            "flags3":           0,         # no left/right yaw flip
-            "motion_timer":     0,
-            "motion_id":        0,         # mot_stay
-            "camera_angle":     0.0,
-            "rot_x":            0.0,
-            "rot_z":            0.0,
-            "rot_pivot_x":      0.0,
-            "rot_pivot_y":      0.0,
-            "rot_pivot_z":      0.0,
-            "scale_x":          1.0,
-            "scale_y":          1.0,
-            "scale_z":          1.0,
-            "stretch_y":        1.0,
-            "paper_agb":        "",
-            "paper_anim":       "",
-            # -1.0 = "let the engine tick the playhead naturally per frame".
-            # Publishing 0.0 here would pin the anim to frame 0 every frame,
-            # which makes the anim play one frame and then reset (visible
-            # as a freeze on frame 0/1).
-            "paper_local_time": -1.0,
-            # Synthetic name tag - lets us verify the name rendering works
-            # without needing real multi-client setup. Each ghost gets a
-            # distinct label so we can spot which slot is which.
-            "slot_name":        f"P{90 + i}",
-        }
-        # Use ghost_key so pack_peer_block parses the slot index correctly.
-        # We use slot ids 90..(90+count-1) to avoid collision with the
-        # loopback test (slot 99) and with real player slots.
-        fake_peers[Ghosts.ghost_key(0, 90 + i)] = peer
-
-    try:
-        payload = Ghosts.pack_peer_block(fake_peers)
-        dolphin.write_bytes(Ghosts.GHOSTS_ADDR, payload)
-        if not getattr(ctx, "_stress_logged_write", False):
-            logger.info(f"ghost_stress: wrote {len(payload)} bytes "
-                        f"({len(fake_peers)} peers) to "
-                        f"0x{Ghosts.GHOSTS_ADDR:08X}")
-            ctx._stress_logged_write = True
-    except Exception as e:
-        logger.warning(f"ghost_stress write failed: {e}")
-
 
 class TTYDCommandProcessor(ClientCommandProcessor):
     def __init__(self, ctx: cmmCtx):
@@ -913,68 +728,34 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         """Toggle the single-player ghost loopback test."""
         ctx = self.ctx
         ctx._ghost_loopback_active = not getattr(ctx, "_ghost_loopback_active", False)
+        ctx._loopback_logged_first_drain = False
+        ctx._loopback_logged_write = False
+        ctx._loopback_delay_buf = collections.deque()
+        ctx._loopback_sfx_pending = collections.deque(maxlen=256)
+        ctx._loopback_sfx_window = collections.deque(maxlen=Ghosts.SFX_EVENTS_PER_SLOT)
         if ctx._ghost_loopback_active:
-            logger.info("Ghost loopback test ON. A translucent ghost should "
-                        "appear ~100 units to your right and trail your movement.")
+            if GHOST_TEST_DELAY_S > 0.0:
+                logger.info(f"Ghost loopback test ON. A translucent ghost should "
+                            f"appear ~100 units to your right and trail your "
+                            f"actions by {GHOST_TEST_DELAY_S:.1f}s (delay enabled "
+                            f"for solo SFX/animation testing).")
+            else:
+                logger.info("Ghost loopback test ON. A translucent ghost should "
+                            "appear ~100 units to your right, mirroring your "
+                            "actions instantly (no delay).")
+
+            try:
+                dolphin.write_bytes(SFX_RING_HEAD_ADDR, bytes([0, 0, 0, 0]))
+                logger.info("SFX ring zeroed for fresh capture.")
+            except Exception as e:
+                logger.warning(f"ghost_test SFX ring zero failed: {e}")
         else:
             logger.info("Ghost loopback test OFF.")
-            # Zero the magic so the mod stops rendering immediately.
+
             try:
                 dolphin.write_bytes(Ghosts.GHOSTS_ADDR, Ghosts.CLEAR_MAGIC)
             except Exception:
                 pass
-
-    def _start_ghost_stress(self, count: int):
-        """Shared toggle helper for /ghost_stress and /ghost_stress_32."""
-        ctx = self.ctx
-
-        # Toggling off if already running (regardless of count).
-        if getattr(ctx, "_ghost_stress_active", False):
-            ctx._ghost_stress_active = False
-            ctx._ghost_stress_anchor = None
-            ctx._ghost_stress_count = 0
-            ctx._stress_logged_write = False
-            logger.info("Ghost stress test OFF.")
-            try:
-                dolphin.write_bytes(Ghosts.GHOSTS_ADDR, Ghosts.CLEAR_MAGIC)
-            except Exception:
-                pass
-            return
-
-        # Clamp to mod's MAX_PEERS so we don't write garbage past the block.
-        count = max(1, min(count, Ghosts.MAX_PEERS))
-
-        # Toggling on - capture current position as the ring anchor
-        state = _read_self_state()
-        if state is None:
-            logger.info("ghost_stress: cannot enable - _read_self_state returned None. "
-                        "Are you in a map?")
-            return
-        ctx._ghost_stress_anchor = (state["x"], state["y"], state["z"], state["map"])
-        ctx._ghost_stress_active = True
-        ctx._ghost_stress_count = count
-        ctx._stress_logged_write = False
-        logger.info(f"Ghost stress test ON. {count} static ghosts in a ring "
-                    f"anchored at ({state['x']:.1f}, {state['z']:.1f}) on "
-                    f"map '{state['map']}'.")
-
-    def _cmd_ghost_stress(self):
-        """Toggle the 8-ghost stress test. Spawns 8 synthetic peers in a
-        static ring at your current position, each holding the idle anim
-        with a distinct color. The ghosts don't move, don't rotate, and
-        don't mirror your motion - useful for hammer-detection testing
-        and any other scenario where you want stable targets to walk
-        around. To re-anchor the ring, toggle off and on again at the
-        new spot. Disable the loopback test (/ghost_test) first to avoid
-        both writing to the same shared block."""
-        self._start_ghost_stress(8)
-
-    def _cmd_ghost_stress_32(self):
-        """Toggle the 32-ghost stress test. Same as /ghost_stress but with
-        32 static peers - the mod's full kMaxPeers capacity. Ring radius
-        is auto-scaled so the ghosts don't overlap. Re-running the command
-        toggles OFF (regardless of which size was active)."""
-        self._start_ghost_stress(32)
 
     def _cmd_ghost_names(self, mode: str = "toggle"):
         """Toggle ghost name tags. Affects both what you see (other
@@ -1001,14 +782,6 @@ class TTYDCommandProcessor(ClientCommandProcessor):
 
         ctx._ghost_names_hidden = new_hidden
 
-        # Layer 1 (local view): flip mod's feature_mask bit 3 so OUR
-        # client stops drawing name tags at all.
-        _feature_mask_set_nametags(visible=not new_hidden)
-
-        # Layer 2 (peers' view of us): the publish task picks up the
-        # new flag automatically on the next 20Hz tick. Force one
-        # immediate publish so peers see the change without a 50ms
-        # window.
         try:
             asyncio.create_task(_publish_self_state(ctx))
         except Exception:
@@ -1089,7 +862,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         if not peers:
             logger.info("No peers visible.")
             return
-        # Group peers by team. Each peer dict has "team_id" and "slot_name".
+
         by_team = {}
         for state in peers.values():
             if not isinstance(state, dict):
@@ -1097,7 +870,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             tid = int(state.get("team_id", 0))
             name = str(state.get("slot_name", "") or "?")
             by_team.setdefault(tid, []).append(name)
-        # Print sorted by team id (puts no-team first).
+
         for tid in sorted(by_team.keys()):
             label = Ghosts.TEAM_LABELS.get(tid, f"(?{tid})") or "no team"
             members = ", ".join(sorted(by_team[tid]))
@@ -1137,14 +910,6 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             asyncio.create_task(_publish_self_state(ctx))
         except Exception:
             pass
-
-    # -----------------------------------------------------------------
-    # Minigame lobby commands.
-    # -----------------------------------------------------------------
-    # Step 1: client-side state + display only. No network sync yet
-    # (lobbies are local). /lobby create makes a 1-person lobby visible
-    # only on your screen. Multi-player coordination via AP DataStorage
-    # comes in a later step.
 
     def _cmd_lobby(self, *args):
         """Manage minigame lobbies. Step 1: local-only (no cross-player
@@ -1195,8 +960,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         if not name:
             logger.info("lobby: name cannot be empty.")
             return
-        # Resolve our own player name from AP context. Falls back to
-        # "Host" if we don't have it yet.
+
         own_name = ""
         try:
             own_name = (ctx.player_names.get(ctx.slot, "") or "")[:16]
@@ -1319,8 +1083,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             return
         ctx._lobby_hud_enabled = new
         logger.info(f"Lobby HUD {'ON' if new else 'OFF'}.")
-        # When turning off, immediately clear the magic so the mod stops
-        # rendering this frame (don't wait for next publish tick).
+
         if not new:
             try:
                 asyncio.create_task(_clear_lobby_hud(ctx))
@@ -1337,7 +1100,6 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             asyncio.create_task(_publish_lobby_hud(self.ctx))
         except Exception:
             pass
-
 
 class TTYDContext(cmmCtx):
     command_processor = TTYDCommandProcessor
@@ -1382,10 +1144,7 @@ class TTYDContext(cmmCtx):
         elif cmd == "SetReply":
             _on_ghost_update(self, args)
         elif cmd == "Bounced":
-            # Bounce is a generic relay used by DeathLink and any other
-            # mod that wants point-to-point messaging via the AP server.
-            # We filter on the "ttyd_hit" discriminator so we only act
-            # on our own hammer hits and ignore unrelated traffic.
+
             data = args.get("data") or {}
             if data.get("ttyd_hit") is True:
                 _on_inbound_hit(self, data)
@@ -1419,12 +1178,12 @@ class TTYDContext(cmmCtx):
     async def receive_items(self):
         current_length = dolphin.read_word(RECEIVED_LENGTH)
         if current_length > 255:
-            return  # Garbage data, skip
+            return
         if current_length > 0:
             return
         index = dolphin.read_word(RECEIVED_INDEX)
         if index > len(self.items_received):
-            return  # Garbage data, skip
+            return
         items = min(len(self.items_received) - index, 255)
         if items <= 0:
             return
@@ -1433,7 +1192,6 @@ class TTYDContext(cmmCtx):
         dolphin.write_bytes(RECEIVED_ITEM_ARRAY, packed_data)
         dolphin.write_word(RECEIVED_LENGTH, items)
         dolphin.write_word(RECEIVED_INDEX, index + items)
-
 
     async def check_ttyd_locations(self):
         locations_to_send = set()
@@ -1459,7 +1217,7 @@ class TTYDContext(cmmCtx):
     async def check_death(self):
         death_byte = dolphin.read_byte(0x80003240)
         if death_byte > 1:
-            return  # Garbage data, skip
+            return
         if death_byte == 1:
             dolphin.write_byte(0x80003240, 0)
             if not self.death_sent:
@@ -1469,9 +1227,8 @@ class TTYDContext(cmmCtx):
     def save_loaded(self) -> bool:
         value = dolphin.read_byte(0x80003228)
         if value > 1:
-            return False  # Garbage data
+            return False
         return value > 0
-
 
 async def _run_game(rom: str):
     import os
@@ -1495,8 +1252,6 @@ async def _patch_and_run_game(patch_file: str):
     Utils.async_start(_run_game(output_file))
     return metadata
 
-
-
 async def ttyd_ghost_loopback_task(ctx: TTYDContext):
     """Dedicated fast loop for the loopback test only. Runs at ~60 Hz to
     match the game's frame rate so the ghost has no visible lag behind
@@ -1506,37 +1261,14 @@ async def ttyd_ghost_loopback_task(ctx: TTYDContext):
         if (dolphin.is_hooked() and ctx.dolphin_connected
                 and getattr(ctx, "_ghost_loopback_active", False)):
             try:
-                _ghost_loopback_tick(ctx)
+                await _ghost_loopback_tick(ctx)
             except Exception:
                 logger.exception("ghost loopback tick error")
         await asyncio.sleep(1.0 / 60)
 
-
-async def ttyd_ghost_stress_task(ctx: TTYDContext):
-    """Dedicated fast loop for the 8-ghost stress test. Runs at ~60 Hz to
-    match the game's frame rate so the synthetic ghosts have no visible
-    lag behind the local player. No-op unless /ghost_stress is on, so
-    this has zero cost in normal play."""
-    while not ctx.exit_event.is_set():
-        if (dolphin.is_hooked() and ctx.dolphin_connected
-                and getattr(ctx, "_ghost_stress_active", False)):
-            try:
-                _ghost_stress_tick(ctx)
-            except Exception:
-                logger.exception("ghost stress tick error")
-        await asyncio.sleep(1.0 / 60)
-
-
-# How often to publish our own state to AP DataStorage (in seconds).
-# Too fast = chatty network; too slow = ghosts visibly lag. AP can handle
-# 30Hz for this kind of frequent update fine; 20Hz is a safe default.
 GHOST_PUBLISH_INTERVAL_S = 1.0 / 20.0
 
-# How often to repaint the peer block in Dolphin RAM (in seconds).
-# Should match the game frame rate (60Hz) so peers move smoothly even
-# between network updates.
 GHOST_RENDER_INTERVAL_S = 1.0 / 60.0
-
 
 async def ttyd_ghost_sync_task(ctx: TTYDContext):
     """Real-AP ghost sync. Two responsibilities:
@@ -1547,8 +1279,8 @@ async def ttyd_ghost_sync_task(ctx: TTYDContext):
     2. Repaint the peer block (received from AP via SetReply / Retrieved)
        into Dolphin RAM at ~60Hz so the mod can render peers smoothly.
 
-    Both are no-ops if the loopback or stress tests are active - those
-    write the block themselves and we'd otherwise overwrite each other.
+    Both are no-ops if the loopback test is active - it writes the block
+    itself and we'd otherwise overwrite each other.
 
     This task does NOT do any locations/items work; that's ttyd_sync_task's
     job. We split them because ghost sync runs much faster than the game
@@ -1562,31 +1294,19 @@ async def ttyd_ghost_sync_task(ctx: TTYDContext):
         if ctx.team is None or ctx.slot is None:
             continue
 
-        # Drain outbound hammer-hit events from the mod (per-tick).
-        # We do this BEFORE the loopback/stress gates because those tests
-        # only own the peer block writing - the outbound-hit slot is a
-        # separate channel and the mod will keep writing to it during
-        # stress tests (since /ghost_stress is the primary way to test
-        # the attacker-side hit pipeline). The read is a single u32 from
-        # Dolphin RAM, cheap to do unconditionally.
         try:
             await _drain_outbound_hits(ctx)
         except Exception:
             logger.exception("ghost outbound-hit drain error")
 
-        # Loopback / stress tests own the block while active. Don't fight them.
         if getattr(ctx, "_ghost_loopback_active", False):
             continue
-        if getattr(ctx, "_ghost_stress_active", False):
-            continue
 
-        # Render: write peer block every tick so peers track smoothly.
         try:
             _write_peer_block(ctx)
         except Exception:
             logger.exception("ghost render tick error")
 
-        # Publish: throttled to GHOST_PUBLISH_INTERVAL_S.
         now = asyncio.get_event_loop().time()
         if now - last_publish >= GHOST_PUBLISH_INTERVAL_S:
             last_publish = now
@@ -1594,21 +1314,12 @@ async def ttyd_ghost_sync_task(ctx: TTYDContext):
                 await _publish_self_state(ctx)
             except Exception:
                 logger.exception("ghost publish error")
-            # Lobby HUD is local-only state for now (single-client),
-            # but we still publish on the same cadence so the mod's
-            # HUD reflects the ctx state. Same throttle since the HUD
-            # contents don't change between ticks unless a command
-            # mutates them (in which case _publish_lobby_now fires
-            # an immediate write outside this loop).
+
             try:
                 await _publish_lobby_hud(ctx)
             except Exception:
                 logger.exception("lobby hud publish error")
 
-
-# Sends player items from server
-# Checks for player status to see if they are in/loading a level
-# Checks location status inside of levels
 async def ttyd_sync_task(ctx: TTYDContext):
     logger.info("Starting Dolphin connector...")
     while not ctx.exit_event.is_set():
@@ -1652,10 +1363,10 @@ async def ttyd_sync_task(ctx: TTYDContext):
                     await ctx.check_ttyd_locations()
 
                     goal = ctx.slot_data.get("goal", 0)
-                    if goal == 1: # Shadow Queen
+                    if goal == 1:
                         if not ctx.finished_game and gsw_check(1708) >= 18:
                             await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
-                    elif goal == 2: # Crystal Stars
+                    elif goal == 2:
                         star_count = dolphin.read_byte(0x8000323B)
                         if not ctx.finished_game and star_count <= 7 and star_count >= ctx.slot_data["goal_stars"]:
                             await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
@@ -1703,7 +1414,6 @@ def trigger_death(ctx: TTYDContext):
         ctx.death_sent = True
         dolphin.write_byte(0x8000323F, 1)
 
-
 def launch(*args):
     async def main(args):
         if args.patch_file:
@@ -1711,7 +1421,7 @@ def launch(*args):
         ctx = TTYDContext(args.connect, args.password)
         ctx.server_task = asyncio.create_task(server_loop(ctx), name="ServerLoop")
         if gui_enabled:
-            if tracker_loaded:  # UT Connection
+            if tracker_loaded:
                 ctx.run_generator()
             ctx.run_gui()
         ctx.run_cli()
@@ -1720,8 +1430,6 @@ def launch(*args):
             ttyd_ghost_sync_task(ctx), name="GhostSync")
         ctx.ghost_loopback_task = asyncio.create_task(
             ttyd_ghost_loopback_task(ctx), name="GhostLoopback")
-        ctx.ghost_stress_task = asyncio.create_task(
-            ttyd_ghost_stress_task(ctx), name="GhostStress")
 
         await ctx.exit_event.wait()
         ctx.server_address = None
