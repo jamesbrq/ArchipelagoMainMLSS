@@ -36,6 +36,25 @@ PLAYER_POSITION_OFFSET  = 0x8C   # vec3 (3 floats, big-endian)
 PLAYER_ROTATION_Y_OFFSET = 0x1AC  # float
 ANIM_NAME_READ_LEN = 32
 
+# Mod-side scratch slots in Dolphin RAM (matches GhostPeers.h).
+# Edited live with Dolphin's memory editor for tuning, or read/written
+# by this client for inter-process events.
+HIT_POSE_NAME_ADDR  = 0x80003B70  # 16 bytes, ASCII pose name (live-tunable)
+HIT_REACH_SCALE_ADDR = 0x80003B80  # float, attacker reach multiplier
+HIT_PEER_WIDTH_ADDR  = 0x80003B84  # float, peer hitbox radius
+PENDING_HIT_ADDR    = 0x80003B60  # u32, client -> mod: byte 0 = hit kind
+OUTBOUND_HIT_ADDR   = 0x80003B88  # u32, mod -> client: hit detected
+                                   # byte 0 = kind, byte 1 = peer index
+HIT_GRACE_ADDR      = 0x80003B8C  # u8, mod -> client: 1 = in iframes, 0 = hittable
+                                   # ORed into the published `hammerable` field
+                                   # so other attackers skip us during grace.
+SELF_TEAM_ID_ADDR        = 0x80003B8D  # u8, client -> mod: local team id (0..4)
+SELF_FRIENDLY_FIRE_ADDR  = 0x80003B8E  # u8, client -> mod: 1 = FF on, 0 = FF off
+                                       # Mod reads both in CheckPeerHammerHits
+
+# Hit-kind codes (must match GhostPeers.h's kHitKind* constants).
+HIT_KIND_HAMMER = 1
+
 # How far to the right of the player the ghost should appear, so it's
 # actually visible rather than co-located inside our model.
 GHOST_TEST_OFFSET_X = 50.0
@@ -132,6 +151,29 @@ def _strip_anim_suffix(name: str) -> str:
     while name and name[-1] in "LRW":
         name = name[:-1]
     return name
+
+
+# ---------------------------------------------------------------------------
+# Feature mask at 0x80003C54 (mod-side bisection probe). Each bit gates
+# one piece of mod behavior; we touch only bit 3 (kFeatNameTags) here.
+# Default in mod is 0xFF (all on); we read-modify-write to flip just our
+# bit. Silent on Dolphin errors - the toggle is best-effort; the per-peer
+# `show_name` field in the published peer block is the authoritative path
+# for hiding our own name from other players. This bit only controls
+# whether WE locally render any name tags at all.
+# ---------------------------------------------------------------------------
+_FEATURE_MASK_ADDR = 0x80003C54
+_FEAT_NAMETAGS_BIT = 0x08
+
+def _feature_mask_set_nametags(visible: bool) -> None:
+    """Flip bit 3 of the mod's feature mask, leaving other bits alone."""
+    try:
+        cur = int.from_bytes(dolphin.read_bytes(_FEATURE_MASK_ADDR, 4), "big")
+        new = (cur | _FEAT_NAMETAGS_BIT) if visible else (cur & ~_FEAT_NAMETAGS_BIT)
+        if new != cur:
+            dolphin.write_bytes(_FEATURE_MASK_ADDR, new.to_bytes(4, "big"))
+    except Exception as e:
+        logger.warning(f"ghost_names: feature-mask write failed: {e}")
 
 
 def _read_self_state() -> dict | None:
@@ -353,6 +395,59 @@ async def _publish_self_state(ctx) -> None:
     except Exception:
         pass
     state["slot_name"] = own_name[:16]
+    # Per-peer "hide my name tag" toggle (v18). Default (attribute
+    # missing) = 0 (show). Mod reads PeerSlot.showName: 0 = show,
+    # 1 = hide. Distinct from the local feature_mask bit which only
+    # affects what WE render.
+    state["show_name"] = 1 if getattr(ctx, "_ghost_names_hidden", False) else 0
+    # Per-peer "I don't want to be hammered" toggle (v19). Default
+    # (attribute missing) = 0 (hammerable). Mod packs into
+    # PeerSlot.hammerable; attackers read this to decide whether to
+    # send a Bounce. The /ghost_hammer command flips
+    # ctx._ghost_hammer_optout for manual per-session control.
+    #
+    # We OR with the mod's iframe byte at HIT_GRACE_ADDR. The mod sets
+    # that byte to 1 for ~1.5s after a hit lands so we get post-hit
+    # invulnerability. Either source -> hammerable=1 on the wire.
+    optout_manual = 1 if getattr(ctx, "_ghost_hammer_optout", False) else 0
+    optout_grace = 0
+    try:
+        grace_byte = await asyncio.wait_for(
+            dolphin.read_bytes(HIT_GRACE_ADDR, 1), timeout=0.05)
+        if grace_byte and grace_byte[0] != 0:
+            optout_grace = 1
+    except Exception:
+        # Dolphin not connected, hooks not installed, etc. - fall back
+        # to manual optout only. Worst case during grace is we get hit
+        # again; the mod's queue-side check still drops it.
+        pass
+    state["hammerable"] = 1 if (optout_manual or optout_grace) else 0
+
+    # Per-peer team membership (v20). Default 0 = no team. Set via
+    # /team join <color>. Other peers read PeerSlot.teamId; their
+    # attackers compare against their own self-team byte and skip
+    # same-team hits unless friendly fire is enabled.
+    team_id = int(getattr(ctx, "_ghost_team_id", Ghosts.TEAM_NONE)) & 0xFF
+    state["team_id"] = team_id
+
+    # Mirror local team + friendly-fire state into the mod's self-team
+    # scratch bytes. The mod reads these in CheckPeerHammerHits to
+    # decide whether to skip a candidate victim on team grounds.
+    # Friendly fire is local-only (we don't publish it - each player's
+    # own attacker logic reads their own FF flag).
+    friendly_fire = 1 if getattr(ctx, "_ghost_friendly_fire", False) else 0
+    try:
+        await asyncio.wait_for(
+            dolphin.write_bytes(SELF_TEAM_ID_ADDR, bytes([team_id])),
+            timeout=0.05)
+        await asyncio.wait_for(
+            dolphin.write_bytes(SELF_FRIENDLY_FIRE_ADDR, bytes([friendly_fire])),
+            timeout=0.05)
+    except Exception:
+        # Dolphin not connected yet, hook not installed, etc. - the
+        # write fails silently. Mod will read whatever was last there
+        # (zeros at boot) which means "no team, FF off" - safe default.
+        pass
 
     await ctx.send_msgs([{
         "cmd":         "Set",
@@ -361,6 +456,47 @@ async def _publish_self_state(ctx) -> None:
         "want_reply":  False,
         "operations":  [{"operation": "replace", "value": state}],
     }])
+
+
+async def _publish_lobby_hud(ctx) -> None:
+    """Serialize the local lobby state and write it to the mod's scratch
+    RAM at LOBBY_HUD_ADDR. Mod's DrawLobbyHud reads this and renders the
+    overlay each frame.
+
+    Safe to call repeatedly. Cheap (single 1KB write per call). If the
+    user has the HUD toggled off, we instead clear the magic so the
+    mod stops rendering."""
+    if not getattr(ctx, "dolphin_connected", False):
+        return
+    if not getattr(ctx, "_lobby_hud_enabled", True):
+        # User toggled HUD off - mod sees magic mismatch and skips.
+        await _clear_lobby_hud(ctx)
+        return
+
+    state = getattr(ctx, "_lobby", None)
+    block = Ghosts.pack_lobby_block(state)
+    try:
+        await asyncio.wait_for(
+            dolphin.write_bytes(Ghosts.LOBBY_HUD_ADDR, block),
+            timeout=0.2)
+    except Exception:
+        # Dolphin not ready, hooks not installed, etc. - silently
+        # retry on the next periodic tick.
+        pass
+
+
+async def _clear_lobby_hud(ctx) -> None:
+    """Write 4 zero bytes to the lobby HUD magic field. Mod sees the
+    mismatch and skips rendering this frame. Cheaper than packing a
+    full inactive block."""
+    if not getattr(ctx, "dolphin_connected", False):
+        return
+    try:
+        await asyncio.wait_for(
+            dolphin.write_bytes(Ghosts.LOBBY_HUD_ADDR, Ghosts.LOBBY_CLEAR_MAGIC),
+            timeout=0.2)
+    except Exception:
+        pass
 
 
 async def _subscribe_to_peers(ctx) -> None:
@@ -413,6 +549,151 @@ def _on_ghost_disconnect(ctx) -> None:
         pass
 
 
+def _peer_index_to_ap_slot(ctx, peer_index: int) -> typing.Optional[int]:
+    """Translate a 0..31 peer-block index back to its AP slot ID.
+
+    The mod-side hit detector returns "I hit slot N" where N is the
+    position of the peer in the 32-slot block. Ghosts.pack_peer_block
+    sorts peers by key (ttyd_ghost_<team>_<slot>) before packing, so
+    we replicate the same sort here and pick the entry at index N.
+
+    Returns None if the index is out of range or the peer dict has
+    fewer entries than the index, or if we can't parse the slot from
+    the key. The caller should treat None as "drop the event."
+    """
+    peers = getattr(ctx, "_ghost_peers", None) or {}
+    sorted_keys = sorted(peers.keys())
+    if peer_index < 0 or peer_index >= len(sorted_keys):
+        return None
+    key = sorted_keys[peer_index]
+    try:
+        # Same parse Ghosts.pack_peer_block uses:
+        #   "ttyd_ghost_<team>_<slot>"  ->  int(slot)
+        return int(key.rsplit("_", 1)[-1])
+    except (ValueError, IndexError):
+        return None
+
+
+async def _drain_outbound_hits(ctx) -> None:
+    """Poll the mod's outbound-hit scratch slot. If non-zero, decode the
+    event, look up the AP slot ID for the targeted peer, send a Bounce
+    packet, and clear the slot.
+
+    Wire format (matches GhostPeers.h's PackOutboundHit):
+      byte 0 = hit kind (HIT_KIND_HAMMER = 1)
+      byte 1 = peer block index (0..31)
+      byte 2-3 = reserved (0)
+
+    Bounce packet shape:
+      {
+        "cmd": "Bounce",
+        "slots": [<victim AP slot id>],
+        "data": {
+          "ttyd_hit": True,    # discriminator - distinguishes our
+                               # bounces from DeathLink and other
+                               # generic Bounce traffic
+          "from": <our slot>,
+          "kind": "hammer",
+        }
+      }
+
+    The discriminator key is critical: Bounce is a free-form generic
+    relay, so DeathLink bounces, other mods' bounces, and ours all
+    arrive in the same on_package handler. We tag with "ttyd_hit" so
+    the receiver can filter cheaply.
+
+    No-ops if not connected to a slot, or if the lookup fails (we
+    silently clear the scratch and move on - dropping rare events is
+    better than blocking the loop).
+    """
+    if ctx.team is None or ctx.slot is None:
+        return
+    try:
+        word = dolphin.read_word(OUTBOUND_HIT_ADDR)
+    except Exception:
+        return
+    if word == 0:
+        return
+
+    kind = (word >> 24) & 0xFF
+    peer_index = (word >> 16) & 0xFF
+
+    # Always clear the scratch before processing - this prevents a
+    # malformed event (unknown kind, bad index) from re-firing every
+    # tick if we early-return.
+    try:
+        dolphin.write_word(OUTBOUND_HIT_ADDR, 0)
+    except Exception:
+        pass
+
+    if kind != HIT_KIND_HAMMER:
+        # Unknown hit kind; ignore.
+        return
+
+    target_slot = _peer_index_to_ap_slot(ctx, peer_index)
+    if target_slot is None:
+        # Peer block index doesn't map to a real AP slot. This happens
+        # in two cases:
+        #   1. We're in a single-client test (e.g. /ghost_stress active)
+        #      and there are no real peers in _ghost_peers.
+        #   2. A peer disconnected between the mod's check and our drain.
+        #
+        # For (1), it's useful to short-circuit by writing PENDING_HIT
+        # ourselves so the local Mario plays the stagger as if we'd
+        # gotten a Bounce back. That gives a self-contained single-
+        # client test path: hit a stress ghost, see your own Mario react.
+        # For (2) the same fallback runs but harmlessly - we just play
+        # our own animation when there was nobody to send to.
+        logger.debug(
+            f"hit peer index {peer_index} doesn't resolve to an AP slot; "
+            f"playing local stagger as a single-client loopback"
+        )
+        _on_inbound_hit(ctx, {"ttyd_hit": True, "kind": "hammer", "from": ctx.slot})
+        return
+
+    try:
+        await ctx.send_msgs([{
+            "cmd":   "Bounce",
+            "slots": [target_slot],
+            "data":  {
+                "ttyd_hit": True,
+                "from":     ctx.slot,
+                "kind":     "hammer",
+            },
+        }])
+    except Exception:
+        logger.exception("failed to send hammer hit Bounce")
+
+
+def _on_inbound_hit(ctx, data: dict) -> None:
+    """Handle an inbound 'ttyd_hit' Bounce. Writes a kind code to the
+    mod's PENDING_HIT scratch slot; the mod's per-frame consumer reads
+    that on the next tick, plays the configured pose, and triggers the
+    sound.
+
+    Optional opt-out: if ctx._ghost_hammer_optout is set, ignore the
+    incoming hit. (The /ghost_hammer command flips this flag; it
+    lets a player turn off receiving stagger animations entirely.)
+    Note that opt-out is only advisory - the attacker can still send
+    Bounces; we just don't play the reaction.
+    """
+    if getattr(ctx, "_ghost_hammer_optout", False):
+        return
+
+    kind = data.get("kind")
+    if kind == "hammer":
+        kind_code = HIT_KIND_HAMMER
+    else:
+        return  # unknown / future kinds
+
+    try:
+        # Write kind code into byte 0 (high byte of the big-endian u32).
+        # Matches GhostPeers.h's u8-in-byte-0 layout for kPendingHit.
+        dolphin.write_word(PENDING_HIT_ADDR, (kind_code & 0xFF) << 24)
+    except Exception:
+        logger.exception("failed to write inbound hit to mod scratch")
+
+
 def _ghost_loopback_tick(ctx) -> None:
     if not getattr(ctx, "_ghost_loopback_active", False):
         return
@@ -450,12 +731,15 @@ GHOST_STRESS_RADIUS = 100.0
 
 
 def _ghost_stress_tick(ctx) -> None:
-    """Publish N synthetic peers in a ring around the local player. Each
-    peer mirrors the local player's animation, rotation, and flag state -
-    they all walk/idle/yawn in sync. Distinct palette colors (assigned
-    by Ghosts.pack_peer_block based on slot index) let you tell them
-    apart visually. The ring follows the player's current position each
-    tick, so as you move all peers move with you.
+    """Publish N synthetic peers in a static ring around the toggle-on
+    anchor point. Each peer holds the idle animation regardless of what
+    the local player is doing - they don't follow you, they don't turn
+    with you, they don't mirror your walk/run/hammer. Distinct palette
+    colors (assigned by Ghosts.pack_peer_block based on slot index) let
+    you tell them apart visually.
+
+    Anchored at the position captured when /ghost_stress was toggled on.
+    To re-anchor, toggle off and on again at the new spot.
 
     Count is read from ctx._ghost_stress_count (set when the test is
     toggled on). Defaults to 8 if missing for any reason."""
@@ -464,34 +748,127 @@ def _ghost_stress_tick(ctx) -> None:
 
     count = getattr(ctx, "_ghost_stress_count", 8)
 
+    anchor = getattr(ctx, "_ghost_stress_anchor", None)
+    if anchor is None:
+        return
+    ax, ay, az, amap = anchor
+
+    # Read self-state only to get a few baseline scalar fields we need
+    # in the published peer block (slot_name source, etc.). We do NOT
+    # use anim / rot_y / flags2 / flags3 / motion_timer / position from
+    # the local player - those are explicitly overridden below to keep
+    # the ghosts static.
+    #
+    # If the read fails (player on a load screen, between maps, etc.)
+    # we just skip this tick - no harm, the ghosts will resume on the
+    # next successful read.
     state = _read_self_state()
     if state is None:
         return
-
-    # Center the ring on the player's CURRENT position each tick. The
-    # anchor captured at toggle-on time is no longer used as a position;
-    # we keep it only to verify the test was enabled in a valid state.
-    cx = state["x"]
-    cy = state["y"]
-    cz = state["z"]
-    cmap = state["map"]
 
     # Larger rings need a bigger radius to not overlap. Scale roughly
     # with sqrt(count) so 32 ghosts fit nicely without overlapping.
     radius = GHOST_STRESS_RADIUS * math.sqrt(count / 8.0)
 
+    # Read the live hit-pose-name buffer from mod RAM. Whatever's there
+    # gets applied to ghost P90 (the first ring slot) so we can iterate
+    # on which animation feels right by editing 0x80003B70 in Dolphin's
+    # memory editor and watching P90 play it. The ghost's animPoseSetAnim
+    # transition path (in GhostPeers.cpp) fires forceReset=1 every time
+    # the published anim name changes, so the new anim takes effect on
+    # the first tick after we edit the buffer.
+    #
+    # Other ghosts (P91..) stay on "M_S_1" idle as a visual baseline.
+    #
+    # If the read fails or the buffer is empty/unterminated, fall back
+    # to "M_S_1" (same as the other ghosts - test ghost won't appear
+    # different until you write a valid name to the buffer).
+    test_anim = "M_S_1"
+    try:
+        # 16 bytes, NUL-terminated ASCII. The buffer address matches
+        # GhostPeers.h's kHitPoseNameAddress.
+        raw = dolphin.read_bytes(0x80003B70, 16)
+        nul = raw.find(b"\x00")
+        if nul > 0:
+            candidate = raw[:nul].decode("ascii", errors="ignore")
+            # Only override if it's a non-trivial anim name. Empty or
+            # whitespace falls through to the M_S_1 default.
+            if candidate.strip():
+                test_anim = candidate
+    except Exception:
+        # Couldn't read RAM (Dolphin not connected?). Stick with default.
+        pass
+
     fake_peers = {}
     for i in range(count):
         angle = (i / float(count)) * 2.0 * math.pi
-        peer = dict(state)  # copy anim, rot_y, flags2, flags3, motion_timer
-        peer["map"] = cmap
-        peer["x"]   = cx + radius * math.cos(angle)
-        peer["y"]   = cy
-        peer["z"]   = cz + radius * math.sin(angle)
-        # Synthetic name tag - lets us verify the name rendering works
-        # without needing real multi-client setup. Each ghost gets a
-        # distinct label so we can spot which slot is which.
-        peer["slot_name"] = f"P{90 + i}"
+
+        # Build a static peer from scratch instead of cloning self-state.
+        # Every motion-derived field is fixed: idle anim, zero rotation
+        # (or use angle to face outward), zeroed flags / timers.
+        #
+        # The first TWO ghosts in the ring are anim test slots:
+        #
+        #   P90 (i==0): test_anim played on the FORWARD/body pose
+        #               (AGB: a_mario). flags2 = 0 routes here.
+        #
+        #   P91 (i==1): test_anim played on the EFFECTS pose
+        #               (AGB: e_mario). flags2 = 0x10000000 routes here.
+        #
+        # Whichever AGB the anim actually lives in, one of the two will
+        # play it; the other will silently no-op (animPoseSetAnim
+        # returns without effect when the anim isn't in the pose's AGB).
+        #
+        # This means we can edit 0x80003B70 with any anim name from
+        # either AGB and immediately see which ghost picks it up.
+        # P90 = body anims (M_S_1, M_W_1, M_R_1, M_H_*, M_D_2, M_D_6, etc.)
+        # P91 = effects/expression anims (M_F_1, M_D_7, M_I_5, M_N_*, etc.)
+        if i == 0:
+            anim_for_peer = test_anim
+            flags2_for_peer = 0
+        elif i == 1:
+            anim_for_peer = test_anim
+            flags2_for_peer = 0x10000000
+        else:
+            anim_for_peer = "M_S_1"
+            flags2_for_peer = 0
+
+        peer = {
+            "map":              amap,
+            "anim":             anim_for_peer,
+            "x":                ax + radius * math.cos(angle),
+            "y":                ay,
+            "z":                az + radius * math.sin(angle),
+            # Face each ghost outward from the ring center so they're
+            # visually distinguishable but still don't rotate as the
+            # local player turns. Yaw in degrees; angle is in radians.
+            "rot_y":            math.degrees(angle),
+            "flags2":           flags2_for_peer,
+            "flags3":           0,         # no left/right yaw flip
+            "motion_timer":     0,
+            "motion_id":        0,         # mot_stay
+            "camera_angle":     0.0,
+            "rot_x":            0.0,
+            "rot_z":            0.0,
+            "rot_pivot_x":      0.0,
+            "rot_pivot_y":      0.0,
+            "rot_pivot_z":      0.0,
+            "scale_x":          1.0,
+            "scale_y":          1.0,
+            "scale_z":          1.0,
+            "stretch_y":        1.0,
+            "paper_agb":        "",
+            "paper_anim":       "",
+            # -1.0 = "let the engine tick the playhead naturally per frame".
+            # Publishing 0.0 here would pin the anim to frame 0 every frame,
+            # which makes the anim play one frame and then reset (visible
+            # as a freeze on frame 0/1).
+            "paper_local_time": -1.0,
+            # Synthetic name tag - lets us verify the name rendering works
+            # without needing real multi-client setup. Each ghost gets a
+            # distinct label so we can spot which slot is which.
+            "slot_name":        f"P{90 + i}",
+        }
         # Use ghost_key so pack_peer_block parses the slot index correctly.
         # We use slot ids 90..(90+count-1) to avoid collision with the
         # loopback test (slot 99) and with real player slots.
@@ -577,23 +954,389 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         ctx._ghost_stress_active = True
         ctx._ghost_stress_count = count
         ctx._stress_logged_write = False
-        logger.info(f"Ghost stress test ON. {count} ghosts in a ring around "
-                    f"({state['x']:.1f}, {state['z']:.1f}) on map '{state['map']}'.")
+        logger.info(f"Ghost stress test ON. {count} static ghosts in a ring "
+                    f"anchored at ({state['x']:.1f}, {state['z']:.1f}) on "
+                    f"map '{state['map']}'.")
 
     def _cmd_ghost_stress(self):
-        """Toggle the 8-ghost stress test. Generates 8 synthetic peers in a
-        ring around your current position, each mirroring your animation
-        state with a distinct color. Use to validate the mod handles 8
-        concurrent ghosts. Disable the loopback test (/ghost_test) first
-        to avoid both writing to the same shared block."""
+        """Toggle the 8-ghost stress test. Spawns 8 synthetic peers in a
+        static ring at your current position, each holding the idle anim
+        with a distinct color. The ghosts don't move, don't rotate, and
+        don't mirror your motion - useful for hammer-detection testing
+        and any other scenario where you want stable targets to walk
+        around. To re-anchor the ring, toggle off and on again at the
+        new spot. Disable the loopback test (/ghost_test) first to avoid
+        both writing to the same shared block."""
         self._start_ghost_stress(8)
 
     def _cmd_ghost_stress_32(self):
         """Toggle the 32-ghost stress test. Same as /ghost_stress but with
-        32 synthetic peers - the mod's full kMaxPeers capacity. Ring radius
+        32 static peers - the mod's full kMaxPeers capacity. Ring radius
         is auto-scaled so the ghosts don't overlap. Re-running the command
         toggles OFF (regardless of which size was active)."""
         self._start_ghost_stress(32)
+
+    def _cmd_ghost_names(self, mode: str = "toggle"):
+        """Toggle ghost name tags. Affects both what you see (other
+        players' name tags above their ghosts) and what others see of
+        you (your name tag above your ghost on their screens). Defaults
+        ON each session; not persisted across reconnect.
+
+        Usage: /ghost_names         - toggle current state
+               /ghost_names on      - force on
+               /ghost_names off     - force off
+        """
+        ctx = self.ctx
+        m = (mode or "toggle").strip().lower()
+        cur_hidden = getattr(ctx, "_ghost_names_hidden", False)
+        if m in ("on", "show", "1", "true"):
+            new_hidden = False
+        elif m in ("off", "hide", "0", "false"):
+            new_hidden = True
+        elif m in ("toggle", "t", ""):
+            new_hidden = not cur_hidden
+        else:
+            logger.info(f"ghost_names: unknown mode '{mode}'. Use on/off/toggle.")
+            return
+
+        ctx._ghost_names_hidden = new_hidden
+
+        # Layer 1 (local view): flip mod's feature_mask bit 3 so OUR
+        # client stops drawing name tags at all.
+        _feature_mask_set_nametags(visible=not new_hidden)
+
+        # Layer 2 (peers' view of us): the publish task picks up the
+        # new flag automatically on the next 20Hz tick. Force one
+        # immediate publish so peers see the change without a 50ms
+        # window.
+        try:
+            asyncio.create_task(_publish_self_state(ctx))
+        except Exception:
+            pass
+
+        logger.info(f"Ghost name tags {'OFF' if new_hidden else 'ON'} "
+                    f"(both your view and peers' view of you).")
+
+    def _cmd_ghost_team(self, *args):
+        """Set, clear, or query your team membership. Teams are local to
+        this AP team's visibility scope (you only see/hit peers on your
+        AP team to begin with). Same-team peers don't hammer each other
+        unless friendly fire is enabled (/ghost_friendly_fire).
+
+        Defaults to no team each session; not persisted across reconnect.
+
+        Usage: /ghost_team join <color>  - join red/blue/green/yellow
+               /ghost_team leave         - clear your team
+               /ghost_team status        - show your team + FF state
+               /ghost_team list          - show all visible peers' teams
+        """
+        ctx = self.ctx
+        if not args:
+            self._cmd_ghost_team_status()
+            return
+
+        sub = args[0].strip().lower()
+        if sub in ("join", "j", "set"):
+            if len(args) < 2:
+                logger.info("ghost_team: usage: /ghost_team join <red|blue|green|yellow>")
+                return
+            color = args[1].strip().lower()
+            team_id = Ghosts.TEAM_NAMES.get(color)
+            if team_id is None or team_id == Ghosts.TEAM_NONE:
+                logger.info(f"ghost_team: unknown color '{color}'. "
+                            f"Use red, blue, green, or yellow.")
+                return
+            ctx._ghost_team_id = team_id
+            label = Ghosts.TEAM_LABELS.get(team_id, str(team_id))
+            logger.info(f"Joined team {label}.")
+            try:
+                asyncio.create_task(_publish_self_state(ctx))
+            except Exception:
+                pass
+
+        elif sub in ("leave", "l", "clear", "none"):
+            ctx._ghost_team_id = Ghosts.TEAM_NONE
+            logger.info("Left team. You are no longer aligned.")
+            try:
+                asyncio.create_task(_publish_self_state(ctx))
+            except Exception:
+                pass
+
+        elif sub in ("status", "s", "?"):
+            self._cmd_ghost_team_status()
+
+        elif sub in ("list", "ls"):
+            self._cmd_ghost_team_list()
+
+        else:
+            logger.info(f"ghost_team: unknown subcommand '{sub}'. "
+                        f"Use join/leave/status/list.")
+
+    def _cmd_ghost_team_status(self):
+        ctx = self.ctx
+        team_id = int(getattr(ctx, "_ghost_team_id", Ghosts.TEAM_NONE))
+        ff = bool(getattr(ctx, "_ghost_friendly_fire", False))
+        label = Ghosts.TEAM_LABELS.get(team_id, "(unknown)")
+        if team_id == Ghosts.TEAM_NONE:
+            logger.info("Team: none. Friendly fire: "
+                        f"{'ON' if ff else 'OFF'} (only matters with a team).")
+        else:
+            logger.info(f"Team: {label}. Friendly fire: {'ON' if ff else 'OFF'}.")
+
+    def _cmd_ghost_team_list(self):
+        ctx = self.ctx
+        peers = getattr(ctx, "_ghost_peers", {}) or {}
+        if not peers:
+            logger.info("No peers visible.")
+            return
+        # Group peers by team. Each peer dict has "team_id" and "slot_name".
+        by_team = {}
+        for state in peers.values():
+            if not isinstance(state, dict):
+                continue
+            tid = int(state.get("team_id", 0))
+            name = str(state.get("slot_name", "") or "?")
+            by_team.setdefault(tid, []).append(name)
+        # Print sorted by team id (puts no-team first).
+        for tid in sorted(by_team.keys()):
+            label = Ghosts.TEAM_LABELS.get(tid, f"(?{tid})") or "no team"
+            members = ", ".join(sorted(by_team[tid]))
+            logger.info(f"  {label}: {members}")
+
+    def _cmd_ghost_friendly_fire(self, mode: str = "toggle"):
+        """Toggle friendly fire. When ON, you can hammer same-team peers
+        normally. When OFF (default), same-team hits are filtered out
+        on the attacker side. Per-session, not persisted.
+
+        FF is asymmetric: only YOUR setting governs YOUR swings. If
+        teammates have different FF settings, behaviors don't cancel
+        out - each player's hits are filtered (or not) by their own
+        flag.
+
+        Usage: /ghost_friendly_fire        - toggle
+               /ghost_friendly_fire on     - enable FF
+               /ghost_friendly_fire off    - disable FF
+        """
+        ctx = self.ctx
+        m = (mode or "toggle").strip().lower()
+        cur = bool(getattr(ctx, "_ghost_friendly_fire", False))
+        if m in ("on", "1", "true", "enable"):
+            new = True
+        elif m in ("off", "0", "false", "disable"):
+            new = False
+        elif m in ("toggle", "t", ""):
+            new = not cur
+        else:
+            logger.info(f"ghost_friendly_fire: unknown mode '{mode}'. "
+                        f"Use on/off/toggle.")
+            return
+
+        ctx._ghost_friendly_fire = new
+        logger.info(f"Friendly fire {'ON' if new else 'OFF'}.")
+        try:
+            asyncio.create_task(_publish_self_state(ctx))
+        except Exception:
+            pass
+
+    # -----------------------------------------------------------------
+    # Minigame lobby commands.
+    # -----------------------------------------------------------------
+    # Step 1: client-side state + display only. No network sync yet
+    # (lobbies are local). /lobby create makes a 1-person lobby visible
+    # only on your screen. Multi-player coordination via AP DataStorage
+    # comes in a later step.
+
+    def _cmd_lobby(self, *args):
+        """Manage minigame lobbies. Step 1: local-only (no cross-player
+        sync). The HUD shows your lobby state in the top-right corner
+        once a lobby is active.
+
+        Usage: /lobby create <name>      - create a new local lobby (you = host)
+               /lobby leave              - exit current lobby
+               /lobby status             - print lobby info to chat
+               /lobby game <type>        - host: set game (hide_and_seek)
+               /lobby start              - host: transition to playing
+               /lobby stop               - host: transition back to waiting
+               /lobby hud on/off/toggle  - toggle the in-game HUD overlay
+        """
+        ctx = self.ctx
+        if not args:
+            self._cmd_lobby_status()
+            return
+
+        sub = args[0].strip().lower()
+        if sub == "create":
+            self._cmd_lobby_create(*args[1:])
+        elif sub == "leave":
+            self._cmd_lobby_leave()
+        elif sub in ("status", "info", "?"):
+            self._cmd_lobby_status()
+        elif sub == "game":
+            self._cmd_lobby_game(*args[1:])
+        elif sub == "start":
+            self._cmd_lobby_start()
+        elif sub == "stop":
+            self._cmd_lobby_stop()
+        elif sub == "hud":
+            self._cmd_lobby_hud(*args[1:])
+        else:
+            logger.info(f"lobby: unknown subcommand '{sub}'. "
+                        f"Use create/leave/status/game/start/stop/hud.")
+
+    def _cmd_lobby_create(self, *name_parts):
+        ctx = self.ctx
+        if getattr(ctx, "_lobby", None) is not None:
+            logger.info("lobby: you're already in a lobby. /lobby leave first.")
+            return
+        if not name_parts:
+            logger.info("lobby: usage: /lobby create <name>")
+            return
+        name = " ".join(name_parts).strip()
+        if not name:
+            logger.info("lobby: name cannot be empty.")
+            return
+        # Resolve our own player name from AP context. Falls back to
+        # "Host" if we don't have it yet.
+        own_name = ""
+        try:
+            own_name = (ctx.player_names.get(ctx.slot, "") or "")[:16]
+        except Exception:
+            pass
+        if not own_name:
+            own_name = "Host"
+        slot = int(getattr(ctx, "slot", 0) or 0)
+
+        ctx._lobby = Ghosts.LobbyState(
+            lobby_id=f"local_{slot}",
+            name=name[:16],
+            game_type=Ghosts.GAME_TYPE_NONE,
+            status=Ghosts.LOBBY_STATUS_WAITING,
+            members=[Ghosts.LobbyMember(slot=slot, name=own_name,
+                                        role=Ghosts.LOBBY_ROLE_HOST)],
+            self_slot=slot,
+        )
+        logger.info(f"Created lobby '{name}' (you are host).")
+        self._publish_lobby_now()
+
+    def _cmd_lobby_leave(self):
+        ctx = self.ctx
+        if getattr(ctx, "_lobby", None) is None:
+            logger.info("lobby: you're not in a lobby.")
+            return
+        ctx._lobby = None
+        logger.info("Left the lobby.")
+        self._publish_lobby_now()
+
+    def _cmd_lobby_status(self):
+        ctx = self.ctx
+        st = getattr(ctx, "_lobby", None)
+        if st is None:
+            logger.info("Not in a lobby. /lobby create <name> to start one.")
+            return
+        game_label = Ghosts.GAME_TYPE_LABELS.get(st.game_type, "(none)") or "(none)"
+        status_label = Ghosts.LOBBY_STATUS_LABELS.get(st.status, "?")
+        logger.info(f"Lobby: {st.name}")
+        logger.info(f"  Game: {game_label}")
+        logger.info(f"  Status: {status_label}")
+        if st.timer_seconds > 0:
+            logger.info(f"  Timer: {st.timer_seconds}s")
+        logger.info(f"  Members ({len(st.members)}):")
+        for m in st.members:
+            role_label = Ghosts.LOBBY_ROLE_LABELS.get(m.role, "")
+            tag = f" [{role_label}]" if role_label else ""
+            marker = "" if m.alive else " (out)"
+            logger.info(f"    {m.name}{tag}{marker}")
+
+    def _cmd_lobby_game(self, *args):
+        ctx = self.ctx
+        st = getattr(ctx, "_lobby", None)
+        if st is None:
+            logger.info("lobby: not in a lobby.")
+            return
+        if not st.is_host():
+            logger.info("lobby: only the host can change game type.")
+            return
+        if not args:
+            logger.info("lobby: usage: /lobby game <type>. "
+                        "Available: hide_and_seek")
+            return
+        gtype = args[0].strip().lower()
+        gid = Ghosts.GAME_TYPE_NAMES.get(gtype)
+        if gid is None:
+            logger.info(f"lobby: unknown game type '{gtype}'. "
+                        f"Available: hide_and_seek")
+            return
+        st.game_type = gid
+        label = Ghosts.GAME_TYPE_LABELS.get(gid, "")
+        logger.info(f"Lobby game type set to {label}.")
+        self._publish_lobby_now()
+
+    def _cmd_lobby_start(self):
+        ctx = self.ctx
+        st = getattr(ctx, "_lobby", None)
+        if st is None:
+            logger.info("lobby: not in a lobby.")
+            return
+        if not st.is_host():
+            logger.info("lobby: only the host can start the game.")
+            return
+        if st.game_type == Ghosts.GAME_TYPE_NONE:
+            logger.info("lobby: set a game type first (/lobby game <type>).")
+            return
+        if st.status == Ghosts.LOBBY_STATUS_PLAYING:
+            logger.info("lobby: already playing.")
+            return
+        st.status = Ghosts.LOBBY_STATUS_PLAYING
+        logger.info("Lobby started.")
+        self._publish_lobby_now()
+
+    def _cmd_lobby_stop(self):
+        ctx = self.ctx
+        st = getattr(ctx, "_lobby", None)
+        if st is None:
+            logger.info("lobby: not in a lobby.")
+            return
+        if not st.is_host():
+            logger.info("lobby: only the host can stop the game.")
+            return
+        st.status = Ghosts.LOBBY_STATUS_WAITING
+        logger.info("Lobby stopped.")
+        self._publish_lobby_now()
+
+    def _cmd_lobby_hud(self, mode: str = "toggle"):
+        """Toggle the in-game lobby HUD overlay."""
+        ctx = self.ctx
+        m = (mode or "toggle").strip().lower()
+        cur = bool(getattr(ctx, "_lobby_hud_enabled", True))
+        if m in ("on", "show", "1", "true"):
+            new = True
+        elif m in ("off", "hide", "0", "false"):
+            new = False
+        elif m in ("toggle", "t", ""):
+            new = not cur
+        else:
+            logger.info(f"lobby_hud: unknown mode '{mode}'. Use on/off/toggle.")
+            return
+        ctx._lobby_hud_enabled = new
+        logger.info(f"Lobby HUD {'ON' if new else 'OFF'}.")
+        # When turning off, immediately clear the magic so the mod stops
+        # rendering this frame (don't wait for next publish tick).
+        if not new:
+            try:
+                asyncio.create_task(_clear_lobby_hud(ctx))
+            except Exception:
+                pass
+        else:
+            self._publish_lobby_now()
+
+    def _publish_lobby_now(self):
+        """Helper: kick off an immediate publish of the current lobby
+        state to the mod's scratch RAM. Don't wait for the periodic
+        tick - we want the HUD to update instantly when commands fire."""
+        try:
+            asyncio.create_task(_publish_lobby_hud(self.ctx))
+        except Exception:
+            pass
 
 
 class TTYDContext(cmmCtx):
@@ -638,6 +1381,14 @@ class TTYDContext(cmmCtx):
             self.seed_name = args["seed_name"]
         elif cmd == "SetReply":
             _on_ghost_update(self, args)
+        elif cmd == "Bounced":
+            # Bounce is a generic relay used by DeathLink and any other
+            # mod that wants point-to-point messaging via the AP server.
+            # We filter on the "ttyd_hit" discriminator so we only act
+            # on our own hammer hits and ignore unrelated traffic.
+            data = args.get("data") or {}
+            if data.get("ttyd_hit") is True:
+                _on_inbound_hit(self, data)
 
     def on_deathlink(self, data: typing.Dict[str, typing.Any]) -> None:
         super().on_deathlink(data)
@@ -810,6 +1561,19 @@ async def ttyd_ghost_sync_task(ctx: TTYDContext):
             continue
         if ctx.team is None or ctx.slot is None:
             continue
+
+        # Drain outbound hammer-hit events from the mod (per-tick).
+        # We do this BEFORE the loopback/stress gates because those tests
+        # only own the peer block writing - the outbound-hit slot is a
+        # separate channel and the mod will keep writing to it during
+        # stress tests (since /ghost_stress is the primary way to test
+        # the attacker-side hit pipeline). The read is a single u32 from
+        # Dolphin RAM, cheap to do unconditionally.
+        try:
+            await _drain_outbound_hits(ctx)
+        except Exception:
+            logger.exception("ghost outbound-hit drain error")
+
         # Loopback / stress tests own the block while active. Don't fight them.
         if getattr(ctx, "_ghost_loopback_active", False):
             continue
@@ -830,6 +1594,16 @@ async def ttyd_ghost_sync_task(ctx: TTYDContext):
                 await _publish_self_state(ctx)
             except Exception:
                 logger.exception("ghost publish error")
+            # Lobby HUD is local-only state for now (single-client),
+            # but we still publish on the same cadence so the mod's
+            # HUD reflects the ctx state. Same throttle since the HUD
+            # contents don't change between ticks unless a command
+            # mutates them (in which case _publish_lobby_now fires
+            # an immediate write outside this loop).
+            try:
+                await _publish_lobby_hud(ctx)
+            except Exception:
+                logger.exception("lobby hud publish error")
 
 
 # Sends player items from server
@@ -963,4 +1737,3 @@ def launch(*args):
     colorama.just_fix_windows_console()
     asyncio.run(main(args))
     colorama.deinit()
-    
