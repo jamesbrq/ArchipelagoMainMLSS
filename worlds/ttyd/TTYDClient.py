@@ -29,19 +29,15 @@ ROOM = 0x803DF728
 
 MARIO_PTR_ADDR = 0x8041E900
 
-PENDING_HIT_ADDR    = 0x80003B60
-OUTBOUND_HIT_ADDR   = 0x80003B88
-
-HIT_GRACE_ADDR      = 0x80003B8C
-
-SELF_TEAM_ID_ADDR        = 0x80003B8D
-SELF_FRIENDLY_FIRE_ADDR  = 0x80003B8E
-
-SFX_RING_ADDR        = 0x80003BA0
-SFX_RING_HEAD_ADDR   = SFX_RING_ADDR + 0
-SFX_RING_TAIL_ADDR   = SFX_RING_ADDR + 1
-SFX_RING_SEQ_ADDR    = SFX_RING_ADDR + 2
-SFX_RING_EVENTS_ADDR = SFX_RING_ADDR + 4
+# All ghost-peer scratch addresses are now resolved at runtime through
+# the GhostState pointer published in APSettings.ghostStatePtr (see
+# Ghosts.py). The cached dict lives at ctx._ghost_addrs and contains
+# absolute addresses for: peer_block, pending_hit, hit_pose_name,
+# hit_reach_scale, hit_peer_width, outbound_hit, hit_grace,
+# self_team_id, self_friendly_fire, max_rendered_peers,
+# self_paper_agb, sfx_ring, sfx_ring_head/tail/seq/events, lobby_hud.
+# _resolve_ghost_addresses(ctx) populates the dict; all publish/read
+# helpers below bail if it isn't resolved yet.
 SFX_RING_CAPACITY    = 32
 SFX_EVENT_BYTES      = 4
 
@@ -51,6 +47,42 @@ GHOST_TEST_OFFSET_X = 50.0
 
 GAME_ID_ADDRESS = 0x80000000
 EXPECTED_GAME_ID = b"G8ME01"
+
+
+def _resolve_ghost_addresses(ctx) -> bool:
+    """Read APSettings.ghostStatePtr from RAM and populate
+    ctx._ghost_addrs with computed absolute addresses for every
+    ghost-peer scratch region. Cached for the session - the GhostState
+    pointer is allocated once at game boot and never moves.
+
+    Returns True on success (addresses now cached), False if the
+    pointer hasn't been published yet (mod's Init() hasn't run, or
+    the game hasn't booted to the relevant state). Callers should
+    treat False as "skip this tick" - it'll succeed on a later tick."""
+    if getattr(ctx, "_ghost_addrs", None) is not None:
+        return True
+    try:
+        ptr = int.from_bytes(
+            dolphin.read_bytes(Ghosts.APSETTINGS_GHOST_STATE_PTR, 4), "big"
+        )
+    except Exception:
+        return False
+    # Treat zero as "not yet published". The mod writes a non-zero
+    # pointer in mod::ghosts::Init() at boot.
+    if ptr == 0:
+        return False
+    try:
+        ctx._ghost_addrs = Ghosts.compute_ghost_state_addresses(ptr)
+    except ValueError as e:
+        # Pointer out of plausible range; usually means the game just
+        # hasn't booted far enough yet. Try again next tick.
+        logger.debug(f"ghost-state pointer not yet valid: {e}")
+        return False
+    logger.info(
+        f"ghost-state container located at 0x{ptr:08X}; "
+        f"peer block at 0x{ctx._ghost_addrs['peer_block']:08X}"
+    )
+    return True
 
 def _check_universal_tracker_version() -> bool:
     import re
@@ -139,7 +171,7 @@ def _strip_anim_suffix(name: str) -> str:
         name = name[:-1]
     return name
 
-def _read_self_state() -> dict | None:
+def _read_self_state(ctx) -> dict | None:
     """Read the local Player struct in ONE IPC call and parse offsets
     locally. Doing this as 9 separate dolphin.read_bytes calls (the old
     way) caused visible jitter: the game advances frames between reads
@@ -150,7 +182,12 @@ def _read_self_state() -> dict | None:
     0x1AC). The struct read isn't truly atomic against the running game
     (Dolphin's read happens while the GameCube CPU is also writing) but
     it's near-instantaneous and dramatically tighter than 9 separate
-    round-trips through asyncio + IPC."""
+    round-trips through asyncio + IPC.
+
+    Takes ctx so it can resolve the GhostState container address (for
+    reading the self-paper-AGB scratch field). If addresses haven't
+    been resolved yet, falls back to leaving paper_agb empty rather
+    than failing the whole read."""
     try:
         player_ptr = int.from_bytes(
             dolphin.read_bytes(MARIO_PTR_ADDR, 4), "big"
@@ -203,10 +240,12 @@ def _read_self_state() -> dict | None:
 
         paper_agb = ""
         try:
-            agb_raw = dolphin.read_bytes(
-                Ghosts.SELF_PAPER_AGB_ADDR, Ghosts.SELF_PAPER_AGB_LEN)
-            paper_agb = agb_raw.split(b"\x00", 1)[0].decode(
-                "ascii", errors="replace")
+            addrs = getattr(ctx, "_ghost_addrs", None) if ctx else None
+            agb_addr = addrs.get("self_paper_agb") if addrs else None
+            if agb_addr is not None:
+                agb_raw = dolphin.read_bytes(agb_addr, Ghosts.SELF_PAPER_AGB_LEN)
+                paper_agb = agb_raw.split(b"\x00", 1)[0].decode(
+                    "ascii", errors="replace")
         except Exception:
 
             pass
@@ -257,10 +296,13 @@ def _write_peer_block(ctx) -> None:
     it to Dolphin. Called from the sync loop each tick."""
     if ctx.team is None or ctx.slot is None:
         return
+    if not _resolve_ghost_addresses(ctx):
+        return
+    peer_block_addr = ctx._ghost_addrs["peer_block"]
     peers = getattr(ctx, "_ghost_peers", {})
     try:
         payload = Ghosts.pack_peer_block(peers)
-        dolphin.write_bytes(Ghosts.GHOSTS_ADDR, payload)
+        dolphin.write_bytes(peer_block_addr, payload)
     except Exception as e:
         logger.warning(f"Failed to write ghost block to Dolphin: {e}")
 
@@ -279,9 +321,15 @@ async def _drain_sfx_ring(ctx) -> list:
     NOT wrap them in asyncio.wait_for - it raises TypeError silently
     swallowed by bare except, leaving the ring undrained. (Was the bug
     that stalled SFX sync v22-v23.)"""
+    if not _resolve_ghost_addresses(ctx):
+        return []
+    addrs = ctx._ghost_addrs
+    head_addr   = addrs["sfx_ring_head"]
+    tail_addr   = addrs["sfx_ring_tail"]
+    events_addr = addrs["sfx_ring_events"]
     try:
-        head_b = dolphin.read_bytes(SFX_RING_HEAD_ADDR, 1)
-        tail_b = dolphin.read_bytes(SFX_RING_TAIL_ADDR, 1)
+        head_b = dolphin.read_bytes(head_addr, 1)
+        tail_b = dolphin.read_bytes(tail_addr, 1)
     except Exception:
         return []
     if not head_b or not tail_b:
@@ -301,7 +349,7 @@ async def _drain_sfx_ring(ctx) -> list:
     for _ in range(available):
         try:
             raw = dolphin.read_bytes(
-                SFX_RING_EVENTS_ADDR + cur * SFX_EVENT_BYTES,
+                events_addr + cur * SFX_EVENT_BYTES,
                 SFX_EVENT_BYTES)
         except Exception:
             break
@@ -314,7 +362,7 @@ async def _drain_sfx_ring(ctx) -> list:
         cur = (cur + 1) % SFX_RING_CAPACITY
 
     try:
-        dolphin.write_bytes(SFX_RING_TAIL_ADDR, bytes([head]))
+        dolphin.write_bytes(tail_addr, bytes([head]))
     except Exception:
         pass
 
@@ -328,7 +376,7 @@ async def _publish_self_state(ctx) -> None:
     map name is empty (boot, cutscenes, between-map transitions)."""
     if ctx.team is None or ctx.slot is None:
         return
-    state = _read_self_state()
+    state = _read_self_state(ctx)
     if state is None:
         return
 
@@ -343,23 +391,26 @@ async def _publish_self_state(ctx) -> None:
 
     optout_manual = 1 if getattr(ctx, "_ghost_hammer_optout", False) else 0
     optout_grace = 0
-    try:
-        grace_byte = dolphin.read_bytes(HIT_GRACE_ADDR, 1)
-        if grace_byte and grace_byte[0] != 0:
-            optout_grace = 1
-    except Exception:
-        pass
+    addrs = ctx._ghost_addrs if _resolve_ghost_addresses(ctx) else None
+    if addrs is not None:
+        try:
+            grace_byte = dolphin.read_bytes(addrs["hit_grace"], 1)
+            if grace_byte and grace_byte[0] != 0:
+                optout_grace = 1
+        except Exception:
+            pass
     state["hammerable"] = 1 if (optout_manual or optout_grace) else 0
 
     team_id = int(getattr(ctx, "_ghost_team_id", Ghosts.TEAM_NONE)) & 0xFF
     state["team_id"] = team_id
 
     friendly_fire = 1 if getattr(ctx, "_ghost_friendly_fire", False) else 0
-    try:
-        dolphin.write_bytes(SELF_TEAM_ID_ADDR, bytes([team_id]))
-        dolphin.write_bytes(SELF_FRIENDLY_FIRE_ADDR, bytes([friendly_fire]))
-    except Exception:
-        pass
+    if addrs is not None:
+        try:
+            dolphin.write_bytes(addrs["self_team_id"], bytes([team_id]))
+            dolphin.write_bytes(addrs["self_friendly_fire"], bytes([friendly_fire]))
+        except Exception:
+            pass
 
     sfx_events = await _drain_sfx_ring(ctx)
     if sfx_events:
@@ -375,13 +426,15 @@ async def _publish_self_state(ctx) -> None:
 
 async def _publish_lobby_hud(ctx) -> None:
     """Serialize the local lobby state and write it to the mod's scratch
-    RAM at LOBBY_HUD_ADDR. Mod's DrawLobbyHud reads this and renders the
-    overlay each frame.
+    RAM (the lobby_hud sub-region of the GhostState container). Mod's
+    DrawLobbyHud reads this and renders the overlay each frame.
 
     Safe to call repeatedly. Cheap (single 1KB write per call). If the
     user has the HUD toggled off, we instead clear the magic so the
     mod stops rendering."""
     if not getattr(ctx, "dolphin_connected", False):
+        return
+    if not _resolve_ghost_addresses(ctx):
         return
     if not getattr(ctx, "_lobby_hud_enabled", True):
 
@@ -391,7 +444,7 @@ async def _publish_lobby_hud(ctx) -> None:
     state = getattr(ctx, "_lobby", None)
     block = Ghosts.pack_lobby_block(state)
     try:
-        dolphin.write_bytes(Ghosts.LOBBY_HUD_ADDR, block)
+        dolphin.write_bytes(ctx._ghost_addrs["lobby_hud"], block)
     except Exception:
         pass
 
@@ -401,8 +454,10 @@ async def _clear_lobby_hud(ctx) -> None:
     full inactive block."""
     if not getattr(ctx, "dolphin_connected", False):
         return
+    if not _resolve_ghost_addresses(ctx):
+        return
     try:
-        dolphin.write_bytes(Ghosts.LOBBY_HUD_ADDR, Ghosts.LOBBY_CLEAR_MAGIC)
+        dolphin.write_bytes(ctx._ghost_addrs["lobby_hud"], Ghosts.LOBBY_CLEAR_MAGIC)
     except Exception:
         pass
 
@@ -443,13 +498,17 @@ def _on_ghost_update(ctx, args: dict) -> None:
 
 def _on_ghost_disconnect(ctx) -> None:
     """Reset subscription state, clear known peers, and zero the magic in
-    Dolphin so the mod stops rendering Ghosts immediately."""
+    Dolphin so the mod stops rendering Ghosts immediately. Tolerates
+    the ghost-state container not being resolved (e.g. disconnect
+    before AP fully connected) - a no-op write is harmless."""
     ctx._ghost_subscribed = False
     ctx._ghost_peers = {}
-    try:
-        dolphin.write_bytes(Ghosts.GHOSTS_ADDR, Ghosts.CLEAR_MAGIC)
-    except Exception:
-        pass
+    addrs = getattr(ctx, "_ghost_addrs", None)
+    if addrs is not None:
+        try:
+            dolphin.write_bytes(addrs["peer_block"], Ghosts.CLEAR_MAGIC)
+        except Exception:
+            pass
 
 def _peer_index_to_ap_slot(ctx, peer_index: int) -> typing.Optional[int]:
     """Translate a 0..31 peer-block index back to its AP slot ID.
@@ -508,8 +567,11 @@ async def _drain_outbound_hits(ctx) -> None:
     """
     if ctx.team is None or ctx.slot is None:
         return
+    if not _resolve_ghost_addresses(ctx):
+        return
+    outbound_addr = ctx._ghost_addrs["outbound_hit"]
     try:
-        word = dolphin.read_word(OUTBOUND_HIT_ADDR)
+        word = dolphin.read_word(outbound_addr)
     except Exception:
         return
     if word == 0:
@@ -519,7 +581,7 @@ async def _drain_outbound_hits(ctx) -> None:
     peer_index = (word >> 16) & 0xFF
 
     try:
-        dolphin.write_word(OUTBOUND_HIT_ADDR, 0)
+        dolphin.write_word(outbound_addr, 0)
     except Exception:
         pass
 
@@ -571,9 +633,16 @@ def _on_inbound_hit(ctx, data: dict) -> None:
     else:
         return
 
-    try:
+    if not _resolve_ghost_addresses(ctx):
+        # Mod's Init() hasn't run yet, or the game isn't booted enough
+        # for the GhostState pointer to be valid. Drop this hit - it's
+        # better to miss one stagger than to crash by writing to an
+        # unresolved address.
+        logger.debug("inbound hit dropped: ghost-state container not yet resolved")
+        return
 
-        dolphin.write_word(PENDING_HIT_ADDR, (kind_code & 0xFF) << 24)
+    try:
+        dolphin.write_word(ctx._ghost_addrs["pending_hit"], (kind_code & 0xFF) << 24)
     except Exception:
         logger.exception("failed to write inbound hit to mod scratch")
 
@@ -584,7 +653,7 @@ async def _ghost_loopback_tick(ctx) -> None:
     if not getattr(ctx, "_ghost_loopback_active", False):
         return
 
-    state = _read_self_state()
+    state = _read_self_state(ctx)
     if state is None:
         if not getattr(ctx, "_loopback_logged_none", False):
             logger.info("ghost_test: _read_self_state returned None")
@@ -642,10 +711,12 @@ async def _ghost_loopback_tick(ctx) -> None:
         # Not enough history yet (first 1s after toggling on). Don't
         # render anything; clear the magic so the mod doesn't keep
         # rendering a stale ghost from before the toggle.
-        try:
-            dolphin.write_bytes(Ghosts.GHOSTS_ADDR, Ghosts.CLEAR_MAGIC)
-        except Exception:
-            pass
+        addrs = getattr(ctx, "_ghost_addrs", None)
+        if addrs is not None:
+            try:
+                dolphin.write_bytes(addrs["peer_block"], Ghosts.CLEAR_MAGIC)
+            except Exception:
+                pass
         return
 
     _, delayed_state = delayed
@@ -692,11 +763,20 @@ async def _ghost_loopback_tick(ctx) -> None:
 
     fake_peers = {Ghosts.ghost_key(0, 99): fake_peer_state}
 
+    addrs = getattr(ctx, "_ghost_addrs", None)
+    if addrs is None:
+        # Resolve lazily here too in case loopback was started before
+        # an AP connect ever populated it.
+        if not _resolve_ghost_addresses(ctx):
+            return
+        addrs = ctx._ghost_addrs
+    peer_block_addr = addrs["peer_block"]
+
     try:
         payload = Ghosts.pack_peer_block(fake_peers)
-        dolphin.write_bytes(Ghosts.GHOSTS_ADDR, payload)
+        dolphin.write_bytes(peer_block_addr, payload)
         if not getattr(ctx, "_loopback_logged_write", False):
-            logger.info(f"ghost_test: wrote {len(payload)} bytes to 0x{Ghosts.GHOSTS_ADDR:08X} (delay={GHOST_TEST_DELAY_S:.1f}s)")
+            logger.info(f"ghost_test: wrote {len(payload)} bytes to 0x{peer_block_addr:08X} (delay={GHOST_TEST_DELAY_S:.1f}s)")
             ctx._loopback_logged_write = True
     except Exception as e:
         logger.warning(f"ghost_test write failed: {e}")
@@ -744,18 +824,22 @@ class TTYDCommandProcessor(ClientCommandProcessor):
                             "appear ~100 units to your right, mirroring your "
                             "actions instantly (no delay).")
 
-            try:
-                dolphin.write_bytes(SFX_RING_HEAD_ADDR, bytes([0, 0, 0, 0]))
-                logger.info("SFX ring zeroed for fresh capture.")
-            except Exception as e:
-                logger.warning(f"ghost_test SFX ring zero failed: {e}")
+            if _resolve_ghost_addresses(ctx):
+                addrs = ctx._ghost_addrs
+                try:
+                    dolphin.write_bytes(addrs["sfx_ring_head"], bytes([0, 0, 0, 0]))
+                    logger.info("SFX ring zeroed for fresh capture.")
+                except Exception as e:
+                    logger.warning(f"ghost_test SFX ring zero failed: {e}")
         else:
             logger.info("Ghost loopback test OFF.")
 
-            try:
-                dolphin.write_bytes(Ghosts.GHOSTS_ADDR, Ghosts.CLEAR_MAGIC)
-            except Exception:
-                pass
+            addrs = getattr(ctx, "_ghost_addrs", None)
+            if addrs is not None:
+                try:
+                    dolphin.write_bytes(addrs["peer_block"], Ghosts.CLEAR_MAGIC)
+                except Exception:
+                    pass
 
     def _cmd_ghost_names(self, mode: str = "toggle"):
         """Toggle ghost name tags. Affects both what you see (other
@@ -1115,6 +1199,13 @@ class TTYDContext(cmmCtx):
     _ghost_subscribed: bool = False
     _ghost_peers: dict = {}
 
+    # Cache of resolved absolute addresses for the GhostState container's
+    # sub-regions. Populated by _resolve_ghost_addresses() once on first
+    # successful read of APSettings.ghostStatePtr; persists for the
+    # session. None until resolved; consumers must call the resolver
+    # (or check getattr) before dereferencing.
+    _ghost_addrs: typing.Optional[dict] = None
+
     def __init__(self, server_address, password):
         super().__init__(server_address, password)
         self.items_handling = 0b101
@@ -1445,3 +1536,4 @@ def launch(*args):
     colorama.just_fix_windows_console()
     asyncio.run(main(args))
     colorama.deinit()
+    

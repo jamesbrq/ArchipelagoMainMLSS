@@ -3,27 +3,104 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 from CommonClient import logger
 
-GHOSTS_ADDR  = 0x80001800
-
-SELF_PAPER_AGB_ADDR = 0x80003B20
-SELF_PAPER_AGB_LEN  = 32
-
+# Wire-format / GhostState protocol version. Must match kVersion in
+# GhostPeers.h on the C++ side. Bumped to 23 when the layout moved
+# from hardcoded low-RAM addresses (0x80001800 + 0x80003B20-0x80003BE4
+# + 0x80003D00) to a single heap-allocated GhostState container,
+# discovered at runtime via APSettings.ghostStatePtr.
 GHOST_MAGIC  = 0x47484F53
-VERSION      = 22
+VERSION      = 23
+
+# APSettings layout (from StateManager.h on the C++ side). APSettings
+# is patched into the ROM at this fixed address; it persists across
+# the entire session. The ghostStatePtr field at offset 0x3C is
+# populated by mod::ghosts::Init() at game boot and is the entry
+# point Python uses to find all ghost-peer scratch.
+APSETTINGS_ADDR             = 0x80003220
+APSETTINGS_GHOST_STATE_PTR  = APSETTINGS_ADDR + 0x3C  # mod::ghosts::GhostState *
+
+# GhostState struct layout (matches GhostState in GhostPeers.h).
+# These are OFFSETS within the GhostState struct, not absolute
+# addresses. The base pointer is read at runtime from
+# APSETTINGS_GHOST_STATE_PTR. Sub-region addresses are computed
+# as `ghost_state_base + <offset>`.
+
+# Peer block (SharedBlock): 16-byte header + 16 PeerSlots.
+GS_OFF_PEER_BLOCK = 0x0000
 
 MAX_PEERS    = 16
 PEER_SIZE    = 200
 HEADER_SIZE  = 16
-BLOCK_SIZE   = HEADER_SIZE + MAX_PEERS * PEER_SIZE
+BLOCK_SIZE   = HEADER_SIZE + MAX_PEERS * PEER_SIZE   # 3216
 
-GHOSTS_BLOCK_UPPER_BOUND = 0x80003000
-assert GHOSTS_ADDR + BLOCK_SIZE <= GHOSTS_BLOCK_UPPER_BOUND, (
-    f"Ghost peer block must end below 0x{GHOSTS_BLOCK_UPPER_BOUND:08X}. "
-    f"Current end is 0x{GHOSTS_ADDR + BLOCK_SIZE:08X}. "
-    f"Addresses at/above 0x80003000 are reserved by the game and writing "
-    f"there crashes the game. Reduce MAX_PEERS or PEER_SIZE, or relocate "
-    f"GHOSTS_ADDR; do not extend past 0x80003000."
-)
+# Hit/team scratch (compact section after peerBlock).
+GS_OFF_PENDING_HIT          = GS_OFF_PEER_BLOCK + BLOCK_SIZE       # 0x0C90
+GS_OFF_HIT_POSE_NAME        = GS_OFF_PENDING_HIT + 4               # 0x0C94
+GS_OFF_HIT_REACH_SCALE      = GS_OFF_HIT_POSE_NAME + 16            # 0x0CA4
+GS_OFF_HIT_PEER_WIDTH       = GS_OFF_HIT_REACH_SCALE + 4           # 0x0CA8
+GS_OFF_OUTBOUND_HIT         = GS_OFF_HIT_PEER_WIDTH + 4            # 0x0CAC
+GS_OFF_HIT_GRACE            = GS_OFF_OUTBOUND_HIT + 4              # 0x0CB0
+GS_OFF_SELF_TEAM_ID         = GS_OFF_HIT_GRACE + 1                 # 0x0CB1
+GS_OFF_SELF_FRIENDLY_FIRE   = GS_OFF_SELF_TEAM_ID + 1              # 0x0CB2
+# +1 byte pad_team at 0x0CB3 to align the next uint32_t
+
+GS_OFF_MAX_RENDERED_PEERS   = GS_OFF_SELF_FRIENDLY_FIRE + 2        # 0x0CB4
+
+GS_OFF_SELF_PAPER_AGB_NAME  = GS_OFF_MAX_RENDERED_PEERS + 4        # 0x0CB8
+SELF_PAPER_AGB_LEN          = 32
+
+# SFX ring header + events.
+GS_OFF_SFX_RING             = GS_OFF_SELF_PAPER_AGB_NAME + SELF_PAPER_AGB_LEN  # 0x0CD8
+GS_OFF_SFX_RING_HEAD        = GS_OFF_SFX_RING + 0
+GS_OFF_SFX_RING_TAIL        = GS_OFF_SFX_RING + 1
+GS_OFF_SFX_RING_SEQ         = GS_OFF_SFX_RING + 2
+GS_OFF_SFX_RING_EVENTS      = GS_OFF_SFX_RING + 4
+
+SFX_RING_CAPACITY = 32
+
+# Lobby HUD block (raw 1024 bytes).
+GS_OFF_LOBBY_HUD            = GS_OFF_SFX_RING_EVENTS + SFX_RING_CAPACITY * 4   # 0x0D5C
+LOBBY_HUD_SIZE    = 1024
+
+# Total expected GhostState size (for sanity-checking offsets here).
+# This is the offset of the field PAST the lobby HUD, i.e. the size.
+GS_TOTAL_SIZE = GS_OFF_LOBBY_HUD + LOBBY_HUD_SIZE                  # 0x115C
+
+
+def compute_ghost_state_addresses(ghost_state_ptr: int) -> dict:
+    """Given the GhostState base pointer (read from APSettings),
+    return a dict mapping logical scratch-region names to absolute
+    Dolphin RAM addresses. Used by TTYDClient to drive its writes.
+
+    Validates the pointer looks plausible (in main RAM) and raises
+    ValueError otherwise so callers can fail loudly rather than
+    silently corrupting random memory.
+    """
+    if not (0x80000000 <= ghost_state_ptr < 0x81800000):
+        raise ValueError(
+            f"GhostState pointer 0x{ghost_state_ptr:08X} out of game RAM range; "
+            f"the mod's Init() may not have run yet"
+        )
+    base = ghost_state_ptr
+    return {
+        "peer_block":         base + GS_OFF_PEER_BLOCK,
+        "pending_hit":        base + GS_OFF_PENDING_HIT,
+        "hit_pose_name":      base + GS_OFF_HIT_POSE_NAME,
+        "hit_reach_scale":    base + GS_OFF_HIT_REACH_SCALE,
+        "hit_peer_width":     base + GS_OFF_HIT_PEER_WIDTH,
+        "outbound_hit":       base + GS_OFF_OUTBOUND_HIT,
+        "hit_grace":          base + GS_OFF_HIT_GRACE,
+        "self_team_id":       base + GS_OFF_SELF_TEAM_ID,
+        "self_friendly_fire": base + GS_OFF_SELF_FRIENDLY_FIRE,
+        "max_rendered_peers": base + GS_OFF_MAX_RENDERED_PEERS,
+        "self_paper_agb":     base + GS_OFF_SELF_PAPER_AGB_NAME,
+        "sfx_ring":           base + GS_OFF_SFX_RING,
+        "sfx_ring_head":      base + GS_OFF_SFX_RING_HEAD,
+        "sfx_ring_tail":      base + GS_OFF_SFX_RING_TAIL,
+        "sfx_ring_seq":       base + GS_OFF_SFX_RING_SEQ,
+        "sfx_ring_events":    base + GS_OFF_SFX_RING_EVENTS,
+        "lobby_hud":          base + GS_OFF_LOBBY_HUD,
+    }
 
 SFX_EVENTS_PER_SLOT = 4
 SFX_FLAG_3D = 0x01
@@ -187,9 +264,6 @@ def pack_peer_block(peers: dict) -> bytes:
     return buf
 
 CLEAR_MAGIC = b"\x00" * 4
-
-LOBBY_HUD_ADDR    = 0x80003D00
-LOBBY_HUD_SIZE    = 1024
 
 LOBBY_HUD_MAGIC   = 0x4C4F4259
 LOBBY_HUD_VERSION = 1
