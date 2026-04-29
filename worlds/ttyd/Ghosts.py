@@ -9,7 +9,7 @@ from CommonClient import logger
 # + 0x80003D00) to a single heap-allocated GhostState container,
 # discovered at runtime via APSettings.ghostStatePtr.
 GHOST_MAGIC  = 0x47484F53
-VERSION      = 23
+VERSION      = 26
 
 # APSettings layout (from StateManager.h on the C++ side). APSettings
 # is patched into the ROM at this fixed address; it persists across
@@ -29,9 +29,9 @@ APSETTINGS_GHOST_STATE_PTR  = APSETTINGS_ADDR + 0x3C  # mod::ghosts::GhostState 
 GS_OFF_PEER_BLOCK = 0x0000
 
 MAX_PEERS    = 16
-PEER_SIZE    = 200
+PEER_SIZE    = 212  # v26: +12 for activeLoops[6] uint16 + activeLoopCount byte + alignment
 HEADER_SIZE  = 16
-BLOCK_SIZE   = HEADER_SIZE + MAX_PEERS * PEER_SIZE   # 3216
+BLOCK_SIZE   = HEADER_SIZE + MAX_PEERS * PEER_SIZE   # 3408
 
 # Hit/team scratch (compact section after peerBlock).
 GS_OFF_PENDING_HIT          = GS_OFF_PEER_BLOCK + BLOCK_SIZE       # 0x0C90
@@ -59,12 +59,18 @@ GS_OFF_SFX_RING_EVENTS      = GS_OFF_SFX_RING + 4
 SFX_RING_CAPACITY = 32
 
 # Lobby HUD block (raw 1024 bytes).
-GS_OFF_LOBBY_HUD            = GS_OFF_SFX_RING_EVENTS + SFX_RING_CAPACITY * 4   # 0x0D5C
+GS_OFF_LOBBY_HUD            = GS_OFF_SFX_RING_EVENTS + SFX_RING_CAPACITY * 4   # 0x0E1C
 LOBBY_HUD_SIZE    = 1024
 
+# v26 self-active-loops scratch (mod -> Python). Mod samples the
+# channel map each frame and writes here; Python reads at publish
+# time and embeds in our peer slot's activeLoops field.
+ACTIVE_LOOPS_PER_PEER = 6
+GS_OFF_SELF_ACTIVE_LOOP_COUNT = GS_OFF_LOBBY_HUD + LOBBY_HUD_SIZE        # 0x121C
+GS_OFF_SELF_ACTIVE_LOOPS      = GS_OFF_SELF_ACTIVE_LOOP_COUNT + 4         # 0x1220
+
 # Total expected GhostState size (for sanity-checking offsets here).
-# This is the offset of the field PAST the lobby HUD, i.e. the size.
-GS_TOTAL_SIZE = GS_OFF_LOBBY_HUD + LOBBY_HUD_SIZE                  # 0x115C
+GS_TOTAL_SIZE = GS_OFF_SELF_ACTIVE_LOOPS + ACTIVE_LOOPS_PER_PEER * 2     # 0x122C
 
 
 def compute_ghost_state_addresses(ghost_state_ptr: int) -> dict:
@@ -100,10 +106,14 @@ def compute_ghost_state_addresses(ghost_state_ptr: int) -> dict:
         "sfx_ring_seq":       base + GS_OFF_SFX_RING_SEQ,
         "sfx_ring_events":    base + GS_OFF_SFX_RING_EVENTS,
         "lobby_hud":          base + GS_OFF_LOBBY_HUD,
+        "self_active_loop_count": base + GS_OFF_SELF_ACTIVE_LOOP_COUNT,
+        "self_active_loops":      base + GS_OFF_SELF_ACTIVE_LOOPS,
     }
 
 SFX_EVENTS_PER_SLOT = 4
 SFX_FLAG_3D = 0x01
+# Note: v25's SFX_FLAG_STOP removed. v26 uses state-sync (peer.activeLoops)
+# instead of stop events for loop termination.
 
 TEAM_NONE   = 0
 TEAM_RED    = 1
@@ -127,7 +137,7 @@ TEAM_LABELS = {
     TEAM_YELLOW: "Yellow",
 }
 
-_PEER_FMT   = ">B 15s 16s ffff BBBB I I H B B B 3x f 16s 32s 16s ff fff fff f H 2x f B 3x HBBHBBHBBHBB"
+_PEER_FMT   = ">B 15s 16s ffff BBBB I I H B B B bbb f 16s 32s 16s ff fff fff f H 2x f B B 2x HBBHBBHBBHBB HHHHHH"
 _HEADER_FMT = ">IIII"
 
 assert struct.calcsize(_PEER_FMT)   == PEER_SIZE,   f"peer fmt size {struct.calcsize(_PEER_FMT)} != {PEER_SIZE}"
@@ -213,6 +223,17 @@ def pack_peer_block(peers: dict) -> bytes:
                 sfx_packed.extend([0, 0, 0])
             sfx_count = min(len(sfx_list), SFX_EVENTS_PER_SLOT)
 
+            # v26: pack activeLoops state-sync field. Source provides
+            # a list of currently-playing loop sfxIds; pad with zeros
+            # to fill the fixed-size slot.
+            active_loops_in = peer.get("active_loops", []) or []
+            active_loops = []
+            for sid in active_loops_in[:ACTIVE_LOOPS_PER_PEER]:
+                active_loops.append(int(sid) & 0xFFFF)
+            while len(active_loops) < ACTIVE_LOOPS_PER_PEER:
+                active_loops.append(0)
+            active_loop_count = min(len(active_loops_in), ACTIVE_LOOPS_PER_PEER)
+
             buf += struct.pack(
                 _PEER_FMT,
                 1,
@@ -229,6 +250,12 @@ def pack_peer_block(peers: dict) -> bytes:
                 int(peer.get("show_name", 0)) & 0xFF,
                 int(peer.get("hammerable", 0)) & 0xFF,
                 int(peer.get("team_id", 0)) & 0xFF,
+                # spinDirHint{Y,X,Z}: source-side hints for receiver-side
+                # spin direction disambiguation. Clamped to int8 range.
+                # 0 = no hint (slow rotation), +1 = positive, -1 = negative.
+                max(-127, min(127, int(peer.get("spin_dir_hint_y", 0)))),
+                max(-127, min(127, int(peer.get("spin_dir_hint_x", 0)))),
+                max(-127, min(127, int(peer.get("spin_dir_hint_z", 0)))),
                 float(peer.get("camera_angle", 0.0)),
                 slot_bytes.ljust(16, b"\x00"),
                 paper_agb_bytes.ljust(32, b"\x00"),
@@ -246,10 +273,13 @@ def pack_peer_block(peers: dict) -> bytes:
 
                 float(peer.get("paper_local_time", -1.0)),
                 sfx_count & 0xFF,
+                active_loop_count & 0xFF,
                 sfx_packed[0],  sfx_packed[1],  sfx_packed[2],
                 sfx_packed[3],  sfx_packed[4],  sfx_packed[5],
                 sfx_packed[6],  sfx_packed[7],  sfx_packed[8],
                 sfx_packed[9],  sfx_packed[10], sfx_packed[11],
+                active_loops[0], active_loops[1], active_loops[2],
+                active_loops[3], active_loops[4], active_loops[5],
             )
             written += 1
         except (ValueError, struct.error, TypeError) as e:

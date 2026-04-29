@@ -416,6 +416,26 @@ async def _publish_self_state(ctx) -> None:
     if sfx_events:
         state["sfx_events"] = sfx_events
 
+    # Drain the spin-direction hint accumulators built up since the
+    # last publish. Each is -1/0/+1 indicating fast rotation in that
+    # axis since last publish. Receivers use these to disambiguate
+    # >180-deg-per-publish spins. Plain shortest-path lerp can't tell
+    # +250 from -110 from sample alone; the source-side hint resolves
+    # it because we tracked the unwrapped angle at 60Hz.
+    hint_y, hint_x, hint_z = _consume_spin_hints(ctx)
+    state["spin_dir_hint_y"] = hint_y
+    state["spin_dir_hint_x"] = hint_x
+    state["spin_dir_hint_z"] = hint_z
+
+    # v26 state-sync: read the mod's selfActiveLoops scratch (the mod
+    # writes the current channel-map sample each frame) and include
+    # in the published state so receivers can diff and start/stop
+    # loops accordingly.
+    state["active_loops"] = _read_self_active_loops(ctx)
+
+    if getattr(ctx, "_ghost_loopback_active", False):
+        _loopback_inject(ctx, state)
+
     await ctx.send_msgs([{
         "cmd":         "Set",
         "key":         Ghosts.ghost_key(ctx.team, ctx.slot),
@@ -423,6 +443,44 @@ async def _publish_self_state(ctx) -> None:
         "want_reply":  False,
         "operations":  [{"operation": "replace", "value": state}],
     }])
+
+
+def _loopback_inject(ctx, state: dict) -> None:
+    """Inject the just-published self state into ctx._ghost_peers as a
+    synthetic peer for /ghost_test. The 60Hz _write_peer_block will
+    then pack and write it alongside any real peers.
+
+    With GHOST_TEST_DELAY_S == 0 (default), the current state is
+    injected immediately. With a non-zero delay, states are pushed
+    onto a deque and dequeued once they're older than the delay -
+    useful for solo testing where you want to compare your live
+    actions against the ghost playing back your past actions."""
+    now = asyncio.get_event_loop().time()
+
+    if GHOST_TEST_DELAY_S <= 0.0:
+        delayed_state = state
+    else:
+        buf = getattr(ctx, "_loopback_delay_buf", None)
+        if buf is None:
+            buf = collections.deque()
+            ctx._loopback_delay_buf = buf
+        buf.append((now, dict(state)))
+        cutoff = now - GHOST_TEST_DELAY_S
+        delayed_state = None
+        while buf and buf[0][0] <= cutoff:
+            _, delayed_state = buf.popleft()
+        if delayed_state is None:
+            # Not enough history yet (still warming up the delay buffer);
+            # remove any prior loopback ghost so we don't render a stale
+            # one from before the toggle.
+            ctx._ghost_peers.pop(Ghosts.ghost_key(0, 99), None)
+            return
+
+    # Offset the X position so the ghost stands next to us, not on top.
+    fake = dict(delayed_state)
+    fake["x"] = delayed_state["x"] + GHOST_TEST_OFFSET_X
+    fake["slot_name"] = "GHOST"
+    ctx._ghost_peers[Ghosts.ghost_key(0, 99)] = fake
 
 async def _publish_lobby_hud(ctx) -> None:
     """Serialize the local lobby state and write it to the mod's scratch
@@ -646,140 +704,9 @@ def _on_inbound_hit(ctx, data: dict) -> None:
     except Exception:
         logger.exception("failed to write inbound hit to mod scratch")
 
-GHOST_TEST_DELAY_S = 0.0
+GHOST_TEST_DELAY_S = 1.0
 
 
-async def _ghost_loopback_tick(ctx) -> None:
-    if not getattr(ctx, "_ghost_loopback_active", False):
-        return
-
-    state = _read_self_state(ctx)
-    if state is None:
-        if not getattr(ctx, "_loopback_logged_none", False):
-            logger.info("ghost_test: _read_self_state returned None")
-            ctx._loopback_logged_none = True
-        return
-    ctx._loopback_logged_none = False
-
-    if not getattr(ctx, "_loopback_logged_state", False):
-        logger.info(f"ghost_test: state={state}")
-        ctx._loopback_logged_state = True
-
-    # Drain the SFX ring NOW (events that just fired on local Mario).
-    # Events go into a SEPARATE per-event delay deque so a flood doesn't
-    # exceed the wire format's 4-event-per-tick budget. The wire format
-    # cap was previously a loss point: drain could return up to 16
-    # events but only 4 fit in the slot, the other 12 were thrown away.
-    # Now they queue up and bleed out 4-at-a-time across ticks. With
-    # GHOST_TEST_DELAY_S delay applied per-event, a burst of 16 hammer
-    # SFX plays back over ~67ms (4 ticks at 60Hz) starting at delay.
-    sfx_events = await _drain_sfx_ring(ctx)
-    if sfx_events and not getattr(ctx, "_loopback_logged_first_drain", False):
-        logger.info(f"ghost_test: drained {len(sfx_events)} SFX events on first capture - example: {sfx_events[0]}")
-        ctx._loopback_logged_first_drain = True
-
-    pending_sfx = getattr(ctx, "_loopback_sfx_pending", None)
-    if pending_sfx is None:
-        # Cap at 256 events (~4 sec at peak engine SFX rate). Drops
-        # the OLDEST events on overflow, since recent events are more
-        # contextually relevant (e.g. you'd rather hear the current
-        # hammer impact than one that fired 5 seconds ago).
-        pending_sfx = collections.deque(maxlen=256)
-        ctx._loopback_sfx_pending = pending_sfx
-    now = asyncio.get_event_loop().time()
-    for ev in sfx_events:
-        pending_sfx.append((now, ev))
-
-    # Append (timestamp, state) to the position delay buffer. The
-    # buffer is a deque on ctx; if missing, init it.
-    buf = getattr(ctx, "_loopback_delay_buf", None)
-    if buf is None:
-        buf = collections.deque()
-        ctx._loopback_delay_buf = buf
-    buf.append((now, state))
-
-    # Pop everything older than (now - delay). Keep the most recently
-    # popped sample as our fake peer state - that's the snapshot from
-    # ~1s ago. Older samples are simply discarded - their SFX events
-    # are NOT lost because they live in the separate pending_sfx deque.
-    cutoff = now - GHOST_TEST_DELAY_S
-    delayed = None
-    while buf and buf[0][0] <= cutoff:
-        delayed = buf.popleft()
-
-    if delayed is None:
-        # Not enough history yet (first 1s after toggling on). Don't
-        # render anything; clear the magic so the mod doesn't keep
-        # rendering a stale ghost from before the toggle.
-        addrs = getattr(ctx, "_ghost_addrs", None)
-        if addrs is not None:
-            try:
-                dolphin.write_bytes(addrs["peer_block"], Ghosts.CLEAR_MAGIC)
-            except Exception:
-                pass
-        return
-
-    _, delayed_state = delayed
-
-    # Pull events from the pending deque whose delay has elapsed.
-    # Maintain a sliding window of the last SFX_EVENTS_PER_SLOT events
-    # in the wire format - events persist for multiple ticks, giving
-    # the mod multiple read opportunities. The mod's seq-based dedup
-    # naturally handles duplicate reads: events that have already been
-    # replayed get filtered out by lastConsumedSfxSeq.
-    #
-    # Why this matters: Python writes the wire format at 60Hz, the mod
-    # reads it at 60Hz, but the two clocks aren't synchronized. If
-    # Python emits an event for one tick only and the mod's frame
-    # boundary falls between the write and the next overwrite, the
-    # event is silently lost. Persisting events across ticks gives
-    # multiple read chances, eliminating this race.
-    sliding = getattr(ctx, "_loopback_sfx_window", None)
-    if sliding is None:
-        sliding = collections.deque(maxlen=Ghosts.SFX_EVENTS_PER_SLOT)
-        ctx._loopback_sfx_window = sliding
-
-    # Bleed events from pending into the wire-format window at a rate
-    # of 1 event per tick. Combined with the sliding window's
-    # SFX_EVENTS_PER_SLOT (=4) capacity, this guarantees each event
-    # spends ~4 ticks in the wire format before being evicted, giving
-    # the mod 4 independent read opportunities even under timing
-    # jitter. At 60Hz that's ~67ms of persistence per event.
-    #
-    # Burst handling: 16 rapid events drain across 16 ticks (~267ms),
-    # but each event gets its full ~67ms window. The seq dedup on the
-    # mod side handles repeated reads of the same window correctly.
-    if pending_sfx:
-        ts, ev = pending_sfx[0]
-        if ts <= cutoff:
-            pending_sfx.popleft()
-            sliding.append(ev)
-
-    fake_peer_state = dict(delayed_state)
-    fake_peer_state["x"] = delayed_state["x"] + GHOST_TEST_OFFSET_X
-    fake_peer_state["slot_name"] = "GHOST"
-    if sliding:
-        fake_peer_state["sfx_events"] = list(sliding)
-
-    fake_peers = {Ghosts.ghost_key(0, 99): fake_peer_state}
-
-    addrs = getattr(ctx, "_ghost_addrs", None)
-    if addrs is None:
-        # Resolve lazily here too in case loopback was started before
-        # an AP connect ever populated it.
-        if not _resolve_ghost_addresses(ctx):
-            return
-        addrs = ctx._ghost_addrs
-    peer_block_addr = addrs["peer_block"]
-
-    try:
-        payload = Ghosts.pack_peer_block(fake_peers)
-        dolphin.write_bytes(peer_block_addr, payload)
-        if not getattr(ctx, "_loopback_logged_write", False):
-            logger.info(f"ghost_test: wrote {len(payload)} bytes to 0x{peer_block_addr:08X} (delay={GHOST_TEST_DELAY_S:.1f}s)")
-            ctx._loopback_logged_write = True
-    except Exception as e:
-        logger.warning(f"ghost_test write failed: {e}")
 
 class TTYDCommandProcessor(ClientCommandProcessor):
     def __init__(self, ctx: cmmCtx):
@@ -808,38 +735,28 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         """Toggle the single-player ghost loopback test."""
         ctx = self.ctx
         ctx._ghost_loopback_active = not getattr(ctx, "_ghost_loopback_active", False)
-        ctx._loopback_logged_first_drain = False
-        ctx._loopback_logged_write = False
+
+        # Reset the position-delay buffer; it's only used when
+        # GHOST_TEST_DELAY_S > 0 but cheap to clear unconditionally.
         ctx._loopback_delay_buf = collections.deque()
-        ctx._loopback_sfx_pending = collections.deque(maxlen=256)
-        ctx._loopback_sfx_window = collections.deque(maxlen=Ghosts.SFX_EVENTS_PER_SLOT)
+
         if ctx._ghost_loopback_active:
             if GHOST_TEST_DELAY_S > 0.0:
                 logger.info(f"Ghost loopback test ON. A translucent ghost should "
-                            f"appear ~100 units to your right and trail your "
-                            f"actions by {GHOST_TEST_DELAY_S:.1f}s (delay enabled "
-                            f"for solo SFX/animation testing).")
+                            f"appear ~{GHOST_TEST_OFFSET_X:.0f} units to your right "
+                            f"and trail your actions by {GHOST_TEST_DELAY_S:.1f}s.")
             else:
-                logger.info("Ghost loopback test ON. A translucent ghost should "
-                            "appear ~100 units to your right, mirroring your "
-                            "actions instantly (no delay).")
-
-            if _resolve_ghost_addresses(ctx):
-                addrs = ctx._ghost_addrs
-                try:
-                    dolphin.write_bytes(addrs["sfx_ring_head"], bytes([0, 0, 0, 0]))
-                    logger.info("SFX ring zeroed for fresh capture.")
-                except Exception as e:
-                    logger.warning(f"ghost_test SFX ring zero failed: {e}")
+                logger.info(f"Ghost loopback test ON. A translucent ghost should "
+                            f"appear ~{GHOST_TEST_OFFSET_X:.0f} units to your right, "
+                            f"mirroring your actions in real time. The ghost rides "
+                            f"the same publish path as real peers, so its motion "
+                            f"reflects real-AP smoothness (20Hz publish + mod-side "
+                            f"60Hz lerp).")
         else:
             logger.info("Ghost loopback test OFF.")
-
-            addrs = getattr(ctx, "_ghost_addrs", None)
-            if addrs is not None:
-                try:
-                    dolphin.write_bytes(addrs["peer_block"], Ghosts.CLEAR_MAGIC)
-                except Exception:
-                    pass
+            # Drop any synthetic loopback peer from the local table so
+            # the next _write_peer_block doesn't repaint a stale ghost.
+            getattr(ctx, "_ghost_peers", {}).pop(Ghosts.ghost_key(0, 99), None)
 
     def _cmd_ghost_names(self, mode: str = "toggle"):
         """Toggle ghost name tags. Affects both what you see (other
@@ -1343,35 +1260,161 @@ async def _patch_and_run_game(patch_file: str):
     Utils.async_start(_run_game(output_file))
     return metadata
 
-async def ttyd_ghost_loopback_task(ctx: TTYDContext):
-    """Dedicated fast loop for the loopback test only. Runs at ~60 Hz to
-    match the game's frame rate so the ghost has no visible lag behind
-    the player. No-op unless /ghost_test is on, so this has zero cost in
-    normal play."""
-    while not ctx.exit_event.is_set():
-        if (dolphin.is_hooked() and ctx.dolphin_connected
-                and getattr(ctx, "_ghost_loopback_active", False)):
-            try:
-                await _ghost_loopback_tick(ctx)
-            except Exception:
-                logger.exception("ghost loopback tick error")
-        await asyncio.sleep(1.0 / 60)
-
 GHOST_PUBLISH_INTERVAL_S = 1.0 / 20.0
 
 GHOST_RENDER_INTERVAL_S = 1.0 / 60.0
+
+# Spin-direction tracking thresholds (Python side, source-of-truth).
+# Each frame we sample local Mario's three rotation angles, compute the
+# wrapped delta from the previous frame, and accumulate. At publish time
+# we compare the accumulated unwrapped delta against the last published
+# unwrapped value; if abs(delta) over the publish interval exceeds the
+# threshold below, we set the wire-format hint byte to the sign of that
+# delta. Receiver uses the hint to force lerp direction during fast
+# spins where shortest-path lerp would pick the wrong way.
+#
+# 90 degrees over a publish interval = ~5 rev/sec, the regime where
+# shortest-path becomes unreliable. Below this, plain shortest-path
+# lerp works fine and we leave the hint at 0 (= no hint).
+SPIN_HINT_THRESHOLD_DEG_PER_PUBLISH = 90.0
+
+
+def _wrap180(deg: float) -> float:
+    """Clamp an angle delta to [-180, 180] using minimal-rotation wrap."""
+    while deg > 180.0:
+        deg -= 360.0
+    while deg < -180.0:
+        deg += 360.0
+    return deg
+
+
+def _sample_spin_for_hint(ctx) -> None:
+    """Per-frame sampler for spin-direction hints. Reads local Mario's
+    yaw/pitch/roll, computes wrapped deltas from the previous frame
+    (which are unambiguous at 60Hz - even the fastest game rotations
+    don't exceed 180 degrees in 16ms), and accumulates an UNWRAPPED
+    angular displacement over each publish interval.
+
+    State stored on ctx:
+      _spin_last_y/x/z       last raw angle read (from engine, wrapped)
+      _spin_unwrap_y/x/z     accumulated unwrapped displacement since
+                             the previous publish reset
+      _spin_init             True after the first sample so the first
+                             delta isn't computed against zero
+
+    Cheap: a single 12-byte read at offsets 0x1AC, 0xBC, 0xC4 of the
+    Player struct. Uses the existing MARIO_PTR_ADDR to find Mario.
+
+    Errors silently ignored - if Mario isn't loaded we just skip the
+    sample and the unwrap accumulator stays where it is. The next
+    valid sample picks up where we left off."""
+    try:
+        mario_addr = int.from_bytes(
+            dolphin.read_bytes(MARIO_PTR_ADDR, 4), "big")
+        if not (0x80000000 <= mario_addr < 0x81800000):
+            return
+        # Single 12-byte block covering 0xBC..0xC8 covers rot_x and rot_z.
+        # rot_y at 0x1AC needs a second small read.
+        chunk_xz = dolphin.read_bytes(mario_addr + 0xBC, 12)  # 0xBC..0xC8
+        (rot_x,)  = struct.unpack_from(">f", chunk_xz, 0x00)
+        (rot_z,)  = struct.unpack_from(">f", chunk_xz, 0x08)
+        chunk_y  = dolphin.read_bytes(mario_addr + 0x1AC, 4)
+        (rot_y,) = struct.unpack_from(">f", chunk_y, 0x00)
+    except Exception:
+        return
+
+    if not getattr(ctx, "_spin_init", False):
+        ctx._spin_last_y = rot_y
+        ctx._spin_last_x = rot_x
+        ctx._spin_last_z = rot_z
+        ctx._spin_unwrap_y = 0.0
+        ctx._spin_unwrap_x = 0.0
+        ctx._spin_unwrap_z = 0.0
+        ctx._spin_init = True
+        return
+
+    # Per-frame wrapped delta - unambiguous at 60Hz. Accumulate into
+    # the unwrapped displacement, which gets reset at publish time.
+    ctx._spin_unwrap_y += _wrap180(rot_y - ctx._spin_last_y)
+    ctx._spin_unwrap_x += _wrap180(rot_x - ctx._spin_last_x)
+    ctx._spin_unwrap_z += _wrap180(rot_z - ctx._spin_last_z)
+    ctx._spin_last_y = rot_y
+    ctx._spin_last_x = rot_x
+    ctx._spin_last_z = rot_z
+
+
+def _consume_spin_hints(ctx) -> tuple:
+    """Called at publish time. Returns (hint_y, hint_x, hint_z) where
+    each is -1, 0, or +1 based on whether the unwrapped angular
+    displacement since the last publish exceeded the threshold.
+    Resets the unwrap accumulators."""
+    if not getattr(ctx, "_spin_init", False):
+        return (0, 0, 0)
+    def sgn(d: float) -> int:
+        if d >  SPIN_HINT_THRESHOLD_DEG_PER_PUBLISH: return  1
+        if d < -SPIN_HINT_THRESHOLD_DEG_PER_PUBLISH: return -1
+        return 0
+    hy = sgn(ctx._spin_unwrap_y)
+    hx = sgn(ctx._spin_unwrap_x)
+    hz = sgn(ctx._spin_unwrap_z)
+    ctx._spin_unwrap_y = 0.0
+    ctx._spin_unwrap_x = 0.0
+    ctx._spin_unwrap_z = 0.0
+    return (hy, hx, hz)
+
+
+def _read_self_active_loops(ctx) -> list:
+    """v26: read the mod's selfActiveLoops scratch (mod-written every
+    frame, sampled from g_localChannelMap). Returns a list of u16
+    sfxIds currently playing on the local Mario. Receivers diff this
+    against their tracked set to derive start/stop actions for loops.
+
+    Returns [] on read failure or if the scratch isn't resolved yet."""
+    addrs = getattr(ctx, "_ghost_addrs", None)
+    if addrs is None:
+        if not _resolve_ghost_addresses(ctx):
+            return []
+        addrs = ctx._ghost_addrs
+
+    try:
+        # Single 4-byte read for count + 3 pad, then 12-byte read for
+        # the 6 uint16 entries. Could be one combined 16-byte read but
+        # the count + entries layout may have padding so two reads is
+        # safer.
+        count_b = dolphin.read_bytes(addrs["self_active_loop_count"], 1)
+        if not count_b:
+            return []
+        count = count_b[0]
+        if count > Ghosts.ACTIVE_LOOPS_PER_PEER:
+            count = Ghosts.ACTIVE_LOOPS_PER_PEER
+        if count == 0:
+            return []
+        entries_b = dolphin.read_bytes(
+            addrs["self_active_loops"],
+            Ghosts.ACTIVE_LOOPS_PER_PEER * 2)
+        if not entries_b or len(entries_b) < count * 2:
+            return []
+        loops = []
+        for i in range(count):
+            sid = (entries_b[i*2] << 8) | entries_b[i*2 + 1]
+            if sid != 0:
+                loops.append(sid)
+        return loops
+    except Exception:
+        return []
+
 
 async def ttyd_ghost_sync_task(ctx: TTYDContext):
     """Real-AP ghost sync. Two responsibilities:
 
     1. Publish our local player state to AP DataStorage at ~20Hz so other
        peers can render us as a ghost. Skipped if not connected, not in a
-       slot, or local read fails (cutscene/loading/title).
-    2. Repaint the peer block (received from AP via SetReply / Retrieved)
-       into Dolphin RAM at ~60Hz so the mod can render peers smoothly.
-
-    Both are no-ops if the loopback test is active - it writes the block
-    itself and we'd otherwise overwrite each other.
+       slot, or local read fails (cutscene/loading/title). When the
+       /ghost_test loopback toggle is on, the publish step also injects
+       a synthetic peer copy into _ghost_peers via _loopback_inject().
+    2. Repaint the peer block (received from AP via SetReply / Retrieved,
+       and any synthetic loopback ghost) into Dolphin RAM at ~60Hz so the
+       mod can render peers smoothly.
 
     This task does NOT do any locations/items work; that's ttyd_sync_task's
     job. We split them because ghost sync runs much faster than the game
@@ -1390,8 +1433,10 @@ async def ttyd_ghost_sync_task(ctx: TTYDContext):
         except Exception:
             logger.exception("ghost outbound-hit drain error")
 
-        if getattr(ctx, "_ghost_loopback_active", False):
-            continue
+        # Sample local Mario's rotation each frame to maintain the
+        # spin-direction hint accumulators. _publish_self_state will
+        # consume them at 20Hz.
+        _sample_spin_for_hint(ctx)
 
         try:
             _write_peer_block(ctx)
@@ -1519,8 +1564,6 @@ def launch(*args):
         ctx.gl_sync_task = asyncio.create_task(ttyd_sync_task(ctx), name="TTYD Sync Task")
         ctx.ghost_sync_task = asyncio.create_task(
             ttyd_ghost_sync_task(ctx), name="GhostSync")
-        ctx.ghost_loopback_task = asyncio.create_task(
-            ttyd_ghost_loopback_task(ctx), name="GhostLoopback")
 
         await ctx.exit_event.wait()
         ctx.server_address = None
@@ -1536,4 +1579,3 @@ def launch(*args):
     colorama.just_fix_windows_console()
     asyncio.run(main(args))
     colorama.deinit()
-    
