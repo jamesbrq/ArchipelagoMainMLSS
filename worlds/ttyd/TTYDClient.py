@@ -4,18 +4,45 @@ import struct
 import subprocess
 import traceback
 import typing
-
 import settings
-
 import Patch
 import Utils
 from CommonClient import ClientCommandProcessor, get_base_parser, gui_enabled, logger, server_loop
 import dolphin_memory_engine as dolphin
-
 from NetUtils import NetworkItem, ClientStatus, SlotType
 from . import Ghosts
 from .Data import location_gsw_info, location_to_unit
 from .Items import items_by_id
+
+from .ttyd_runtime import (
+    _resolve_ghost_addresses,
+    _drain_outbound_hits,
+    _sample_spin_for_hint,
+    _write_peer_block,
+    _publish_self_state,
+    _on_ghost_update,
+    _on_ghost_disconnect,
+    _subscribe_to_peers,
+    _on_inbound_hit,
+    _publish_match_hud,
+    _clear_match_hud,
+    _publish_match_to_network,
+    _clear_match_from_network,
+    _subscribe_to_match,
+    _on_match_bounce,
+    _dispatch_match_keys,
+    _match_timer_task,
+    ttyd_ghost_sync_task,
+    MATCH_BOUNCE_EVENT,
+    GHOST_TEST_DELAY_S,
+    GHOST_RENDER_INTERVAL_S, GHOST_PUBLISH_INTERVAL_S,
+    SOLO_BOT_SLOT_BASE, SOLO_BOT_MAX, SOLO_BOT_DEFAULT_N,
+    SOLO_BOT_OFFSETS,
+    _solo_default_role,
+    _solo_clear_peers,
+    _solo_build_match,
+)
+
 
 RECEIVED_INDEX = 0x803DB860
 RECEIVED_ITEM_ARRAY = 0x80001000
@@ -26,64 +53,8 @@ GSWF_BASE = 0x178
 GSW0 = 0x174
 GSW_BASE = 0x578
 ROOM = 0x803DF728
-
-MARIO_PTR_ADDR = 0x8041E900
-
-# All ghost-peer scratch addresses are now resolved at runtime through
-# the GhostState pointer published in APSettings.ghostStatePtr (see
-# Ghosts.py). The cached dict lives at ctx._ghost_addrs and contains
-# absolute addresses for: peer_block, pending_hit, hit_pose_name,
-# hit_reach_scale, hit_peer_width, outbound_hit, hit_grace,
-# self_team_id, self_friendly_fire, max_rendered_peers,
-# self_paper_agb, sfx_ring, sfx_ring_head/tail/seq/events, lobby_hud.
-# _resolve_ghost_addresses(ctx) populates the dict; all publish/read
-# helpers below bail if it isn't resolved yet.
-SFX_RING_CAPACITY    = 32
-SFX_EVENT_BYTES      = 4
-
-HIT_KIND_HAMMER = 1
-
-GHOST_TEST_OFFSET_X = 50.0
-
 GAME_ID_ADDRESS = 0x80000000
 EXPECTED_GAME_ID = b"G8ME01"
-
-
-def _resolve_ghost_addresses(ctx) -> bool:
-    """Read APSettings.ghostStatePtr from RAM and populate
-    ctx._ghost_addrs with computed absolute addresses for every
-    ghost-peer scratch region. Cached for the session - the GhostState
-    pointer is allocated once at game boot and never moves.
-
-    Returns True on success (addresses now cached), False if the
-    pointer hasn't been published yet (mod's Init() hasn't run, or
-    the game hasn't booted to the relevant state). Callers should
-    treat False as "skip this tick" - it'll succeed on a later tick."""
-    if getattr(ctx, "_ghost_addrs", None) is not None:
-        return True
-    try:
-        ptr = int.from_bytes(
-            dolphin.read_bytes(Ghosts.APSETTINGS_GHOST_STATE_PTR, 4), "big"
-        )
-    except Exception:
-        return False
-    # Treat zero as "not yet published". The mod writes a non-zero
-    # pointer in mod::ghosts::Init() at boot.
-    if ptr == 0:
-        return False
-    try:
-        ctx._ghost_addrs = Ghosts.compute_ghost_state_addresses(ptr)
-    except ValueError as e:
-        # Pointer out of plausible range; usually means the game just
-        # hasn't booted far enough yet. Try again next tick.
-        logger.debug(f"ghost-state pointer not yet valid: {e}")
-        return False
-    logger.info(
-        f"ghost-state container located at 0x{ptr:08X}; "
-        f"peer block at 0x{ctx._ghost_addrs['peer_block']:08X}"
-    )
-    return True
-
 def _check_universal_tracker_version() -> bool:
     import re
     if tracker_loaded:
@@ -96,7 +67,6 @@ def _check_universal_tracker_version() -> bool:
             return False
         return True
     return False
-
 tracker_loaded = False
 try:
     from worlds.tracker.TrackerClient import TrackerGameContext as cmmCtx, UT_VERSION
@@ -104,7 +74,6 @@ try:
 except ModuleNotFoundError:
     from CommonClient import CommonContext as cmmCtx
     tracker_loaded = False
-
 def validate_connection() -> bool:
     """Verify DME is hooked to TTYD by checking the GameCube disc Game ID in memory."""
     try:
@@ -112,17 +81,14 @@ def validate_connection() -> bool:
         return game_id == EXPECTED_GAME_ID
     except Exception:
         return False
-
 def read_string(address: int, length: int):
     try:
         return dolphin.read_bytes(address, length).decode().strip("\0")
     except Exception as e:
         logger.error(f"Error reading string from address {hex(address)}: {e}")
         return ""
-
 def get_rom_item_id(item: NetworkItem):
     return items_by_id[item.item].rom_id
-
 def _get_bit_address(bit_number: int) -> tuple:
     word_index = bit_number >> 5
     bit_position = bit_number & 0x1F
@@ -131,7 +97,6 @@ def _get_bit_address(bit_number: int) -> tuple:
     byte_address = word_address + byte_within_word
     bit = bit_position & 0x7
     return byte_address, bit
-
 def gswf_set(bit_number: int):
     result = _get_bit_address(bit_number)
     if not result: return False
@@ -141,7 +106,6 @@ def gswf_set(bit_number: int):
     new_byte = current_byte | bit_mask
     dolphin.write_byte(byte_address, new_byte)
     return result
-
 def gswf_check(bit_number: int) -> bool:
     result = _get_bit_address(bit_number)
     if not result: return False
@@ -149,13 +113,10 @@ def gswf_check(bit_number: int) -> bool:
     current_byte = dolphin.read_byte(byte_address)
     bit_mask = 1 << bit
     return bool(current_byte & bit_mask)
-
 def gsw_set(index, value):
     dolphin.write_word(GP_BASE + GSW0, value) if index == 0 else dolphin.write_byte(GP_BASE + index + GSW_BASE, value)
-
 def gsw_check(index):
     return dolphin.read_word(GP_BASE + GSW0) if index == 0 else dolphin.read_byte(GP_BASE + index + GSW_BASE)
-
 def _strip_anim_suffix(name: str) -> str:
     """TTYD's animation names have suffixes encoding facing direction:
     M_S_1   = standing, front-facing
@@ -171,567 +132,178 @@ def _strip_anim_suffix(name: str) -> str:
         name = name[:-1]
     return name
 
-def _read_self_state(ctx) -> dict | None:
-    """Read the local Player struct in ONE IPC call and parse offsets
-    locally. Doing this as 9 separate dolphin.read_bytes calls (the old
-    way) caused visible jitter: the game advances frames between reads
-    so the resulting state mixed values from different frames.
-
-    The Player struct is contiguous; we read the first 0x1B0 bytes which
-    covers all the offsets we need (largest is wPlayerDirectionCurrent at
-    0x1AC). The struct read isn't truly atomic against the running game
-    (Dolphin's read happens while the GameCube CPU is also writing) but
-    it's near-instantaneous and dramatically tighter than 9 separate
-    round-trips through asyncio + IPC.
-
-    Takes ctx so it can resolve the GhostState container address (for
-    reading the self-paper-AGB scratch field). If addresses haven't
-    been resolved yet, falls back to leaving paper_agb empty rather
-    than failing the whole read."""
-    try:
-        player_ptr = int.from_bytes(
-            dolphin.read_bytes(MARIO_PTR_ADDR, 4), "big"
-        )
-        if not (0x80000000 <= player_ptr < 0x81800000):
-            return None
-
-        buf = dolphin.read_bytes(player_ptr, 0x2D4)
-
-        (flags2,) = struct.unpack_from(">I", buf, 0x4)
-        (flags3,) = struct.unpack_from(">I", buf, 0xC)
-        anim_ptr  = int.from_bytes(buf[0x18:0x1C], "big")
-
-        paper_anim_ptr = int.from_bytes(buf[0x1C:0x20], "big")
-        (motion_timer,) = struct.unpack_from(">H", buf, 0x28)
-
-        (motion_id,) = struct.unpack_from(">H", buf, 0x2E)
-
-        (base_x,  base_y,  base_z)  = struct.unpack_from(">fff", buf, 0x8C)
-        (ofs1_x,  ofs1_y,  ofs1_z)  = struct.unpack_from(">fff", buf, 0x98)
-        (ofs2_x,  ofs2_y,  ofs2_z)  = struct.unpack_from(">fff", buf, 0xA4)
-        x = base_x + ofs1_x + ofs2_x
-        y = base_y + ofs1_y + ofs2_y
-        z = base_z + ofs1_z + ofs2_z
-        (camera_angle,) = struct.unpack_from(">f", buf, 0x19C)
-        (rot_y,) = struct.unpack_from(">f", buf, 0x1AC)
-
-        (rot_x,) = struct.unpack_from(">f", buf, 0xBC)
-        (rot_z,) = struct.unpack_from(">f", buf, 0xC4)
-
-        (pivot_x, pivot_y, pivot_z) = struct.unpack_from(">fff", buf, 0xB0)
-
-        (scale_x, scale_y, scale_z) = struct.unpack_from(">fff", buf, 0xC8)
-
-        (flags1,) = struct.unpack_from(">I", buf, 0x0)
-        if flags1 & 0x01000000:
-            (stretch_y,) = struct.unpack_from(">f", buf, 0x130)
-        else:
-            stretch_y = 1.0
-
-        anim_name = ""
-        if 0x80000000 <= anim_ptr < 0x81800000:
-            raw = dolphin.read_bytes(anim_ptr, 16)
-            anim_name = raw.split(b"\x00", 1)[0].decode("ascii", errors="replace")
-
-        paper_anim = ""
-        if 0x80000000 <= paper_anim_ptr < 0x81800000:
-            raw = dolphin.read_bytes(paper_anim_ptr, 16)
-            paper_anim = raw.split(b"\x00", 1)[0].decode("ascii", errors="replace")
-
-        paper_agb = ""
-        try:
-            addrs = getattr(ctx, "_ghost_addrs", None) if ctx else None
-            agb_addr = addrs.get("self_paper_agb") if addrs else None
-            if agb_addr is not None:
-                agb_raw = dolphin.read_bytes(agb_addr, Ghosts.SELF_PAPER_AGB_LEN)
-                paper_agb = agb_raw.split(b"\x00", 1)[0].decode(
-                    "ascii", errors="replace")
-        except Exception:
-
-            pass
-
-        paper_local_time = -1.0
-        if motion_id == 0x13 and paper_anim == "P_H_1A":
-            (spin_charge,) = struct.unpack_from(">f", buf, 0x2C8)
-            paper_local_time = spin_charge / 6.0
-        elif motion_id == 0x14 and anim_name == "M_W_6":
-
-            (mp_2d3,) = struct.unpack_from(">b", buf, 0x2D3)
-            paper_local_time = float(mp_2d3)
-    except Exception:
-        return None
-
-    map_name = read_string(ROOM, 16)
-    if not map_name:
-        return None
-
-    return {
-        "map": map_name,
-        "anim": anim_name,
-        "x": x,
-        "y": y,
-        "z": z,
-        "rot_y": rot_y,
-        "rot_x": rot_x,
-        "rot_z": rot_z,
-        "rot_pivot_x": pivot_x,
-        "rot_pivot_y": pivot_y,
-        "rot_pivot_z": pivot_z,
-        "scale_x": scale_x,
-        "scale_y": scale_y,
-        "scale_z": scale_z,
-        "stretch_y": stretch_y,
-        "flags2": flags2,
-        "flags3": flags3,
-        "motion_timer": motion_timer,
-        "motion_id": motion_id,
-        "camera_angle": camera_angle,
-        "paper_agb": paper_agb,
-        "paper_anim": paper_anim,
-        "paper_local_time": paper_local_time,
-    }
-
-def _write_peer_block(ctx) -> None:
-    """Pack the current peer table into the binary block format and write
-    it to Dolphin. Called from the sync loop each tick."""
-    if ctx.team is None or ctx.slot is None:
-        return
-    if not _resolve_ghost_addresses(ctx):
-        return
-    peer_block_addr = ctx._ghost_addrs["peer_block"]
-    peers = getattr(ctx, "_ghost_peers", {})
-    try:
-        payload = Ghosts.pack_peer_block(peers)
-        dolphin.write_bytes(peer_block_addr, payload)
-    except Exception as e:
-        logger.warning(f"Failed to write ghost block to Dolphin: {e}")
-
-async def _drain_sfx_ring(ctx) -> list:
-    """Read the mod's SFX event ring and return up to SFX_EVENTS_PER_SLOT
-    most-recent events as a list of {sfx_id, seq, flags} dicts. Advances
-    the ring's tail to mark events as consumed.
-
-    The ring is SPSC: mod pushes on every psndSFXOn[/3D] call (filtered),
-    Python pops once per publish tick. Capacity is 16 events; if more
-    than 4 fired since the last drain we keep only the most recent 4.
-
-    Returns [] on read failure or empty ring.
-
-    NOTE: dolphin_memory_engine's read/write_bytes are SYNCHRONOUS. Do
-    NOT wrap them in asyncio.wait_for - it raises TypeError silently
-    swallowed by bare except, leaving the ring undrained. (Was the bug
-    that stalled SFX sync v22-v23.)"""
-    if not _resolve_ghost_addresses(ctx):
-        return []
-    addrs = ctx._ghost_addrs
-    head_addr   = addrs["sfx_ring_head"]
-    tail_addr   = addrs["sfx_ring_tail"]
-    events_addr = addrs["sfx_ring_events"]
-    try:
-        head_b = dolphin.read_bytes(head_addr, 1)
-        tail_b = dolphin.read_bytes(tail_addr, 1)
-    except Exception:
-        return []
-    if not head_b or not tail_b:
-        return []
-
-    head = head_b[0]
-    tail = tail_b[0]
-    if head == tail:
-        return []
-
-    available = (head - tail) & 0xFF
-    if available > SFX_RING_CAPACITY:
-        available = SFX_RING_CAPACITY
-
-    events = []
-    cur = tail
-    for _ in range(available):
-        try:
-            raw = dolphin.read_bytes(
-                events_addr + cur * SFX_EVENT_BYTES,
-                SFX_EVENT_BYTES)
-        except Exception:
-            break
-        if not raw or len(raw) < SFX_EVENT_BYTES:
-            break
-        sfx_id = (raw[0] << 8) | raw[1]
-        seq    = raw[2]
-        flags  = raw[3]
-        events.append({"sfx_id": sfx_id, "seq": seq, "flags": flags})
-        cur = (cur + 1) % SFX_RING_CAPACITY
-
-    try:
-        dolphin.write_bytes(tail_addr, bytes([head]))
-    except Exception:
-        pass
-
-    if len(events) > Ghosts.SFX_EVENTS_PER_SLOT:
-        events = events[-Ghosts.SFX_EVENTS_PER_SLOT:]
-    return events
-
-async def _publish_self_state(ctx) -> None:
-    """Read the local player's state from the game's Player struct and
-    publish it to AP DataStorage. Skips silently if the read fails or the
-    map name is empty (boot, cutscenes, between-map transitions)."""
-    if ctx.team is None or ctx.slot is None:
-        return
-    state = _read_self_state(ctx)
-    if state is None:
-        return
-
-    own_name = ""
-    try:
-        own_name = ctx.player_names.get(ctx.slot, "") or ""
-    except Exception:
-        pass
-    state["slot_name"] = own_name[:16]
-
-    state["show_name"] = 1 if getattr(ctx, "_ghost_names_hidden", False) else 0
-
-    optout_manual = 1 if getattr(ctx, "_ghost_hammer_optout", False) else 0
-    optout_grace = 0
-    addrs = ctx._ghost_addrs if _resolve_ghost_addresses(ctx) else None
-    if addrs is not None:
-        try:
-            grace_byte = dolphin.read_bytes(addrs["hit_grace"], 1)
-            if grace_byte and grace_byte[0] != 0:
-                optout_grace = 1
-        except Exception:
-            pass
-    state["hammerable"] = 1 if (optout_manual or optout_grace) else 0
-
-    team_id = int(getattr(ctx, "_ghost_team_id", Ghosts.TEAM_NONE)) & 0xFF
-    state["team_id"] = team_id
-
-    friendly_fire = 1 if getattr(ctx, "_ghost_friendly_fire", False) else 0
-    if addrs is not None:
-        try:
-            dolphin.write_bytes(addrs["self_team_id"], bytes([team_id]))
-            dolphin.write_bytes(addrs["self_friendly_fire"], bytes([friendly_fire]))
-        except Exception:
-            pass
-
-    sfx_events = await _drain_sfx_ring(ctx)
-    if sfx_events:
-        state["sfx_events"] = sfx_events
-
-    # Drain the spin-direction hint accumulators built up since the
-    # last publish. Each is -1/0/+1 indicating fast rotation in that
-    # axis since last publish. Receivers use these to disambiguate
-    # >180-deg-per-publish spins. Plain shortest-path lerp can't tell
-    # +250 from -110 from sample alone; the source-side hint resolves
-    # it because we tracked the unwrapped angle at 60Hz.
-    hint_y, hint_x, hint_z = _consume_spin_hints(ctx)
-    state["spin_dir_hint_y"] = hint_y
-    state["spin_dir_hint_x"] = hint_x
-    state["spin_dir_hint_z"] = hint_z
-
-    # v26 state-sync: read the mod's selfActiveLoops scratch (the mod
-    # writes the current channel-map sample each frame) and include
-    # in the published state so receivers can diff and start/stop
-    # loops accordingly.
-    state["active_loops"] = _read_self_active_loops(ctx)
-
-    if getattr(ctx, "_ghost_loopback_active", False):
-        _loopback_inject(ctx, state)
-
-    await ctx.send_msgs([{
-        "cmd":         "Set",
-        "key":         Ghosts.ghost_key(ctx.team, ctx.slot),
-        "default":     None,
-        "want_reply":  False,
-        "operations":  [{"operation": "replace", "value": state}],
-    }])
-
-
-def _loopback_inject(ctx, state: dict) -> None:
-    """Inject the just-published self state into ctx._ghost_peers as a
-    synthetic peer for /ghost_test. The 60Hz _write_peer_block will
-    then pack and write it alongside any real peers.
-
-    With GHOST_TEST_DELAY_S == 0 (default), the current state is
-    injected immediately. With a non-zero delay, states are pushed
-    onto a deque and dequeued once they're older than the delay -
-    useful for solo testing where you want to compare your live
-    actions against the ghost playing back your past actions."""
-    now = asyncio.get_event_loop().time()
-
-    if GHOST_TEST_DELAY_S <= 0.0:
-        delayed_state = state
-    else:
-        buf = getattr(ctx, "_loopback_delay_buf", None)
-        if buf is None:
-            buf = collections.deque()
-            ctx._loopback_delay_buf = buf
-        buf.append((now, dict(state)))
-        cutoff = now - GHOST_TEST_DELAY_S
-        delayed_state = None
-        while buf and buf[0][0] <= cutoff:
-            _, delayed_state = buf.popleft()
-        if delayed_state is None:
-            # Not enough history yet (still warming up the delay buffer);
-            # remove any prior loopback ghost so we don't render a stale
-            # one from before the toggle.
-            ctx._ghost_peers.pop(Ghosts.ghost_key(0, 99), None)
-            return
-
-    # Offset the X position so the ghost stands next to us, not on top.
-    fake = dict(delayed_state)
-    fake["x"] = delayed_state["x"] + GHOST_TEST_OFFSET_X
-    fake["slot_name"] = "GHOST"
-    ctx._ghost_peers[Ghosts.ghost_key(0, 99)] = fake
-
-async def _publish_lobby_hud(ctx) -> None:
-    """Serialize the local lobby state and write it to the mod's scratch
-    RAM (the lobby_hud sub-region of the GhostState container). Mod's
-    DrawLobbyHud reads this and renders the overlay each frame.
-
-    Safe to call repeatedly. Cheap (single 1KB write per call). If the
-    user has the HUD toggled off, we instead clear the magic so the
-    mod stops rendering."""
-    if not getattr(ctx, "dolphin_connected", False):
-        return
-    if not _resolve_ghost_addresses(ctx):
-        return
-    if not getattr(ctx, "_lobby_hud_enabled", True):
-
-        await _clear_lobby_hud(ctx)
-        return
-
-    state = getattr(ctx, "_lobby", None)
-    block = Ghosts.pack_lobby_block(state)
-    try:
-        dolphin.write_bytes(ctx._ghost_addrs["lobby_hud"], block)
-    except Exception:
-        pass
-
-async def _clear_lobby_hud(ctx) -> None:
-    """Write 4 zero bytes to the lobby HUD magic field. Mod sees the
-    mismatch and skips rendering this frame. Cheaper than packing a
-    full inactive block."""
-    if not getattr(ctx, "dolphin_connected", False):
-        return
-    if not _resolve_ghost_addresses(ctx):
-        return
-    try:
-        dolphin.write_bytes(ctx._ghost_addrs["lobby_hud"], Ghosts.LOBBY_CLEAR_MAGIC)
-    except Exception:
-        pass
-
-async def _subscribe_to_peers(ctx) -> None:
-    if ctx.team is None or getattr(ctx, "_ghost_subscribed", False):
-        return
-
-    keys = []
-    for slot_id, slot_info in (ctx.slot_info or {}).items():
-
-        if slot_id == 0 or slot_id == ctx.slot:
-            continue
-        if slot_info.type != SlotType.player:
-            continue
-        keys.append(Ghosts.ghost_key(ctx.team, slot_id))
-
-    if not keys:
-        return
-
-    await ctx.send_msgs([{"cmd": "SetNotify", "keys": keys}])
-    await ctx.send_msgs([{"cmd": "Get",       "keys": keys}])
-    ctx._ghost_subscribed = True
-
-def _on_ghost_update(ctx, args: dict) -> None:
-    """Handle SetReply (live broadcast) and Retrieved (response to our Get).
-    Both deliver peer state in slightly different shapes; we normalize and
-    dispatch each entry into Ghosts.ingest_peer_update."""
-    if not hasattr(ctx, "_ghost_peers"):
-        ctx._ghost_peers = {}
-
-    if "keys" in args and isinstance(args["keys"], dict):
-
-        for key, value in args["keys"].items():
-            Ghosts.ingest_peer_update(ctx._ghost_peers, key, value)
-    elif "key" in args:
-
-        Ghosts.ingest_peer_update(ctx._ghost_peers, args["key"], args.get("value"))
-
-def _on_ghost_disconnect(ctx) -> None:
-    """Reset subscription state, clear known peers, and zero the magic in
-    Dolphin so the mod stops rendering Ghosts immediately. Tolerates
-    the ghost-state container not being resolved (e.g. disconnect
-    before AP fully connected) - a no-op write is harmless."""
-    ctx._ghost_subscribed = False
-    ctx._ghost_peers = {}
-    addrs = getattr(ctx, "_ghost_addrs", None)
-    if addrs is not None:
-        try:
-            dolphin.write_bytes(addrs["peer_block"], Ghosts.CLEAR_MAGIC)
-        except Exception:
-            pass
-
-def _peer_index_to_ap_slot(ctx, peer_index: int) -> typing.Optional[int]:
-    """Translate a 0..31 peer-block index back to its AP slot ID.
-
-    The mod-side hit detector returns "I hit slot N" where N is the
-    position of the peer in the 32-slot block. Ghosts.pack_peer_block
-    sorts peers by key (ttyd_ghost_<team>_<slot>) before packing, so
-    we replicate the same sort here and pick the entry at index N.
-
-    Returns None if the index is out of range or the peer dict has
-    fewer entries than the index, or if we can't parse the slot from
-    the key. The caller should treat None as "drop the event."
-    """
-    peers = getattr(ctx, "_ghost_peers", None) or {}
-    sorted_keys = sorted(peers.keys())
-    if peer_index < 0 or peer_index >= len(sorted_keys):
-        return None
-    key = sorted_keys[peer_index]
-    try:
-
-        return int(key.rsplit("_", 1)[-1])
-    except (ValueError, IndexError):
-        return None
-
-async def _drain_outbound_hits(ctx) -> None:
-    """Poll the mod's outbound-hit scratch slot. If non-zero, decode the
-    event, look up the AP slot ID for the targeted peer, send a Bounce
-    packet, and clear the slot.
-
-    Wire format (matches GhostPeers.h's PackOutboundHit):
-      byte 0 = hit kind (HIT_KIND_HAMMER = 1)
-      byte 1 = peer block index (0..31)
-      byte 2-3 = reserved (0)
-
-    Bounce packet shape:
-      {
-        "cmd": "Bounce",
-        "slots": [<victim AP slot id>],
-        "data": {
-          "ttyd_hit": True,    # discriminator - distinguishes our
-                               # bounces from DeathLink and other
-                               # generic Bounce traffic
-          "from": <our slot>,
-          "kind": "hammer",
-        }
-      }
-
-    The discriminator key is critical: Bounce is a free-form generic
-    relay, so DeathLink bounces, other mods' bounces, and ours all
-    arrive in the same on_package handler. We tag with "ttyd_hit" so
-    the receiver can filter cheaply.
-
-    No-ops if not connected to a slot, or if the lookup fails (we
-    silently clear the scratch and move on - dropping rare events is
-    better than blocking the loop).
-    """
-    if ctx.team is None or ctx.slot is None:
-        return
-    if not _resolve_ghost_addresses(ctx):
-        return
-    outbound_addr = ctx._ghost_addrs["outbound_hit"]
-    try:
-        word = dolphin.read_word(outbound_addr)
-    except Exception:
-        return
-    if word == 0:
-        return
-
-    kind = (word >> 24) & 0xFF
-    peer_index = (word >> 16) & 0xFF
-
-    try:
-        dolphin.write_word(outbound_addr, 0)
-    except Exception:
-        pass
-
-    if kind != HIT_KIND_HAMMER:
-
-        return
-
-    target_slot = _peer_index_to_ap_slot(ctx, peer_index)
-    if target_slot is None:
-
-        logger.debug(
-            f"hit peer index {peer_index} doesn't resolve to an AP slot; "
-            f"playing local stagger as a single-client loopback"
-        )
-        _on_inbound_hit(ctx, {"ttyd_hit": True, "kind": "hammer", "from": ctx.slot})
-        return
-
-    try:
-        await ctx.send_msgs([{
-            "cmd":   "Bounce",
-            "slots": [target_slot],
-            "data":  {
-                "ttyd_hit": True,
-                "from":     ctx.slot,
-                "kind":     "hammer",
-            },
-        }])
-    except Exception:
-        logger.exception("failed to send hammer hit Bounce")
-
-def _on_inbound_hit(ctx, data: dict) -> None:
-    """Handle an inbound 'ttyd_hit' Bounce. Writes a kind code to the
-    mod's PENDING_HIT scratch slot; the mod's per-frame consumer reads
-    that on the next tick, plays the configured pose, and triggers the
-    sound.
-
-    Optional opt-out: if ctx._ghost_hammer_optout is set, ignore the
-    incoming hit. (The /ghost_hammer command flips this flag; it
-    lets a player turn off receiving stagger animations entirely.)
-    Note that opt-out is only advisory - the attacker can still send
-    Bounces; we just don't play the reaction.
-    """
-    if getattr(ctx, "_ghost_hammer_optout", False):
-        return
-
-    kind = data.get("kind")
-    if kind == "hammer":
-        kind_code = HIT_KIND_HAMMER
-    else:
-        return
-
-    if not _resolve_ghost_addresses(ctx):
-        # Mod's Init() hasn't run yet, or the game isn't booted enough
-        # for the GhostState pointer to be valid. Drop this hit - it's
-        # better to miss one stagger than to crash by writing to an
-        # unresolved address.
-        logger.debug("inbound hit dropped: ghost-state container not yet resolved")
-        return
-
-    try:
-        dolphin.write_word(ctx._ghost_addrs["pending_hit"], (kind_code & 0xFF) << 24)
-    except Exception:
-        logger.exception("failed to write inbound hit to mod scratch")
-
-GHOST_TEST_DELAY_S = 1.0
-
-
 
 class TTYDCommandProcessor(ClientCommandProcessor):
-    def __init__(self, ctx: cmmCtx):
+    def __init__(self, ctx):
         super().__init__(ctx)
 
-    def _cmd_set_gswf(self, bit_number: int):
+
+    def _cmd_ghost(self, *args):
+        """Manage ghost peer settings.
+
+        Subcommands:
+          /ghost test                      - toggle single-client loopback
+          /ghost names [on|off|toggle]     - hide/show your name tag
+          /ghost friendly_fire [on|off]    - toggle FF for your hammer
+          /ghost team join <color>         - join red/blue/green/yellow
+          /ghost team leave                - clear team membership
+          /ghost team status               - show your team / FF state
+          /ghost team list                 - list all peers grouped by team
+        """
+        if not args:
+            logger.info("ghost: subcommands - test / names / friendly_fire / team")
+            return
+        sub = args[0].strip().lower()
+        rest = args[1:]
+        if sub == "test":
+            self._ghost_test()
+        elif sub == "names":
+            self._ghost_names(*rest)
+        elif sub in ("friendly_fire", "ff"):
+            self._ghost_friendly_fire(*rest)
+        elif sub == "team":
+            self._ghost_team(*rest)
+        else:
+            logger.info(f"ghost: unknown subcommand '{sub}'. "
+                        f"Use test/names/friendly_fire/team.")
+
+    def _cmd_hns(self, *args):
+        """Hide-and-seek match commands.
+
+        Match management:
+          /hns start                     - begin a match (you become conductor)
+          /hns stop                      - end the current match early
+          /hns status                    - show the current match state
+          /hns leave                     - opt out of the next match
+          /hns join                      - clear your opt-out flag
+
+        Configuration (last-write-wins via DataStorage):
+          /hns set <key> <value>         - change a setting
+          /hns settings                  - show current settings
+          /hns maps add <map>            - add a map to the pool
+          /hns maps remove <map>         - remove a map
+          /hns maps list                 - list maps
+          /hns maps clear                - empty the pool
+
+        Display & debug:
+          /hns hud [on|off|toggle]       - toggle the in-game HUD overlay
+          /hns role [none|hider|seeker]  - debug game_role byte override
+          /hns solo start [N]            - solo bot test mode (N bots)
+          /hns solo stop                 - tear down solo
+          /hns solo list                 - show solo bots
+          /hns solo role <slot> <role>   - set a solo bot's role
+        """
+        ctx = self.ctx
+        if not args:
+            self._hns_status()
+            return
+        sub = args[0].strip().lower()
+        rest = args[1:]
+        if sub == "start":
+            self._hns_start()
+        elif sub == "stop":
+            self._hns_stop()
+        elif sub in ("status", "info", "?"):
+            self._hns_status()
+        elif sub == "leave":
+            self._hns_leave()
+        elif sub == "join":
+            self._hns_join()
+        elif sub == "set":
+            self._hns_set(*rest)
+        elif sub == "settings":
+            self._hns_settings()
+        elif sub == "maps":
+            self._hns_maps(*rest)
+        elif sub == "hud":
+            self._hns_hud(*rest)
+        elif sub == "role":
+            self._hns_role(*rest)
+        elif sub == "solo":
+            self._hns_solo(*rest)
+        elif sub == "debug":
+            self._hns_debug()
+        elif sub == "next":
+            self._hns_next()
+        elif sub == "map":
+            self._hns_map(*rest)
+        else:
+            logger.info(f"hns: unknown subcommand '{sub}'. "
+                        f"See /help hns or use start/stop/status/leave/join/"
+                        f"set/settings/maps/hud/role/solo/debug/next.")
+
+
+    def _cmd_gswf(self, *args):
+        """Manipulate GSWF (global state word flag) bits. Debug only.
+
+        Subcommands:
+          /gswf set <bit_number>
+          /gswf check <bit_number>
+        """
+        if not args:
+            logger.info("gswf: subcommands - set / check")
+            return
+        sub = args[0].strip().lower()
+        rest = args[1:]
+        if sub == "set":
+            if not rest:
+                logger.info("gswf: usage: /gswf set <bit_number>")
+                return
+            self._gswf_set(rest[0])
+        elif sub == "check":
+            if not rest:
+                logger.info("gswf: usage: /gswf check <bit_number>")
+                return
+            self._gswf_check(rest[0])
+        else:
+            logger.info(f"gswf: unknown subcommand '{sub}'. Use set/check.")
+
+    def _cmd_gsw(self, *args):
+        """Manipulate GSW (global state word) values. Debug only.
+
+        Subcommands:
+          /gsw set <index> <value>
+          /gsw check <index>
+        """
+        if not args:
+            logger.info("gsw: subcommands - set / check")
+            return
+        sub = args[0].strip().lower()
+        rest = args[1:]
+        if sub == "set":
+            if len(rest) < 2:
+                logger.info("gsw: usage: /gsw set <index> <value>")
+                return
+            self._gsw_set(rest[0], rest[1])
+        elif sub == "check":
+            if not rest:
+                logger.info("gsw: usage: /gsw check <index>")
+                return
+            self._gsw_check(rest[0])
+        else:
+            logger.info(f"gsw: unknown subcommand '{sub}'. Use set/check.")
+
+
+    def _gswf_set(self, bit_number: int):
         """Used to manually set a GSWF bit."""
         byte_address, bit = gswf_set(int(bit_number))
         logger.info(f"Bit {bit} written at {byte_address}")
 
-    def _cmd_check_gswf(self, bit_number: int):
+    def _gswf_check(self, bit_number: int):
         """Used to manually check a GSWF bit."""
         result = gswf_check(int(bit_number))
         logger.info(f"GSWF Check: 0x{format(result, 'x')}")
 
-    def _cmd_set_gsw(self, gsw: int, value: int):
+    def _gsw_set(self, gsw: int, value: int):
         """Used to manually set a GSW flag."""
         gsw_set(int(gsw), int(value))
 
-    def _cmd_check_gsw(self, gsw: int):
+    def _gsw_check(self, gsw: int):
         """Used to manually check a GSW flag."""
         result = gsw_check(int(gsw))
         logger.info(f"GSWF Check: {result}")
 
-    def _cmd_ghost_test(self):
+    def _ghost_test(self):
         """Toggle the single-player ghost loopback test."""
         ctx = self.ctx
         ctx._ghost_loopback_active = not getattr(ctx, "_ghost_loopback_active", False)
@@ -758,7 +330,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             # the next _write_peer_block doesn't repaint a stale ghost.
             getattr(ctx, "_ghost_peers", {}).pop(Ghosts.ghost_key(0, 99), None)
 
-    def _cmd_ghost_names(self, mode: str = "toggle"):
+    def _ghost_names(self, mode: str = "toggle"):
         """Toggle ghost name tags. Affects both what you see (other
         players' name tags above their ghosts) and what others see of
         you (your name tag above your ghost on their screens). Defaults
@@ -791,7 +363,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         logger.info(f"Ghost name tags {'OFF' if new_hidden else 'ON'} "
                     f"(both your view and peers' view of you).")
 
-    def _cmd_ghost_team(self, *args):
+    def _ghost_team(self, *args):
         """Set, clear, or query your team membership. Teams are local to
         this AP team's visibility scope (you only see/hit peers on your
         AP team to begin with). Same-team peers don't hammer each other
@@ -806,7 +378,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         """
         ctx = self.ctx
         if not args:
-            self._cmd_ghost_team_status()
+            self._ghost_team_status()
             return
 
         sub = args[0].strip().lower()
@@ -837,16 +409,16 @@ class TTYDCommandProcessor(ClientCommandProcessor):
                 pass
 
         elif sub in ("status", "s", "?"):
-            self._cmd_ghost_team_status()
+            self._ghost_team_status()
 
         elif sub in ("list", "ls"):
-            self._cmd_ghost_team_list()
+            self._ghost_team_list()
 
         else:
             logger.info(f"ghost_team: unknown subcommand '{sub}'. "
                         f"Use join/leave/status/list.")
 
-    def _cmd_ghost_team_status(self):
+    def _ghost_team_status(self):
         ctx = self.ctx
         team_id = int(getattr(ctx, "_ghost_team_id", Ghosts.TEAM_NONE))
         ff = bool(getattr(ctx, "_ghost_friendly_fire", False))
@@ -857,7 +429,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         else:
             logger.info(f"Team: {label}. Friendly fire: {'ON' if ff else 'OFF'}.")
 
-    def _cmd_ghost_team_list(self):
+    def _ghost_team_list(self):
         ctx = self.ctx
         peers = getattr(ctx, "_ghost_peers", {}) or {}
         if not peers:
@@ -877,7 +449,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             members = ", ".join(sorted(by_team[tid]))
             logger.info(f"  {label}: {members}")
 
-    def _cmd_ghost_friendly_fire(self, mode: str = "toggle"):
+    def _ghost_friendly_fire(self, mode: str = "toggle"):
         """Toggle friendly fire. When ON, you can hammer same-team peers
         normally. When OFF (default), same-team hits are filtered out
         on the attacker side. Per-session, not persisted.
@@ -912,167 +484,568 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         except Exception:
             pass
 
-    def _cmd_lobby(self, *args):
-        """Manage minigame lobbies. Step 1: local-only (no cross-player
-        sync). The HUD shows your lobby state in the top-right corner
-        once a lobby is active.
+    def _hns_solo(self, *args):
+        """Solo test mode: spawn synthetic bot peers next to your
+        player and seat them as members of a local lobby. Lets you
+        verify the v27 game_role byte (and, once the phase machine
+        lands, the full hide-and-seek flow) without needing a second
+        connected client.
 
-        Usage: /lobby create <name>      - create a new local lobby (you = host)
-               /lobby leave              - exit current lobby
-               /lobby status             - print lobby info to chat
-               /lobby game <type>        - host: set game (hide_and_seek)
-               /lobby start              - host: transition to playing
-               /lobby stop               - host: transition back to waiting
-               /lobby hud on/off/toggle  - toggle the in-game HUD overlay
+        Bots are local-only - they aren't published to AP, so other
+        connected players don't see them. They occupy ghost slots
+        91..95 (5 bots max). Each bot has its own toggleable
+        game_role byte that controls its name-tag color: red for
+        seeker, green for hider, palette for none.
+
+        Usage:
+            /hns_solo                          - show solo state
+            /hns_solo start [num_bots]         - start with N bots (default 3, max 5)
+            /hns_solo stop                     - tear down
+            /hns_solo list                     - show bots and their roles
+            /hns_solo role <slot> <none|hider|seeker>
+                                               - override a bot's role
         """
         ctx = self.ctx
         if not args:
-            self._cmd_lobby_status()
+            self._hns_solo_status()
             return
-
         sub = args[0].strip().lower()
-        if sub == "create":
-            self._cmd_lobby_create(*args[1:])
-        elif sub == "leave":
-            self._cmd_lobby_leave()
-        elif sub in ("status", "info", "?"):
-            self._cmd_lobby_status()
-        elif sub == "game":
-            self._cmd_lobby_game(*args[1:])
-        elif sub == "start":
-            self._cmd_lobby_start()
+        if sub == "start":
+            self._hns_solo_start(*args[1:])
         elif sub == "stop":
-            self._cmd_lobby_stop()
-        elif sub == "hud":
-            self._cmd_lobby_hud(*args[1:])
+            self._hns_solo_stop()
+        elif sub == "list":
+            self._hns_solo_status()
+        elif sub == "role":
+            self._hns_solo_role(*args[1:])
         else:
-            logger.info(f"lobby: unknown subcommand '{sub}'. "
-                        f"Use create/leave/status/game/start/stop/hud.")
+            logger.info(f"hns_solo: unknown subcommand '{sub}'. "
+                        f"Use start/stop/list/role.")
 
-    def _cmd_lobby_create(self, *name_parts):
+    def _hns_solo_status(self):
         ctx = self.ctx
-        if getattr(ctx, "_lobby", None) is not None:
-            logger.info("lobby: you're already in a lobby. /lobby leave first.")
+        bots = getattr(ctx, "_solo_bots", None) or []
+        if not bots:
+            logger.info("hns_solo: not active. /hns_solo start [N] to begin.")
             return
-        if not name_parts:
-            logger.info("lobby: usage: /lobby create <name>")
+        logger.info(f"hns_solo: {len(bots)} bot(s) active:")
+        for bot in bots:
+            label = Ghosts.GAME_ROLE_LABELS.get(
+                bot.get("game_role", Ghosts.GAME_ROLE_NONE), "") or "none"
+            logger.info(f"  slot {bot['slot']:2d}: {bot['name']} [{label}]")
+
+    def _hns_solo_start(self, *args):
+        ctx = self.ctx
+        if getattr(ctx, "_solo_bots", None):
+            logger.info("hns_solo: already active. /hns_solo stop first.")
             return
-        name = " ".join(name_parts).strip()
-        if not name:
-            logger.info("lobby: name cannot be empty.")
+        if ctx.slot is None or ctx.team is None:
+            logger.info("hns_solo: connect to AP first (need a slot id).")
+            return
+        if getattr(ctx, "_solo_bots", None):
+            logger.info("hns_solo: solo mode is already running. /hns solo stop first.")
+            return
+        cur_match = getattr(ctx, "_match", None)
+        if cur_match is not None and cur_match.is_active():
+            logger.info("hns_solo: a real match is already running. /hns stop first.")
             return
 
-        own_name = ""
+        n = SOLO_BOT_DEFAULT_N
+        if args:
+            try:
+                n = int(args[0])
+            except ValueError:
+                logger.info(f"hns_solo: '{args[0]}' is not a number.")
+                return
+        n = max(1, min(SOLO_BOT_MAX, n))
+
+        bots = []
+        for i in range(n):
+            bots.append({
+                "slot":      SOLO_BOT_SLOT_BASE + i,
+                "name":      f"Bot{i+1}",
+                "game_role": _solo_default_role(i, n),
+                "offset":    SOLO_BOT_OFFSETS[i],
+            })
+        ctx._solo_bots = bots
+
+        ctx._match = _solo_build_match(ctx, n)
+        if not ctx._match.settings.map_pool:
+            try:
+                cur = read_string(ROOM, 16) or ""
+                if cur:
+                    ctx._match.settings.map_pool = [cur]
+            except Exception:
+                pass
+
+        logger.info(f"hns_solo: started with {n} bot(s) (slots "
+                    f"{SOLO_BOT_SLOT_BASE}..{SOLO_BOT_SLOT_BASE + n - 1}).")
+        logger.info("hns_solo: you're the seeker (red, frozen during HIDE); "
+                    "all bots are hiders (green).")
+        logger.info(f"hns_solo: round 1 of {ctx._match.settings.round_count}, "
+                    f"hide {ctx._match.settings.hide_phase_seconds}s -> "
+                    f"seek {ctx._match.settings.round_time_limit_seconds}s.")
+        logger.info("hns_solo: use '/hns_solo role <slot> <role>' to change a bot's role.")
+
+        # Kick a publish so bot peers appear immediately and the HUD
+        # reflects the new lobby state without waiting for the next tick.
         try:
-            own_name = (ctx.player_names.get(ctx.slot, "") or "")[:16]
+            asyncio.create_task(_publish_self_state(ctx))
         except Exception:
             pass
-        if not own_name:
-            own_name = "Host"
-        slot = int(getattr(ctx, "slot", 0) or 0)
+        try:
+            asyncio.create_task(_publish_match_hud(ctx))
+        except Exception:
+            pass
 
-        ctx._lobby = Ghosts.LobbyState(
-            lobby_id=f"local_{slot}",
-            name=name[:16],
-            game_type=Ghosts.GAME_TYPE_NONE,
-            status=Ghosts.LOBBY_STATUS_WAITING,
-            members=[Ghosts.LobbyMember(slot=slot, name=own_name,
-                                        role=Ghosts.LOBBY_ROLE_HOST)],
-            self_slot=slot,
-        )
-        logger.info(f"Created lobby '{name}' (you are host).")
-        self._publish_lobby_now()
-
-    def _cmd_lobby_leave(self):
+    def _hns_solo_stop(self):
         ctx = self.ctx
-        if getattr(ctx, "_lobby", None) is None:
-            logger.info("lobby: you're not in a lobby.")
+        if not getattr(ctx, "_solo_bots", None):
+            logger.info("hns_solo: not active.")
             return
-        ctx._lobby = None
-        logger.info("Left the lobby.")
-        self._publish_lobby_now()
+        ctx._solo_bots = []
+        _solo_clear_peers(ctx)
+        st = getattr(ctx, "_match", None)
+        if st is not None:
+            st.status = Ghosts.MATCH_STATUS_IDLE
+            st.timer_seconds = 0
+            st.members = []
+            st.game_state = {}
+            st.conductor_slot = 0
+        logger.info("hns_solo: stopped, bots removed.")
+        try:
+            asyncio.create_task(_publish_match_hud(ctx))
+        except Exception:
+            pass
 
-    def _cmd_lobby_status(self):
+    def _hns_solo_role(self, *args):
         ctx = self.ctx
-        st = getattr(ctx, "_lobby", None)
+        bots = getattr(ctx, "_solo_bots", None) or []
+        if not bots:
+            logger.info("hns_solo: not active.")
+            return
+        if len(args) < 2:
+            logger.info("hns_solo: usage: /hns_solo role <slot> <none|hider|seeker>")
+            return
+        try:
+            target_slot = int(args[0])
+        except ValueError:
+            logger.info(f"hns_solo: slot '{args[0]}' is not a number.")
+            return
+        role_name = args[1].strip().lower()
+        role = Ghosts.GAME_ROLE_NAMES.get(role_name)
+        if role is None:
+            logger.info(f"hns_solo: unknown role '{role_name}'. "
+                        f"Use none/hider/seeker.")
+            return
+        for bot in bots:
+            if bot["slot"] == target_slot:
+                bot["game_role"] = role
+                label = Ghosts.GAME_ROLE_LABELS.get(role, "") or "none"
+                logger.info(f"hns_solo: bot slot {target_slot} -> {label}.")
+                # Force-republish so the new tag color shows immediately.
+                try:
+                    asyncio.create_task(_publish_self_state(ctx))
+                except Exception:
+                    pass
+                return
+        logger.info(f"hns_solo: no bot at slot {target_slot}. /hns_solo list.")
+
+    # ----- HnS match helpers (called from /hns dispatcher) -----
+
+    def _hns_next(self):
+        """Conductor-only debug: fast-forward the current phase.
+
+        HIDE        -> SEEK   (skip the hide countdown)
+        SEEK        -> ROUND_OVER (mark round ended early)
+        ROUND_OVER  -> next round HIDE (or MATCH_END if last round)
+        MATCH_END   -> IDLE  (reset to no-match state)
+
+        Useful for testing teleport / freeze without waiting through
+        full timer durations."""
+        ctx = self.ctx
+        st = getattr(ctx, "_match", None)
+        if st is None or not st.is_active():
+            logger.info("hns next: no active match.")
+            return
+        if not st.is_conductor():
+            logger.info(f"hns next: only the conductor (slot "
+                        f"{st.conductor_slot}) can advance phases.")
+            return
+
+        # Force the timer to 0 then drive the standard transition.
+        st.timer_seconds = 0
+        from .ttyd_runtime import _on_match_timer_zero
+        _on_match_timer_zero(ctx, st)
+
+        new_label = Ghosts.MATCH_STATUS_LABELS.get(st.status, "?")
+        new_round = (st.game_state or {}).get("round", "?")
+        new_map   = (st.game_state or {}).get("current_map", "")
+        logger.info(f"hns next: advanced -> {new_label}"
+                    + (f", round {new_round}" if new_label in ("Hide","Seek","Round Over") else "")
+                    + (f", map {new_map}" if new_map else ""))
+        self._publish_match_now()
+
+    def _hns_debug(self):
+        """Diagnostic: read back v28/v29 GhostState scratch from Dolphin
+        RAM and report what the mod sees vs what Python intends to write.
+
+        If Python's `intended` values match the `dolphin` values, the
+        wire is healthy and any teleport/freeze problem is mod-side.
+        If they diverge, Python's writes aren't landing where the mod
+        is reading — likely an offset / version mismatch."""
+        ctx = self.ctx
+        st = getattr(ctx, "_match", None)
+
+        addrs = getattr(ctx, "_ghost_addrs", None)
+        if not _resolve_ghost_addresses(ctx):
+            logger.info("hns debug: GhostState pointer not yet resolved "
+                        "(connect to AP + load TTYD first).")
+            return
+        addrs = ctx._ghost_addrs
+
+        logger.info("=" * 50)
+        logger.info("hns debug: GhostState scratch read-back")
+        logger.info(f"  GhostState base 0x{addrs['peer_block']:08X}")
+        logger.info(f"  Wire format VERSION = {Ghosts.VERSION}")
+        logger.info("")
+
+        try:
+            role  = dolphin.read_byte(addrs["self_game_role"])
+            froz  = dolphin.read_byte(addrs["self_frozen"])
+            tseq  = dolphin.read_byte(addrs["pending_teleport_seq"])
+            tmap  = dolphin.read_bytes(addrs["pending_teleport_map"], 16)
+            tbero = dolphin.read_bytes(addrs["pending_teleport_bero"], 16)
+        except Exception as e:
+            logger.info(f"hns debug: scratch read failed: {e}")
+            return
+
+        tmap_str  = tmap.split(b"\x00", 1)[0].decode("ascii", errors="replace")
+        tbero_str = tbero.split(b"\x00", 1)[0].decode("ascii", errors="replace")
+
+        logger.info("Dolphin RAM (what the MOD sees):")
+        logger.info(f"  selfGameRole       (0x{addrs['self_game_role']:08X}) = {role}  "
+                    f"({Ghosts.GAME_ROLE_LABELS.get(role, '?') or 'none'})")
+        logger.info(f"  selfFrozen         (0x{addrs['self_frozen']:08X}) = {froz}")
+        logger.info(f"  pendingTeleportSeq (0x{addrs['pending_teleport_seq']:08X}) = {tseq}")
+        logger.info(f"  pendingTeleportMap (0x{addrs['pending_teleport_map']:08X}) = "
+                    f"{tmap_str!r}")
+        logger.info(f"  pendingTeleportBero(0x{addrs['pending_teleport_bero']:08X}) = "
+                    f"{tbero_str!r}")
+        logger.info("")
+
+        logger.info("Python state (what we INTEND to write):")
         if st is None:
-            logger.info("Not in a lobby. /lobby create <name> to start one.")
+            logger.info("  ctx._match: None (no AP connection?)")
+        else:
+            self_role = _resolve_self_game_role(ctx)
+            logger.info(f"  match.status      = {Ghosts.MATCH_STATUS_LABELS.get(st.status, '?')}")
+            logger.info(f"  match.is_active() = {st.is_active()}")
+            logger.info(f"  match.is_conductor() = {st.is_conductor()}")
+            logger.info(f"  resolved my role  = {Ghosts.GAME_ROLE_LABELS.get(self_role, '?') or 'none'}")
+            gs = st.game_state or {}
+            logger.info(f"  game_state.map_seq      = {gs.get('map_seq')}")
+            logger.info(f"  game_state.current_map  = {gs.get('current_map')!r}")
+            logger.info(f"  game_state.current_bero = {gs.get('current_bero')!r}")
+            logger.info(f"  ctx._last_applied_map_seq = "
+                        f"{getattr(ctx, '_last_applied_map_seq', None)}")
+            logger.info(f"  ctx._local_teleport_seq   = "
+                        f"{getattr(ctx, '_local_teleport_seq', None)}")
+        logger.info("=" * 50)
+        logger.info("If the Dolphin map is empty/garbage, Python isn't writing.")
+        logger.info("If it shows your map but the world isn't loading, the mod's")
+        logger.info("seqSetSeq call is firing but TTYD is rejecting it (probably")
+        logger.info("needs a real bero name). Use /hns set bero <name> as a workaround.")
+
+    def _hns_status(self):
+        ctx = self.ctx
+        st = getattr(ctx, "_match", None)
+        if st is None:
+            logger.info("Not connected to AP yet (no match state).")
             return
-        game_label = Ghosts.GAME_TYPE_LABELS.get(st.game_type, "(none)") or "(none)"
-        status_label = Ghosts.LOBBY_STATUS_LABELS.get(st.status, "?")
-        logger.info(f"Lobby: {st.name}")
-        logger.info(f"  Game: {game_label}")
-        logger.info(f"  Status: {status_label}")
+        status_label = Ghosts.MATCH_STATUS_LABELS.get(st.status, "?")
+        logger.info(f"Match (team {st.team}): {status_label}")
+        if st.conductor_slot:
+            logger.info(f"  Conductor: slot {st.conductor_slot}")
         if st.timer_seconds > 0:
             logger.info(f"  Timer: {st.timer_seconds}s")
-        logger.info(f"  Members ({len(st.members)}):")
-        for m in st.members:
-            role_label = Ghosts.LOBBY_ROLE_LABELS.get(m.role, "")
-            tag = f" [{role_label}]" if role_label else ""
-            marker = "" if m.alive else " (out)"
-            logger.info(f"    {m.name}{tag}{marker}")
+        if st.is_active():
+            gs = st.game_state or {}
+            logger.info(f"  Round: {gs.get('round', '?')}/{gs.get('round_total', '?')}")
+            cur_map = gs.get("current_map")
+            if cur_map:
+                logger.info(f"  Map: {cur_map}")
+            roles = gs.get("members_role") or {}
+            logger.info(f"  Members:")
+            for m in st.members:
+                role = roles.get(m.slot) or roles.get(str(m.slot)) or ""
+                tag = f" [{role}]" if role else ""
+                logger.info(f"    {m.name}{tag}")
+        else:
+            logger.info("  Run /hns start to begin a match.")
 
-    def _cmd_lobby_game(self, *args):
+    def _hns_start(self):
         ctx = self.ctx
-        st = getattr(ctx, "_lobby", None)
+        st = getattr(ctx, "_match", None)
         if st is None:
-            logger.info("lobby: not in a lobby.")
+            logger.info("hns: not connected to AP.")
             return
-        if not st.is_host():
-            logger.info("lobby: only the host can change game type.")
+        if st.is_active():
+            logger.info(f"hns: a match is already in progress "
+                        f"({Ghosts.MATCH_STATUS_LABELS.get(st.status)}).")
+            return
+        if not st.settings.map_pool:
+            logger.info("hns: cannot start - map pool is empty. "
+                        "/hns maps add <map> first.")
+            return
+        # Need at least 2 members (us + 1 peer).
+        team_peers = sum(
+            1 for k in (getattr(ctx, "_ghost_peers", {}) or {})
+            if k.startswith(Ghosts.KEY_PREFIX)
+        )
+        if team_peers < 1:
+            logger.info("hns: cannot start - no other peers visible. "
+                        "Wait for at least one teammate to connect.")
+            return
+
+        # Conductor begins the match.
+        from .ttyd_runtime import _begin_match
+        _begin_match(ctx, st)
+        logger.info(f"hns: match started. Round 1/{st.settings.round_count}, "
+                    f"map={st.game_state.get('current_map')}, "
+                    f"hide phase {st.timer_seconds}s.")
+        self._publish_match_now()
+
+    def _hns_stop(self):
+        ctx = self.ctx
+        st = getattr(ctx, "_match", None)
+        if st is None or not st.is_active():
+            logger.info("hns: no active match.")
+            return
+        if not st.is_conductor():
+            logger.info(f"hns: only the conductor (slot "
+                        f"{st.conductor_slot}) can stop the match.")
+            return
+        st.status = Ghosts.MATCH_STATUS_IDLE
+        st.timer_seconds = 0
+        st.members = []
+        st.game_state = {}
+        st.conductor_slot = 0
+        logger.info("hns: match ended.")
+        self._publish_match_now()
+
+    def _hns_leave(self):
+        ctx = self.ctx
+        st = getattr(ctx, "_match", None)
+        if st is None:
+            logger.info("hns: not connected to AP.")
+            return
+        slot = int(getattr(ctx, "slot", 0) or 0)
+        if slot in st.opted_out:
+            logger.info("hns: already opted out.")
+            return
+        st.opted_out.append(slot)
+        logger.info("hns: opted out of the next match. /hns join to re-enter.")
+        self._publish_match_now()
+
+    def _hns_join(self):
+        ctx = self.ctx
+        st = getattr(ctx, "_match", None)
+        if st is None:
+            logger.info("hns: not connected to AP.")
+            return
+        slot = int(getattr(ctx, "slot", 0) or 0)
+        if slot not in st.opted_out:
+            logger.info("hns: not opted out (already eligible).")
+            return
+        st.opted_out.remove(slot)
+        logger.info("hns: opted in. You'll be included in the next match.")
+        self._publish_match_now()
+
+    def _hns_set(self, *args):
+        ctx = self.ctx
+        st = getattr(ctx, "_match", None)
+        if st is None:
+            logger.info("hns: not connected to AP.")
+            return
+        if st.is_active():
+            logger.info("hns: settings are frozen during an active match.")
+            return
+        if len(args) < 2:
+            logger.info("hns: usage: /hns set <key> <value>. "
+                        "Keys: " + ", ".join(sorted(Ghosts.LOBBY_SETTING_BOUNDS.keys())
+                                              if hasattr(Ghosts, "LOBBY_SETTING_BOUNDS")
+                                              else Ghosts.MATCH_SETTING_BOUNDS.keys()))
+            return
+        key = args[0].strip().lower()
+        raw = " ".join(args[1:]).strip()
+        try:
+            value = Ghosts.parse_setting_value(key, raw)
+        except ValueError as e:
+            logger.info(f"hns: {e}")
+            return
+        setattr(st.settings, key, value)
+        logger.info(f"hns: setting '{key}' = {value}.")
+        self._publish_match_now()
+
+    def _hns_settings(self):
+        ctx = self.ctx
+        st = getattr(ctx, "_match", None)
+        if st is None:
+            logger.info("hns: not connected to AP.")
+            return
+        s = st.settings
+        logger.info(f"Match settings (team {st.team}):")
+        logger.info(f"  round_count              = {s.round_count}")
+        logger.info(f"  hide_phase_seconds       = {s.hide_phase_seconds}")
+        logger.info(f"  round_time_limit_seconds = {s.round_time_limit_seconds}")
+        logger.info(f"  seeker_count_threshold   = {s.seeker_count_threshold} "
+                    f"(=> {Ghosts.compute_seeker_count(len(st.members) or 4, s.seeker_count_threshold)} "
+                    f"seeker(s) at member count)")
+        if s.map_pool:
+            logger.info(f"  map_pool ({len(s.map_pool)}): {', '.join(s.map_pool)}")
+        else:
+            logger.info(f"  map_pool: (empty - /hns maps add <map> first)")
+
+    def _hns_maps(self, *args):
+        """Manage the round map pool.
+
+        /hns maps add <name>       - <name> can be a builtin short name
+                                      (rogueport, petalburg, ...) or a
+                                      raw <map>:<bero> pair
+        /hns maps remove <entry>   - remove by exact pool entry
+        /hns maps list             - show pool + builtin names available
+        /hns maps clear            - empty the pool
+        /hns maps builtins         - list available builtin names
+        """
+        ctx = self.ctx
+        st = getattr(ctx, "_match", None)
+        if st is None:
+            logger.info("hns: not connected to AP.")
             return
         if not args:
-            logger.info("lobby: usage: /lobby game <type>. "
-                        "Available: hide_and_seek")
+            logger.info("hns: usage: /hns maps add <name> | remove <entry> | list | clear | builtins")
             return
-        gtype = args[0].strip().lower()
-        gid = Ghosts.GAME_TYPE_NAMES.get(gtype)
-        if gid is None:
-            logger.info(f"lobby: unknown game type '{gtype}'. "
-                        f"Available: hide_and_seek")
+        sub = args[0].strip().lower()
+        s = st.settings
+        if sub == "list":
+            if s.map_pool:
+                logger.info(f"Map pool ({len(s.map_pool)}): {', '.join(s.map_pool)}")
+            else:
+                logger.info("Map pool is empty. /hns maps builtins for available presets.")
             return
-        st.game_type = gid
-        label = Ghosts.GAME_TYPE_LABELS.get(gid, "")
-        logger.info(f"Lobby game type set to {label}.")
-        self._publish_lobby_now()
+        if sub == "builtins":
+            logger.info(f"Builtin map presets ({len(Ghosts.BUILTIN_MAPS)}):")
+            for short, (mp, br) in sorted(Ghosts.BUILTIN_MAPS.items()):
+                br_disp = br if br else "(default spawn)"
+                logger.info(f"  {short:18s} -> {mp}:{br_disp}")
+            return
+        if st.is_active():
+            logger.info("hns: map pool is frozen during an active match.")
+            return
+        if sub == "add":
+            if len(args) < 2:
+                logger.info("hns: usage: /hns maps add <name>")
+                return
+            raw = " ".join(args[1:]).strip()
+            entry = Ghosts.resolve_map_entry(raw)
+            if entry is None or not entry[0]:
+                logger.info(f"hns: '{raw}' isn't a builtin name "
+                            f"(see /hns maps builtins) or a valid map:bero pair.")
+                return
+            map_id, bero = entry
+            stored = Ghosts.encode_map_pool_entry(map_id, bero)
+            if stored in s.map_pool:
+                logger.info(f"hns: '{stored}' already in pool.")
+                return
+            s.map_pool.append(stored)
+            preset_note = f" (from preset '{raw}')" if raw in Ghosts.BUILTIN_MAPS else ""
+            logger.info(f"hns: added '{stored}'{preset_note}. Pool size: {len(s.map_pool)}.")
+        elif sub == "remove":
+            if len(args) < 2:
+                logger.info("hns: usage: /hns maps remove <entry>")
+                return
+            name = " ".join(args[1:]).strip()
+            # Allow remove by builtin short name too — resolve and
+            # remove the corresponding stored entry.
+            entry = Ghosts.resolve_map_entry(name)
+            target = name
+            if entry and entry[0]:
+                target = Ghosts.encode_map_pool_entry(entry[0], entry[1])
+            if target not in s.map_pool:
+                logger.info(f"hns: '{name}' not in pool.")
+                return
+            s.map_pool.remove(target)
+            logger.info(f"hns: removed '{target}'. Pool size: {len(s.map_pool)}.")
+        elif sub == "clear":
+            s.map_pool = []
+            logger.info("hns: map pool cleared.")
+        else:
+            logger.info(f"hns: unknown maps subcommand '{sub}'. "
+                        f"Use add/remove/list/clear/builtins.")
+            return
+        self._publish_match_now()
 
-    def _cmd_lobby_start(self):
+    def _hns_map(self, *args):
+        """Override the map for the next round. Conductor-only,
+        valid in IDLE or between rounds (ROUND_OVER). Cleared after
+        being applied — only affects one round.
+
+        /hns map <name>      - set next-round map (builtin or map:bero)
+        /hns map clear       - drop the override (next round goes
+                                back to random pool pick)
+        /hns map             - show the current override (if any)
+        """
         ctx = self.ctx
-        st = getattr(ctx, "_lobby", None)
+        st = getattr(ctx, "_match", None)
         if st is None:
-            logger.info("lobby: not in a lobby.")
+            logger.info("hns: not connected to AP.")
             return
-        if not st.is_host():
-            logger.info("lobby: only the host can start the game.")
-            return
-        if st.game_type == Ghosts.GAME_TYPE_NONE:
-            logger.info("lobby: set a game type first (/lobby game <type>).")
-            return
-        if st.status == Ghosts.LOBBY_STATUS_PLAYING:
-            logger.info("lobby: already playing.")
-            return
-        st.status = Ghosts.LOBBY_STATUS_PLAYING
-        logger.info("Lobby started.")
-        self._publish_lobby_now()
 
-    def _cmd_lobby_stop(self):
-        ctx = self.ctx
-        st = getattr(ctx, "_lobby", None)
-        if st is None:
-            logger.info("lobby: not in a lobby.")
-            return
-        if not st.is_host():
-            logger.info("lobby: only the host can stop the game.")
-            return
-        st.status = Ghosts.LOBBY_STATUS_WAITING
-        logger.info("Lobby stopped.")
-        self._publish_lobby_now()
+        gs = st.game_state or {}
+        cur_override = gs.get("next_map_override")
 
-    def _cmd_lobby_hud(self, mode: str = "toggle"):
-        """Toggle the in-game lobby HUD overlay."""
+        if not args:
+            if (isinstance(cur_override, (list, tuple)) and len(cur_override) >= 2
+                    and cur_override[0]):
+                br = cur_override[1] or "(default spawn)"
+                logger.info(f"hns map: next-round override is {cur_override[0]}:{br}.")
+            else:
+                logger.info("hns map: no next-round override (random pool pick).")
+            return
+
+        if not st.is_conductor():
+            logger.info(f"hns map: only the conductor (slot {st.conductor_slot}) "
+                        f"can change the next map.")
+            return
+        if st.status not in (Ghosts.MATCH_STATUS_IDLE, Ghosts.MATCH_STATUS_ROUND_OVER):
+            logger.info("hns map: can only set the next map between rounds "
+                        "(ROUND_OVER) or before a match (IDLE).")
+            return
+
+        first = args[0].strip().lower()
+        if first == "clear":
+            st.game_state.pop("next_map_override", None)
+            logger.info("hns map: override cleared. Next round picks from pool.")
+            self._publish_match_now()
+            return
+
+        raw = " ".join(args).strip()
+        entry = Ghosts.resolve_map_entry(raw)
+        if entry is None or not entry[0]:
+            logger.info(f"hns map: '{raw}' isn't a builtin name (see "
+                        f"/hns maps builtins) or a valid map:bero pair.")
+            return
+        map_id, bero = entry
+        st.game_state["next_map_override"] = [map_id, bero]
+        br_disp = bero if bero else "(default spawn)"
+        logger.info(f"hns map: next round will be {map_id}:{br_disp}.")
+        self._publish_match_now()
+
+    def _hns_hud(self, mode: str = "toggle"):
         ctx = self.ctx
         m = (mode or "toggle").strip().lower()
-        cur = bool(getattr(ctx, "_lobby_hud_enabled", True))
+        cur = bool(getattr(ctx, "_match_hud_enabled", True))
         if m in ("on", "show", "1", "true"):
             new = True
         elif m in ("off", "hide", "0", "false"):
@@ -1080,27 +1053,65 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         elif m in ("toggle", "t", ""):
             new = not cur
         else:
-            logger.info(f"lobby_hud: unknown mode '{mode}'. Use on/off/toggle.")
+            logger.info(f"hns hud: unknown mode '{mode}'. Use on/off/toggle.")
             return
-        ctx._lobby_hud_enabled = new
-        logger.info(f"Lobby HUD {'ON' if new else 'OFF'}.")
-
+        ctx._match_hud_enabled = new
+        logger.info(f"Match HUD {'ON' if new else 'OFF'}.")
         if not new:
             try:
-                asyncio.create_task(_clear_lobby_hud(ctx))
+                asyncio.create_task(_clear_match_hud(ctx))
             except Exception:
                 pass
         else:
-            self._publish_lobby_now()
+            self._publish_match_now()
 
-    def _publish_lobby_now(self):
-        """Helper: kick off an immediate publish of the current lobby
-        state to the mod's scratch RAM. Don't wait for the periodic
-        tick - we want the HUD to update instantly when commands fire."""
+    def _publish_match_now(self):
+        """Schedule an immediate HUD + network publish so state changes
+        appear without waiting for the periodic tick."""
+        ctx = self.ctx
         try:
-            asyncio.create_task(_publish_lobby_hud(self.ctx))
+            asyncio.create_task(_publish_match_hud(ctx))
         except Exception:
             pass
+        try:
+            asyncio.create_task(_publish_match_to_network(ctx))
+        except Exception:
+            pass
+
+    def _hns_role(self, *args):
+        """Debug: manually set our published hide-and-seek role byte.
+        Used to verify the v27 wire-format byte round-trips and that
+        peers tint our name tag correctly (red for seeker, green for
+        hider) before the full hide-and-seek game-mode driver lands.
+
+        This override is silently superseded once we're an active
+        member of a hide-and-seek lobby (the lobby's authoritative
+        members_role assignment wins). Per-session; not persisted.
+
+        Usage: /hns_role               - show current override
+               /hns_role none          - clear override (publish role 0)
+               /hns_role hider         - publish role 1 (green tag)
+               /hns_role seeker        - publish role 2 (red tag)
+        """
+        ctx = self.ctx
+        if not args:
+            cur = getattr(ctx, "_hns_test_role", Ghosts.GAME_ROLE_NONE)
+            label = Ghosts.GAME_ROLE_LABELS.get(cur, "?") or "none"
+            logger.info(f"hns_role: current override = {label} ({cur}).")
+            return
+        raw = args[0].strip().lower()
+        role = Ghosts.GAME_ROLE_NAMES.get(raw)
+        if role is None:
+            logger.info(f"hns_role: unknown role '{raw}'. Use none/hider/seeker.")
+            return
+        ctx._hns_test_role = role
+        label = Ghosts.GAME_ROLE_LABELS.get(role, "") or "none"
+        logger.info(f"hns_role: override set to {label}. Publishing.")
+        try:
+            asyncio.create_task(_publish_self_state(ctx))
+        except Exception:
+            pass
+
 
 class TTYDContext(cmmCtx):
     command_processor = TTYDCommandProcessor
@@ -1116,11 +1127,10 @@ class TTYDContext(cmmCtx):
     _ghost_subscribed: bool = False
     _ghost_peers: dict = {}
 
-    # Cache of resolved absolute addresses for the GhostState container's
-    # sub-regions. Populated by _resolve_ghost_addresses() once on first
-    # successful read of APSettings.ghostStatePtr; persists for the
-    # session. None until resolved; consumers must call the resolver
-    # (or check getattr) before dereferencing.
+    _match: typing.Optional[Ghosts.MatchState] = None
+
+    _match_subscribed: bool = False
+
     _ghost_addrs: typing.Optional[dict] = None
 
     def __init__(self, server_address, password):
@@ -1142,26 +1152,42 @@ class TTYDContext(cmmCtx):
             if "death_link" in args["slot_data"]:
                 Utils.async_start(self.update_death_link(bool(args["slot_data"]["death_link"])))
             Utils.async_start(_subscribe_to_peers(self))
+            if self._match is None:
+                self._match = Ghosts.MatchState(
+                    team=int(self.team or 0),
+                    self_slot=int(self.slot or 0),
+                )
+            Utils.async_start(_subscribe_to_match(self))
         elif cmd == "Retrieved":
             if "keys" not in args:
                 logger.warning(f"invalid Retrieved packet to TTYDClient: {args}")
                 return
             _on_ghost_update(self, args)
+            _dispatch_match_keys(self, args)
         elif cmd == "RoomInfo":
             self.seed_name = args["seed_name"]
         elif cmd == "SetReply":
             _on_ghost_update(self, args)
+            _dispatch_match_keys(self, args)
         elif cmd == "Bounced":
 
             data = args.get("data") or {}
             if data.get("ttyd_hit") is True:
                 _on_inbound_hit(self, data)
+            if data.get(MATCH_BOUNCE_EVENT) is True:
+                _on_match_bounce(self, data)
 
     def on_deathlink(self, data: typing.Dict[str, typing.Any]) -> None:
         super().on_deathlink(data)
         trigger_death(self)
 
     async def disconnect(self, allow_autoreconnect: bool = False):
+        st = getattr(self, "_match", None)
+        if st is not None and st.is_conductor() and st.is_active():
+            try:
+                await _clear_match_from_network(self, st.team)
+            except Exception:
+                pass
         await super().disconnect()
         self.slot = None
         self.slot_data = None
@@ -1169,6 +1195,8 @@ class TTYDContext(cmmCtx):
         self.checked_locations = set()
         self.seed_name = None
         self.seed_verified = False
+        self._match = None
+        self._match_subscribed = False
         _on_ghost_disconnect(self)
 
     def make_gui(self) -> "type[kvui.GameManager]":
@@ -1237,7 +1265,6 @@ class TTYDContext(cmmCtx):
         if value > 1:
             return False
         return value > 0
-
 async def _run_game(rom: str):
     import os
     auto_start = settings.get_settings().ttyd_options.rom_start
@@ -1254,208 +1281,10 @@ async def _run_game(rom: str):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-
 async def _patch_and_run_game(patch_file: str):
     metadata, output_file = Patch.create_rom_file(patch_file)
     Utils.async_start(_run_game(output_file))
     return metadata
-
-GHOST_PUBLISH_INTERVAL_S = 1.0 / 20.0
-
-GHOST_RENDER_INTERVAL_S = 1.0 / 60.0
-
-# Spin-direction tracking thresholds (Python side, source-of-truth).
-# Each frame we sample local Mario's three rotation angles, compute the
-# wrapped delta from the previous frame, and accumulate. At publish time
-# we compare the accumulated unwrapped delta against the last published
-# unwrapped value; if abs(delta) over the publish interval exceeds the
-# threshold below, we set the wire-format hint byte to the sign of that
-# delta. Receiver uses the hint to force lerp direction during fast
-# spins where shortest-path lerp would pick the wrong way.
-#
-# 90 degrees over a publish interval = ~5 rev/sec, the regime where
-# shortest-path becomes unreliable. Below this, plain shortest-path
-# lerp works fine and we leave the hint at 0 (= no hint).
-SPIN_HINT_THRESHOLD_DEG_PER_PUBLISH = 90.0
-
-
-def _wrap180(deg: float) -> float:
-    """Clamp an angle delta to [-180, 180] using minimal-rotation wrap."""
-    while deg > 180.0:
-        deg -= 360.0
-    while deg < -180.0:
-        deg += 360.0
-    return deg
-
-
-def _sample_spin_for_hint(ctx) -> None:
-    """Per-frame sampler for spin-direction hints. Reads local Mario's
-    yaw/pitch/roll, computes wrapped deltas from the previous frame
-    (which are unambiguous at 60Hz - even the fastest game rotations
-    don't exceed 180 degrees in 16ms), and accumulates an UNWRAPPED
-    angular displacement over each publish interval.
-
-    State stored on ctx:
-      _spin_last_y/x/z       last raw angle read (from engine, wrapped)
-      _spin_unwrap_y/x/z     accumulated unwrapped displacement since
-                             the previous publish reset
-      _spin_init             True after the first sample so the first
-                             delta isn't computed against zero
-
-    Cheap: a single 12-byte read at offsets 0x1AC, 0xBC, 0xC4 of the
-    Player struct. Uses the existing MARIO_PTR_ADDR to find Mario.
-
-    Errors silently ignored - if Mario isn't loaded we just skip the
-    sample and the unwrap accumulator stays where it is. The next
-    valid sample picks up where we left off."""
-    try:
-        mario_addr = int.from_bytes(
-            dolphin.read_bytes(MARIO_PTR_ADDR, 4), "big")
-        if not (0x80000000 <= mario_addr < 0x81800000):
-            return
-        # Single 12-byte block covering 0xBC..0xC8 covers rot_x and rot_z.
-        # rot_y at 0x1AC needs a second small read.
-        chunk_xz = dolphin.read_bytes(mario_addr + 0xBC, 12)  # 0xBC..0xC8
-        (rot_x,)  = struct.unpack_from(">f", chunk_xz, 0x00)
-        (rot_z,)  = struct.unpack_from(">f", chunk_xz, 0x08)
-        chunk_y  = dolphin.read_bytes(mario_addr + 0x1AC, 4)
-        (rot_y,) = struct.unpack_from(">f", chunk_y, 0x00)
-    except Exception:
-        return
-
-    if not getattr(ctx, "_spin_init", False):
-        ctx._spin_last_y = rot_y
-        ctx._spin_last_x = rot_x
-        ctx._spin_last_z = rot_z
-        ctx._spin_unwrap_y = 0.0
-        ctx._spin_unwrap_x = 0.0
-        ctx._spin_unwrap_z = 0.0
-        ctx._spin_init = True
-        return
-
-    # Per-frame wrapped delta - unambiguous at 60Hz. Accumulate into
-    # the unwrapped displacement, which gets reset at publish time.
-    ctx._spin_unwrap_y += _wrap180(rot_y - ctx._spin_last_y)
-    ctx._spin_unwrap_x += _wrap180(rot_x - ctx._spin_last_x)
-    ctx._spin_unwrap_z += _wrap180(rot_z - ctx._spin_last_z)
-    ctx._spin_last_y = rot_y
-    ctx._spin_last_x = rot_x
-    ctx._spin_last_z = rot_z
-
-
-def _consume_spin_hints(ctx) -> tuple:
-    """Called at publish time. Returns (hint_y, hint_x, hint_z) where
-    each is -1, 0, or +1 based on whether the unwrapped angular
-    displacement since the last publish exceeded the threshold.
-    Resets the unwrap accumulators."""
-    if not getattr(ctx, "_spin_init", False):
-        return (0, 0, 0)
-    def sgn(d: float) -> int:
-        if d >  SPIN_HINT_THRESHOLD_DEG_PER_PUBLISH: return  1
-        if d < -SPIN_HINT_THRESHOLD_DEG_PER_PUBLISH: return -1
-        return 0
-    hy = sgn(ctx._spin_unwrap_y)
-    hx = sgn(ctx._spin_unwrap_x)
-    hz = sgn(ctx._spin_unwrap_z)
-    ctx._spin_unwrap_y = 0.0
-    ctx._spin_unwrap_x = 0.0
-    ctx._spin_unwrap_z = 0.0
-    return (hy, hx, hz)
-
-
-def _read_self_active_loops(ctx) -> list:
-    """v26: read the mod's selfActiveLoops scratch (mod-written every
-    frame, sampled from g_localChannelMap). Returns a list of u16
-    sfxIds currently playing on the local Mario. Receivers diff this
-    against their tracked set to derive start/stop actions for loops.
-
-    Returns [] on read failure or if the scratch isn't resolved yet."""
-    addrs = getattr(ctx, "_ghost_addrs", None)
-    if addrs is None:
-        if not _resolve_ghost_addresses(ctx):
-            return []
-        addrs = ctx._ghost_addrs
-
-    try:
-        # Single 4-byte read for count + 3 pad, then 12-byte read for
-        # the 6 uint16 entries. Could be one combined 16-byte read but
-        # the count + entries layout may have padding so two reads is
-        # safer.
-        count_b = dolphin.read_bytes(addrs["self_active_loop_count"], 1)
-        if not count_b:
-            return []
-        count = count_b[0]
-        if count > Ghosts.ACTIVE_LOOPS_PER_PEER:
-            count = Ghosts.ACTIVE_LOOPS_PER_PEER
-        if count == 0:
-            return []
-        entries_b = dolphin.read_bytes(
-            addrs["self_active_loops"],
-            Ghosts.ACTIVE_LOOPS_PER_PEER * 2)
-        if not entries_b or len(entries_b) < count * 2:
-            return []
-        loops = []
-        for i in range(count):
-            sid = (entries_b[i*2] << 8) | entries_b[i*2 + 1]
-            if sid != 0:
-                loops.append(sid)
-        return loops
-    except Exception:
-        return []
-
-
-async def ttyd_ghost_sync_task(ctx: TTYDContext):
-    """Real-AP ghost sync. Two responsibilities:
-
-    1. Publish our local player state to AP DataStorage at ~20Hz so other
-       peers can render us as a ghost. Skipped if not connected, not in a
-       slot, or local read fails (cutscene/loading/title). When the
-       /ghost_test loopback toggle is on, the publish step also injects
-       a synthetic peer copy into _ghost_peers via _loopback_inject().
-    2. Repaint the peer block (received from AP via SetReply / Retrieved,
-       and any synthetic loopback ghost) into Dolphin RAM at ~60Hz so the
-       mod can render peers smoothly.
-
-    This task does NOT do any locations/items work; that's ttyd_sync_task's
-    job. We split them because ghost sync runs much faster than the game
-    state polling loop (60Hz vs 2Hz)."""
-    last_publish = 0.0
-    while not ctx.exit_event.is_set():
-        await asyncio.sleep(GHOST_RENDER_INTERVAL_S)
-
-        if not (dolphin.is_hooked() and ctx.dolphin_connected):
-            continue
-        if ctx.team is None or ctx.slot is None:
-            continue
-
-        try:
-            await _drain_outbound_hits(ctx)
-        except Exception:
-            logger.exception("ghost outbound-hit drain error")
-
-        # Sample local Mario's rotation each frame to maintain the
-        # spin-direction hint accumulators. _publish_self_state will
-        # consume them at 20Hz.
-        _sample_spin_for_hint(ctx)
-
-        try:
-            _write_peer_block(ctx)
-        except Exception:
-            logger.exception("ghost render tick error")
-
-        now = asyncio.get_event_loop().time()
-        if now - last_publish >= GHOST_PUBLISH_INTERVAL_S:
-            last_publish = now
-            try:
-                await _publish_self_state(ctx)
-            except Exception:
-                logger.exception("ghost publish error")
-
-            try:
-                await _publish_lobby_hud(ctx)
-            except Exception:
-                logger.exception("lobby hud publish error")
-
 async def ttyd_sync_task(ctx: TTYDContext):
     logger.info("Starting Dolphin connector...")
     while not ctx.exit_event.is_set():
@@ -1564,6 +1393,8 @@ def launch(*args):
         ctx.gl_sync_task = asyncio.create_task(ttyd_sync_task(ctx), name="TTYD Sync Task")
         ctx.ghost_sync_task = asyncio.create_task(
             ttyd_ghost_sync_task(ctx), name="GhostSync")
+        ctx.match_timer_task = asyncio.create_task(
+            _match_timer_task(ctx), name="MatchTimer")
 
         await ctx.exit_event.wait()
         ctx.server_address = None

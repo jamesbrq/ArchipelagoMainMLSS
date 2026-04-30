@@ -1,29 +1,14 @@
 import struct
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from CommonClient import logger
 
-# Wire-format / GhostState protocol version. Must match kVersion in
-# GhostPeers.h on the C++ side. Bumped to 23 when the layout moved
-# from hardcoded low-RAM addresses (0x80001800 + 0x80003B20-0x80003BE4
-# + 0x80003D00) to a single heap-allocated GhostState container,
-# discovered at runtime via APSettings.ghostStatePtr.
 GHOST_MAGIC  = 0x47484F53
-VERSION      = 26
+VERSION      = 29
 
-# APSettings layout (from StateManager.h on the C++ side). APSettings
-# is patched into the ROM at this fixed address; it persists across
-# the entire session. The ghostStatePtr field at offset 0x3C is
-# populated by mod::ghosts::Init() at game boot and is the entry
-# point Python uses to find all ghost-peer scratch.
 APSETTINGS_ADDR             = 0x80003220
 APSETTINGS_GHOST_STATE_PTR  = APSETTINGS_ADDR + 0x3C  # mod::ghosts::GhostState *
 
-# GhostState struct layout (matches GhostState in GhostPeers.h).
-# These are OFFSETS within the GhostState struct, not absolute
-# addresses. The base pointer is read at runtime from
-# APSETTINGS_GHOST_STATE_PTR. Sub-region addresses are computed
-# as `ghost_state_base + <offset>`.
 
 # Peer block (SharedBlock): 16-byte header + 16 PeerSlots.
 GS_OFF_PEER_BLOCK = 0x0000
@@ -60,17 +45,23 @@ SFX_RING_CAPACITY = 32
 
 # Lobby HUD block (raw 1024 bytes).
 GS_OFF_LOBBY_HUD            = GS_OFF_SFX_RING_EVENTS + SFX_RING_CAPACITY * 4   # 0x0E1C
-LOBBY_HUD_SIZE    = 1024
+MATCH_HUD_SIZE    = 1024
 
-# v26 self-active-loops scratch (mod -> Python). Mod samples the
-# channel map each frame and writes here; Python reads at publish
-# time and embeds in our peer slot's activeLoops field.
 ACTIVE_LOOPS_PER_PEER = 6
-GS_OFF_SELF_ACTIVE_LOOP_COUNT = GS_OFF_LOBBY_HUD + LOBBY_HUD_SIZE        # 0x121C
+GS_OFF_SELF_ACTIVE_LOOP_COUNT = GS_OFF_LOBBY_HUD + MATCH_HUD_SIZE        # 0x121C
 GS_OFF_SELF_ACTIVE_LOOPS      = GS_OFF_SELF_ACTIVE_LOOP_COUNT + 4         # 0x1220
 
+GS_OFF_SELF_GAME_ROLE = GS_OFF_SELF_ACTIVE_LOOPS + ACTIVE_LOOPS_PER_PEER * 2  # 0x122C
+# +3 bytes pad to align the next field on a 4-byte boundary.
+
+GS_OFF_SELF_FROZEN          = GS_OFF_SELF_GAME_ROLE + 4                  # 0x1230
+GS_OFF_PENDING_TELEPORT_SEQ = GS_OFF_SELF_FROZEN + 1                     # 0x1231
+# +2 bytes pad at 0x1232-0x1233 so map[16] sits 4-byte aligned.
+GS_OFF_PENDING_TELEPORT_MAP  = GS_OFF_SELF_FROZEN + 4                    # 0x1234
+GS_OFF_PENDING_TELEPORT_BERO = GS_OFF_PENDING_TELEPORT_MAP + 16          # 0x1244
+
 # Total expected GhostState size (for sanity-checking offsets here).
-GS_TOTAL_SIZE = GS_OFF_SELF_ACTIVE_LOOPS + ACTIVE_LOOPS_PER_PEER * 2     # 0x122C
+GS_TOTAL_SIZE = GS_OFF_PENDING_TELEPORT_BERO + 16                        # 0x1254 (4692)
 
 
 def compute_ghost_state_addresses(ghost_state_ptr: int) -> dict:
@@ -108,12 +99,33 @@ def compute_ghost_state_addresses(ghost_state_ptr: int) -> dict:
         "lobby_hud":          base + GS_OFF_LOBBY_HUD,
         "self_active_loop_count": base + GS_OFF_SELF_ACTIVE_LOOP_COUNT,
         "self_active_loops":      base + GS_OFF_SELF_ACTIVE_LOOPS,
+        "self_game_role":         base + GS_OFF_SELF_GAME_ROLE,
+        "self_frozen":            base + GS_OFF_SELF_FROZEN,
+        "pending_teleport_seq":   base + GS_OFF_PENDING_TELEPORT_SEQ,
+        "pending_teleport_map":   base + GS_OFF_PENDING_TELEPORT_MAP,
+        "pending_teleport_bero":  base + GS_OFF_PENDING_TELEPORT_BERO,
     }
 
 SFX_EVENTS_PER_SLOT = 4
 SFX_FLAG_3D = 0x01
 # Note: v25's SFX_FLAG_STOP removed. v26 uses state-sync (peer.activeLoops)
 # instead of stop events for loop termination.
+
+GAME_ROLE_NONE   = 0
+GAME_ROLE_HIDER  = 1
+GAME_ROLE_SEEKER = 2
+
+GAME_ROLE_LABELS = {
+    GAME_ROLE_NONE:   "",
+    GAME_ROLE_HIDER:  "hider",
+    GAME_ROLE_SEEKER: "seeker",
+}
+
+GAME_ROLE_NAMES = {
+    "none":   GAME_ROLE_NONE,
+    "hider":  GAME_ROLE_HIDER,
+    "seeker": GAME_ROLE_SEEKER,
+}
 
 TEAM_NONE   = 0
 TEAM_RED    = 1
@@ -137,7 +149,7 @@ TEAM_LABELS = {
     TEAM_YELLOW: "Yellow",
 }
 
-_PEER_FMT   = ">B 15s 16s ffff BBBB I I H B B B bbb f 16s 32s 16s ff fff fff f H 2x f B B 2x HBBHBBHBBHBB HHHHHH"
+_PEER_FMT   = ">B 15s 16s ffff BBBB I I H B B B bbb f 16s 32s 16s ff fff fff f H 2x f B B B x HBBHBBHBBHBB HHHHHH"
 _HEADER_FMT = ">IIII"
 
 assert struct.calcsize(_PEER_FMT)   == PEER_SIZE,   f"peer fmt size {struct.calcsize(_PEER_FMT)} != {PEER_SIZE}"
@@ -223,9 +235,6 @@ def pack_peer_block(peers: dict) -> bytes:
                 sfx_packed.extend([0, 0, 0])
             sfx_count = min(len(sfx_list), SFX_EVENTS_PER_SLOT)
 
-            # v26: pack activeLoops state-sync field. Source provides
-            # a list of currently-playing loop sfxIds; pad with zeros
-            # to fill the fixed-size slot.
             active_loops_in = peer.get("active_loops", []) or []
             active_loops = []
             for sid in active_loops_in[:ACTIVE_LOOPS_PER_PEER]:
@@ -250,9 +259,6 @@ def pack_peer_block(peers: dict) -> bytes:
                 int(peer.get("show_name", 0)) & 0xFF,
                 int(peer.get("hammerable", 0)) & 0xFF,
                 int(peer.get("team_id", 0)) & 0xFF,
-                # spinDirHint{Y,X,Z}: source-side hints for receiver-side
-                # spin direction disambiguation. Clamped to int8 range.
-                # 0 = no hint (slow rotation), +1 = positive, -1 = negative.
                 max(-127, min(127, int(peer.get("spin_dir_hint_y", 0)))),
                 max(-127, min(127, int(peer.get("spin_dir_hint_x", 0)))),
                 max(-127, min(127, int(peer.get("spin_dir_hint_z", 0)))),
@@ -274,6 +280,7 @@ def pack_peer_block(peers: dict) -> bytes:
                 float(peer.get("paper_local_time", -1.0)),
                 sfx_count & 0xFF,
                 active_loop_count & 0xFF,
+                int(peer.get("game_role", GAME_ROLE_NONE)) & 0xFF,
                 sfx_packed[0],  sfx_packed[1],  sfx_packed[2],
                 sfx_packed[3],  sfx_packed[4],  sfx_packed[5],
                 sfx_packed[6],  sfx_packed[7],  sfx_packed[8],
@@ -295,21 +302,21 @@ def pack_peer_block(peers: dict) -> bytes:
 
 CLEAR_MAGIC = b"\x00" * 4
 
-LOBBY_HUD_MAGIC   = 0x4C4F4259
-LOBBY_HUD_VERSION = 1
+MATCH_HUD_MAGIC   = 0x4C4F4259
+MATCH_HUD_VERSION = 1
 
-LOBBY_STATUS_IDLE      = 0
-LOBBY_STATUS_WAITING   = 1
-LOBBY_STATUS_COUNTDOWN = 2
-LOBBY_STATUS_PLAYING   = 3
-LOBBY_STATUS_FINISHED  = 4
+MATCH_STATUS_IDLE      = 0
+MATCH_STATUS_HIDE   = 1
+MATCH_STATUS_SEEK = 2
+MATCH_STATUS_ROUND_OVER   = 3
+MATCH_STATUS_END  = 4
 
-LOBBY_STATUS_LABELS = {
-    LOBBY_STATUS_IDLE:      "Idle",
-    LOBBY_STATUS_WAITING:   "Waiting",
-    LOBBY_STATUS_COUNTDOWN: "Starting",
-    LOBBY_STATUS_PLAYING:   "Playing",
-    LOBBY_STATUS_FINISHED:  "Finished",
+MATCH_STATUS_LABELS = {
+    MATCH_STATUS_IDLE:       "Idle",
+    MATCH_STATUS_HIDE:       "Hide",
+    MATCH_STATUS_SEEK:       "Seek",
+    MATCH_STATUS_ROUND_OVER: "Round Over",
+    MATCH_STATUS_END:        "Match End",
 }
 
 GAME_TYPE_NONE          = 0
@@ -325,170 +332,454 @@ GAME_TYPE_NAMES = {
     "hns":           GAME_TYPE_HIDE_AND_SEEK,
 }
 
-LOBBY_ROLE_NONE      = 0
-LOBBY_ROLE_HOST      = 1
-LOBBY_ROLE_PARTICIPANT = 2
-LOBBY_ROLE_HIDER     = 3
-LOBBY_ROLE_SEEKER    = 4
-LOBBY_ROLE_SPECTATOR = 5
+MATCH_ROLE_NONE      = 0
+MATCH_ROLE_NONE      = 1
+MATCH_ROLE_NONE = 2
+MATCH_ROLE_HIDER     = 3
+MATCH_ROLE_SEEKER    = 4
+MATCH_ROLE_NONE = 5
 
-LOBBY_ROLE_LABELS = {
-    LOBBY_ROLE_NONE:        "",
-    LOBBY_ROLE_HOST:        "host",
-    LOBBY_ROLE_PARTICIPANT: "ready",
-    LOBBY_ROLE_HIDER:       "hider",
-    LOBBY_ROLE_SEEKER:      "seeker",
-    LOBBY_ROLE_SPECTATOR:   "out",
+MATCH_ROLE_LABELS = {
+    MATCH_ROLE_NONE:   "",
+    MATCH_ROLE_HIDER:  "hider",
+    MATCH_ROLE_SEEKER: "seeker",
 }
 
-MAX_LOBBY_MEMBERS = 32
+MAX_MATCH_MEMBERS = 32
+
+MATCH_KEY_PREFIX = "ttyd_match_"
+
+def match_key(team: int) -> str:
+    """The AP DataStorage key holding this team's canonical match
+    state. One key per team — the team IS the match container."""
+    return f"{MATCH_KEY_PREFIX}{team}"
+
+def parse_match_key(key: str) -> Optional[int]:
+    """Inverse of match_key. Returns the team id, or None if not a match key."""
+    if not key.startswith(MATCH_KEY_PREFIX):
+        return None
+    rest = key[len(MATCH_KEY_PREFIX):]
+    try:
+        return int(rest)
+    except ValueError:
+        return None
+    rest = key[len(MATCH_KEY_PREFIX):]
+    parts = rest.split("_")
+    if len(parts) != 2:
+        return None
+    try:
+        return int(parts[0]), int(parts[1])
+    except ValueError:
+        return None
+
+
+# Defaults chosen to make a 5-player hide-and-seek match feel right:
+# 30s to scatter, 3 minutes per round, 5 rounds total.
+DEFAULT_ROUND_COUNT             = 5
+DEFAULT_HIDE_PHASE_SECONDS      = 30
+DEFAULT_ROUND_TIME_LIMIT_SEC    = 180
+# `seeker_count_threshold`: <threshold members -> 1 seeker; else 2.
+# 5 puts the boundary at "1 seeker for 4-player lobbies, 2 for 5+".
+DEFAULT_SEEKER_COUNT_THRESHOLD  = 5
+
+
+BUILTIN_MAPS: Dict[str, tuple] = {
+    "rogueport":      ("gor_01",   "s_bero"),
+    "petalburg":      ("nok_00",   "w_bero"),
+    "petal_meadows":  ("hei_00",   "dokan_2"),
+    "hooktail":       ("gon_00",   "w_bero"),
+    "boggly_woods":   ("win_06",   "dokan1"),    # not a typo - no underscore
+    "great_tree":     ("mri_00",   "w_bero"),
+    "glitzville":     ("tou_01",   ""),          # null bero -> blimp default
+    "twilight_town":  ("usu_00",   "dokan_1"),
+    "twilight_trail": ("gra_00",   "w_bero"),
+    "creepy_steeple": ("gra_06",   "sw_bero"),
+    "keelhaul_key":   ("muj_00",   "e_bero"),
+    "pirates_grotto": ("muj_05",   "w_bero"),
+    "riverside":      ("hom_00",   "n_bero_1"),
+    "excess_express": ("rsh_01_a", "s_bero"),
+    "poshley":        ("pik_00",   "n_bero"),
+    "fahr_outpost":   ("bom_01",   "w_bero"),
+    "moon":           ("moo_00",   ""),          # null bero -> first-landing
+    "xnaut_fortress": ("aji_19",   "w_bero"),
+    "palace_shadow":  ("las_00",   "w_bero"),
+    "sewers":         ("tik_01",   "dokan_2"),
+}
+
+
+def resolve_map_entry(name: str) -> Optional[tuple]:
+    """Take either a builtin short name like 'rogueport' or a raw
+    'map_id:bero_id' string, return (map_id, bero_id) or None on
+    obviously-invalid input. A bare map id with no colon is allowed
+    (returns empty bero - engine uses default spawn) but most
+    gameplay maps need a real bero."""
+    s = (name or "").strip()
+    if not s:
+        return None
+    if s in BUILTIN_MAPS:
+        return BUILTIN_MAPS[s]
+    if ":" in s:
+        m, b = s.split(":", 1)
+        m = m.strip()
+        b = b.strip()
+        if m:
+            return (m, b)
+        return None
+    return (s, "")
+
+
+def encode_map_pool_entry(map_id: str, bero: str) -> str:
+    """Inverse of resolve_map_entry's output for storage in
+    settings.map_pool. Used by /hns maps add to record an entry in
+    the canonical wire format."""
+    if bero:
+        return f"{map_id}:{bero}"
+    return map_id
+
+MATCH_SETTING_BOUNDS = {
+    "round_count":                (1,  20),
+    "hide_phase_seconds":         (5,  300),
+    "round_time_limit_seconds":   (30, 1800),
+    "seeker_count_threshold":     (2,  16),
+}
+
+@dataclass
+class MatchSettings:
+    """Host-tunable knobs. Replicated to all members via the lobby
+    state's network dict so everyone sees consistent values."""
+    round_count:               int = DEFAULT_ROUND_COUNT
+    hide_phase_seconds:        int = DEFAULT_HIDE_PHASE_SECONDS
+    round_time_limit_seconds:  int = DEFAULT_ROUND_TIME_LIMIT_SEC
+    seeker_count_threshold:    int = DEFAULT_SEEKER_COUNT_THRESHOLD
+    map_pool:                  List[str] = field(default_factory=list)
+
+def default_match_settings() -> MatchSettings:
+    return MatchSettings()
+
+def compute_seeker_count(member_count: int, threshold: int) -> int:
+    """Auto-pick seeker count from member count and the lobby's
+    threshold setting. <threshold members -> 1 seeker, else 2.
+    Always at least 1; capped to member_count - 1 so we never end up
+    with all members as seekers and zero hiders."""
+    if member_count <= 1:
+        return 0
+    base = 1 if member_count < max(2, threshold) else 2
+    return min(base, max(1, member_count - 1))
+
+def parse_setting_value(name: str, raw: str) -> Any:
+    """Parse and validate a setting value from a /lobby set <key> <value>
+    invocation. Returns the typed value on success, raises ValueError
+    on bad input. The validation is best-effort: callers should still
+    clamp to the bounds in MATCH_SETTING_BOUNDS for ints."""
+    if name not in MATCH_SETTING_BOUNDS:
+        raise ValueError(f"unknown setting '{name}'")
+    try:
+        v = int(raw)
+    except (TypeError, ValueError):
+        raise ValueError(f"setting '{name}' expects an integer, got '{raw}'")
+    lo, hi = MATCH_SETTING_BOUNDS[name]
+    if v < lo or v > hi:
+        raise ValueError(f"setting '{name}' must be between {lo} and {hi} (got {v})")
+    return v
 
 _MEMBER_FMT = ">B B B x 16s 4x"
 MEMBER_SIZE = struct.calcsize(_MEMBER_FMT)
 assert MEMBER_SIZE == 24, f"member size {MEMBER_SIZE}, expected 24"
 
-LOBBY_HEADER_FMT = ">I B B B B B B H I 16s"
-LOBBY_HEADER_SIZE = struct.calcsize(LOBBY_HEADER_FMT)
-assert LOBBY_HEADER_SIZE == 32, f"lobby header size {LOBBY_HEADER_SIZE}, expected 32"
+MATCH_HEADER_FMT = ">I B B B B B B H I 16s"
+MATCH_HEADER_SIZE = struct.calcsize(MATCH_HEADER_FMT)
+assert MATCH_HEADER_SIZE == 32, f"lobby header size {MATCH_HEADER_SIZE}, expected 32"
 
-LOBBY_TEXT_LEN    = 192
+MATCH_TEXT_LEN    = 192
 
 @dataclass
-class LobbyMember:
+class MatchMember:
     """Single member of a lobby. AP slot id + display name + role."""
     slot: int
     name: str
-    role: int = LOBBY_ROLE_PARTICIPANT
+    role: int = MATCH_ROLE_NONE
     alive: bool = True
 
 @dataclass
-class LobbyState:
-    """Source of truth for the local client's lobby. Single instance
-    per connection, owned by ctx._lobby. None if not in a lobby."""
-    lobby_id: str = ""
-    name: str = ""
-    game_type: int = GAME_TYPE_NONE
-    status: int = LOBBY_STATUS_IDLE
-    members: List[LobbyMember] = field(default_factory=list)
+class MatchState:
+    """A hide-and-seek match. Always exists when AP is connected; status=IDLE
+    means no match is currently running. Per-team — the AP team membership
+    IS the match container, so there's no separate lobby concept.
+
+    The conductor (whoever ran /hns start) owns mutations during an active
+    match (status != IDLE) and runs the timer task. In IDLE, anyone on the
+    team can mutate settings; last-write-wins via AP DataStorage."""
+    team: int = 0
+    status: int = MATCH_STATUS_IDLE
+    members: List[MatchMember] = field(default_factory=list)
     self_slot: int = 0
     timer_seconds: int = 0
-
+    conductor_slot: int = 0
+    settings: MatchSettings = field(default_factory=default_match_settings)
     game_state: dict = field(default_factory=dict)
+    opted_out: List[int] = field(default_factory=list)
 
-    def self_member(self) -> Optional[LobbyMember]:
-        """Find the LobbyMember corresponding to the local player."""
+    def is_conductor(self) -> bool:
+        return self.self_slot != 0 and self.self_slot == self.conductor_slot
+
+    def self_member(self) -> Optional[MatchMember]:
         for m in self.members:
             if m.slot == self.self_slot:
                 return m
         return None
 
-    def is_host(self) -> bool:
-        m = self.self_member()
-        return m is not None and m.role == LOBBY_ROLE_HOST
+    def find_member(self, slot: int) -> Optional[MatchMember]:
+        for m in self.members:
+            if m.slot == slot:
+                return m
+        return None
 
-    def self_role(self) -> int:
-        m = self.self_member()
-        return m.role if m else LOBBY_ROLE_NONE
+    def has_member(self, slot: int) -> bool:
+        return self.find_member(slot) is not None
 
-def format_lobby_text(state: LobbyState) -> str:
-    """Render the bulk of the lobby HUD as a multi-line string. The
-    mod's DrawLobbyHud splits this on \\n and renders each line. Header
-    fields (lobby name, game type, status, timer) are rendered by the
-    mod from the structured header; this function fills in the member
-    list and any game-specific status lines.
+    def is_active(self) -> bool:
+        return self.status != MATCH_STATUS_IDLE
 
-    Pure function - safe to call from anywhere; no side effects."""
+
+def format_match_text(state: MatchState) -> str:
+    """Render the multi-line text region of the HUD overlay. Pure."""
     lines: List[str] = []
+    s = state.settings
+    gs = state.game_state or {}
+
+    if state.status == MATCH_STATUS_IDLE:
+        lines.append("No match active.")
+        lines.append(f"Rounds: {s.round_count}")
+        lines.append(f"Hide phase: {s.hide_phase_seconds}s")
+        lines.append(f"Round limit: {s.round_time_limit_seconds}s")
+        if s.map_pool:
+            shown = ", ".join(s.map_pool[:4])
+            extra = len(s.map_pool) - 4
+            if extra > 0:
+                shown += f" (+{extra})"
+            lines.append(f"Maps: {shown}")
+        else:
+            lines.append("Maps: (none set)")
+        lines.append("")
+        lines.append("Run /hns start to begin")
+
+    elif state.status in (MATCH_STATUS_HIDE, MATCH_STATUS_SEEK):
+        round_no = gs.get("round", 1)
+        round_total = gs.get("round_total", s.round_count)
+        cur_map = gs.get("current_map", "")
+        members_role = gs.get("members_role") or {}
+        phase_name = "Hide" if state.status == MATCH_STATUS_HIDE else "Seek"
+        lines.append(f"Round {round_no}/{round_total}")
+        lines.append(f"Phase: {phase_name}")
+        if cur_map:
+            lines.append(f"Map: {cur_map}")
+        def _role(slot):
+            return members_role.get(slot) or members_role.get(str(slot))
+        hiders = sum(1 for m in state.members if _role(m.slot) == "hider")
+        seekers = sum(1 for m in state.members if _role(m.slot) == "seeker")
+        lines.append(f"Hiders: {hiders}    Seekers: {seekers}")
+
+    elif state.status == MATCH_STATUS_ROUND_OVER:
+        round_no = gs.get("round", 1)
+        round_total = gs.get("round_total", s.round_count)
+        lines.append(f"Round {round_no}/{round_total} complete")
+        if round_no >= round_total:
+            lines.append("/hns next for results")
+        else:
+            lines.append("/hns next for round " + str(round_no + 1))
+
+    elif state.status == MATCH_STATUS_END:
+        lines.append("Match Complete!")
+        lb = gs.get("leaderboard") or []
+        if lb:
+            lines.append("")
+            lines.append("Leaderboard:")
+            for i, entry in enumerate(lb[:10], 1):
+                if isinstance(entry, dict):
+                    name = entry.get("name", "?")
+                    secs = entry.get("seconds", 0)
+                else:
+                    name = entry[1] if len(entry) > 1 else "?"
+                    secs = entry[2] if len(entry) > 2 else 0
+                lines.append(f"  {i}. {name}: {int(secs)}s")
 
     if state.members:
         lines.append("")
         lines.append("Players:")
-        for m in state.members:
-            label = LOBBY_ROLE_LABELS.get(m.role, "")
-            tag = f" [{label}]" if label else ""
-            marker = "" if m.alive else " (out)"
-
-            lines.append(f"  {m.name}{tag}{marker}")
-
-    if state.game_type == GAME_TYPE_HIDE_AND_SEEK and state.status == LOBBY_STATUS_PLAYING:
-        gs = state.game_state
-        round_no = gs.get("round")
-        round_total = gs.get("round_total")
-        if round_no is not None and round_total is not None:
-            lines.append("")
-            lines.append(f"Round {round_no}/{round_total}")
-        hiders_left = gs.get("hiders_left")
-        if hiders_left is not None:
-            lines.append(f"Hiders left: {hiders_left}")
+        members_role = gs.get("members_role") or {}
+        SHOW_LIMIT = 5
+        visible = state.members[:SHOW_LIMIT]
+        for m in visible:
+            role = members_role.get(m.slot) or members_role.get(str(m.slot))
+            if role == "seeker":
+                prefix = "\x01"
+            elif role == "hider":
+                prefix = "\x02"
+            else:
+                prefix = ""
+            alive_marker     = "" if m.alive else " (out)"
+            conductor_marker = " *" if m.slot == state.conductor_slot else ""
+            lines.append(f"{prefix}  {m.name}{conductor_marker}{alive_marker}")
+        overflow = len(state.members) - SHOW_LIMIT
+        if overflow > 0:
+            lines.append(f"  (+{overflow} more)")
 
     return "\n".join(lines)
 
-def pack_lobby_block(state: Optional[LobbyState]) -> bytes:
-    """Serialize the lobby state into the LOBBY_HUD_SIZE-byte payload
-    the mod reads. If state is None or status is IDLE, returns a block
-    with active=0 (mod skips drawing).
+def pack_match_block(state: Optional[MatchState]) -> bytes:
+    """Serialize the match state into the MATCH_HUD_SIZE-byte payload
+    the mod reads. If state is None, returns a block with active=0
+    (mod skips drawing).
 
-    Returns exactly LOBBY_HUD_SIZE bytes."""
-    if state is None or state.status == LOBBY_STATUS_IDLE:
-
+    Returns exactly MATCH_HUD_SIZE bytes."""
+    if state is None:
         header = struct.pack(
-            LOBBY_HEADER_FMT,
-            LOBBY_HUD_MAGIC,
-            LOBBY_HUD_VERSION,
+            MATCH_HEADER_FMT,
+            MATCH_HUD_MAGIC,
+            MATCH_HUD_VERSION,
             0,
-            LOBBY_STATUS_IDLE,
-            GAME_TYPE_NONE,
+            MATCH_STATUS_IDLE,
             0,
-            LOBBY_ROLE_NONE,
+            0,
+            MATCH_ROLE_NONE,
             0,
             0,
             b"",
         )
-        return header + b"\x00" * (LOBBY_HUD_SIZE - LOBBY_HEADER_SIZE)
+        return header + bytes(MATCH_HUD_SIZE - MATCH_HEADER_SIZE)
 
-    name_bytes = state.name.encode("ascii", errors="replace")[:16]
-    self_role = state.self_role()
+    self_member = state.self_member()
+    self_role = self_member.role if self_member else MATCH_ROLE_NONE
+
+    name_str = MATCH_STATUS_LABELS.get(state.status, "")
+    name_bytes = name_str.encode("ascii", errors="replace")[:16]
 
     header = struct.pack(
-        LOBBY_HEADER_FMT,
-        LOBBY_HUD_MAGIC,
-        LOBBY_HUD_VERSION,
+        MATCH_HEADER_FMT,
+        MATCH_HUD_MAGIC,
+        MATCH_HUD_VERSION,
         1,
         int(state.status) & 0xFF,
-        int(state.game_type) & 0xFF,
-        min(len(state.members), MAX_LOBBY_MEMBERS) & 0xFF,
+        1,
+        min(len(state.members), MAX_MATCH_MEMBERS) & 0xFF,
         int(self_role) & 0xFF,
         max(0, min(state.timer_seconds, 0xFFFF)) & 0xFFFF,
         0,
-        name_bytes.ljust(16, b"\x00"),
+        name_bytes.ljust(16, bytes([0])),
     )
 
     members_buf = b""
     written = 0
-    for m in state.members[:MAX_LOBBY_MEMBERS]:
+    for m in state.members[:MAX_MATCH_MEMBERS]:
         mname_bytes = (m.name or "").encode("ascii", errors="replace")[:16]
         members_buf += struct.pack(
             _MEMBER_FMT,
             int(m.slot) & 0xFF,
             int(m.role) & 0xFF,
             1 if m.alive else 0,
-            mname_bytes.ljust(16, b"\x00"),
+            mname_bytes.ljust(16, bytes([0])),
         )
         written += 1
+    if written < MAX_MATCH_MEMBERS:
+        members_buf += bytes((MAX_MATCH_MEMBERS - written) * MEMBER_SIZE)
 
-    if written < MAX_LOBBY_MEMBERS:
-        members_buf += b"\x00" * ((MAX_LOBBY_MEMBERS - written) * MEMBER_SIZE)
-
-    text = format_lobby_text(state)
-    text_bytes = text.encode("ascii", errors="replace")[:LOBBY_TEXT_LEN - 1]
-    text_buf = text_bytes.ljust(LOBBY_TEXT_LEN, b"\x00")
+    text_str = format_match_text(state)
+    text_bytes = text_str.encode("ascii", errors="replace")[:MATCH_TEXT_LEN - 1]
+    text_buf = text_bytes.ljust(MATCH_TEXT_LEN, bytes([0]))
 
     buf = header + members_buf + text_buf
-
-    if len(buf) < LOBBY_HUD_SIZE:
-        buf += b"\x00" * (LOBBY_HUD_SIZE - len(buf))
-
-    assert len(buf) == LOBBY_HUD_SIZE, f"lobby block sized {len(buf)}, expected {LOBBY_HUD_SIZE}"
+    if len(buf) < MATCH_HUD_SIZE:
+        buf += bytes(MATCH_HUD_SIZE - len(buf))
+    assert len(buf) == MATCH_HUD_SIZE, f"match block sized {len(buf)}, expected {MATCH_HUD_SIZE}"
     return buf
 
-LOBBY_CLEAR_MAGIC = b"\x00" * 4
+MATCH_CLEAR_MAGIC = b"\x00" * 4
+
+
+MATCH_NET_VERSION = 1
+
+# Sentinel value for "lobby cleared". Host writes this to its lobby key
+# on /lobby leave or disconnect so subscribers know to drop the entry.
+MATCH_NET_CLEARED = {"nv": MATCH_NET_VERSION, "cleared": True}
+
+def match_state_to_net_dict(state: "MatchState") -> Dict[str, Any]:
+    """Serialize a MatchState into a JSON-able dict for AP DataStorage.
+    Conductor publishes; team members receive via SetReply and mirror.
+    `self_slot` is recomputed locally on receive."""
+    s = state.settings
+    return {
+        "nv":             MATCH_NET_VERSION,
+        "team":           int(state.team),
+        "status":         int(state.status),
+        "timer":          int(state.timer_seconds),
+        "conductor_slot": int(state.conductor_slot),
+        "members": [
+            {
+                "slot":  int(m.slot),
+                "name":  m.name or "",
+                "role":  int(m.role),
+                "alive": bool(m.alive),
+            }
+            for m in state.members[:MAX_MATCH_MEMBERS]
+        ],
+        "settings": {
+            "round_count":              int(s.round_count),
+            "hide_phase_seconds":       int(s.hide_phase_seconds),
+            "round_time_limit_seconds": int(s.round_time_limit_seconds),
+            "seeker_count_threshold":   int(s.seeker_count_threshold),
+            "map_pool":                 list(s.map_pool),
+        },
+        "game_state": dict(state.game_state or {}),
+        "opted_out":  list(state.opted_out),
+    }
+
+def match_state_from_net_dict(d: Dict[str, Any], self_slot: int) -> Optional["MatchState"]:
+    """Inverse of match_state_to_net_dict. Returns None for cleared
+    sentinel or foreign nv. Tolerant of missing keys via defaults."""
+    if not isinstance(d, dict):
+        return None
+    if d.get("cleared") is True:
+        return None
+    nv = d.get("nv")
+    if nv is not None and nv != MATCH_NET_VERSION:
+        logger.debug(f"match net dict has unknown nv={nv}, dropping")
+        return None
+
+    raw_members = d.get("members") or []
+    members: List[MatchMember] = []
+    for rm in raw_members[:MAX_MATCH_MEMBERS]:
+        if not isinstance(rm, dict):
+            continue
+        try:
+            members.append(MatchMember(
+                slot=int(rm.get("slot", 0)),
+                name=str(rm.get("name", "") or "")[:16],
+                role=int(rm.get("role", MATCH_ROLE_NONE)),
+                alive=bool(rm.get("alive", True)),
+            ))
+        except (TypeError, ValueError):
+            continue
+
+    raw_settings = d.get("settings") or {}
+    settings = MatchSettings(
+        round_count=int(raw_settings.get("round_count", DEFAULT_ROUND_COUNT)),
+        hide_phase_seconds=int(raw_settings.get("hide_phase_seconds",
+                                                DEFAULT_HIDE_PHASE_SECONDS)),
+        round_time_limit_seconds=int(raw_settings.get("round_time_limit_seconds",
+                                                      DEFAULT_ROUND_TIME_LIMIT_SEC)),
+        seeker_count_threshold=int(raw_settings.get("seeker_count_threshold",
+                                                    DEFAULT_SEEKER_COUNT_THRESHOLD)),
+        map_pool=[str(m)[:15] for m in (raw_settings.get("map_pool") or []) if m],
+    )
+
+    return MatchState(
+        team=int(d.get("team", 0)),
+        status=int(d.get("status", MATCH_STATUS_IDLE)),
+        members=members,
+        self_slot=int(self_slot),
+        timer_seconds=max(0, min(int(d.get("timer", 0)), 0xFFFF)),
+        conductor_slot=int(d.get("conductor_slot", 0)),
+        settings=settings,
+        game_state=dict(d.get("game_state") or {}),
+        opted_out=[int(x) for x in (d.get("opted_out") or [])],
+    )
