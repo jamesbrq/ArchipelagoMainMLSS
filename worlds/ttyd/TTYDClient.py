@@ -1547,41 +1547,52 @@ async def ttyd_sync_task(ctx: TTYDContext):
                         }])
                     await ctx.receive_items()
                     await ctx.check_ttyd_locations()
-
                     goal = ctx.slot_data.get("goal", 0)
-                    if goal == 1:
+                    if goal == 1: # Shadow Queen
                         if not ctx.finished_game and gsw_check(1708) >= 18:
                             await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
-                    elif goal == 2:
+                    elif goal == 2: # Crystal Stars
                         star_count = dolphin.read_byte(0x8000323B)
                         if not ctx.finished_game and star_count <= 7 and star_count >= ctx.slot_data["goal_stars"]:
                             await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
-                except Exception:
-                    logger.exception("ttyd_sync_task tick error")
+                    else:
+                        if not ctx.finished_game and gswf_check(5085):
+                            await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
+                    await asyncio.sleep(.5)
+                except Exception as e:
+                    logger.info(traceback.format_exc())
+                    dolphin.un_hook()
+                    ctx.dolphin_connected = False
                     await asyncio.sleep(1)
-                    continue
+            else:
+                await asyncio.sleep(1)
         else:
             try:
-                if dolphin.is_hooked():
-                    pass
-                else:
-                    logger.info("Attempting to hook into Dolphin...")
-                    dolphin.hook()
-                    if dolphin.is_hooked():
-                        if validate_connection():
-                            logger.info("Hooked into TTYD successfully.")
-                            ctx.dolphin_connected = True
-                        else:
-                            logger.info("Game ID mismatch. Make sure TTYD (G8ME01) is running.")
-                            dolphin.un_hook()
-                            await asyncio.sleep(3)
-                    else:
-                        logger.info("Could not connect to Dolphin. Retrying in 3 seconds.")
-                        await asyncio.sleep(3)
-            except Exception:
-                logger.exception("ttyd_sync_task hook error")
+                logger.info("Attempting to connect to Dolphin...")
+                dolphin.hook()
+                if not dolphin.is_hooked():
+                    logger.info("Connection to Dolphin failed... Attempting again")
+                    ctx.dolphin_connected = False
+                    await ctx.disconnect()
+                    await asyncio.sleep(3)
+                    continue
+                if not validate_connection():
+                    logger.info("Dolphin hooked but TTYD is not running. "
+                                "Please load Paper Mario: The Thousand-Year Door.")
+                    dolphin.un_hook()
+                    ctx.dolphin_connected = False
+                    await asyncio.sleep(5)
+                    continue
+                logger.info("Dolphin connected successfully.")
+                ctx.dolphin_connected = True
+            except Exception as e:
+                dolphin.un_hook()
+                logger.info("Connection to Dolphin failed... Attempting again")
+                logger.error(traceback.format_exc())
+                ctx.dolphin_connected = False
+                await ctx.disconnect()
                 await asyncio.sleep(3)
-        await asyncio.sleep(0.1)
+                continue
 
 def trigger_death(ctx):
     """Receive a deathlink from another world: write 1 to the AP
@@ -1610,17 +1621,16 @@ def launch(*args):
             _match_timer_task(ctx), name="MatchTimer")
 
         await ctx.exit_event.wait()
+        ctx.server_address = None
+
         await ctx.shutdown()
 
-    import colorama
-    colorama.init()
-    parser = get_base_parser(description="TTYD Client.")
-    parser.add_argument("--patch_file", default="",
-                        help="Path to the .apttyd patch file.")
+    parser = get_base_parser()
+    parser.add_argument("patch_file", default="", type=str, nargs="?", help="Path to an APTTYD file")
     args = parser.parse_args(args)
+
+    import colorama
+
+    colorama.just_fix_windows_console()
     asyncio.run(main(args))
     colorama.deinit()
-
-
-if __name__ == "__main__":
-    launch()
