@@ -113,10 +113,97 @@ def gswf_check(bit_number: int) -> bool:
     current_byte = dolphin.read_byte(byte_address)
     bit_mask = 1 << bit
     return bool(current_byte & bit_mask)
+def gswf_clear(bit_number: int):
+    """Clear a single GSWF bit (set to 0). Sibling to gswf_set."""
+    result = _get_bit_address(bit_number)
+    if not result: return False
+    byte_address, bit = result
+    current_byte = dolphin.read_byte(byte_address)
+    bit_mask = 1 << bit
+    new_byte = current_byte & ~bit_mask & 0xFF
+    dolphin.write_byte(byte_address, new_byte)
+    return result
 def gsw_set(index, value):
     dolphin.write_word(GP_BASE + GSW0, value) if index == 0 else dolphin.write_byte(GP_BASE + index + GSW_BASE, value)
 def gsw_check(index):
     return dolphin.read_word(GP_BASE + GSW0) if index == 0 else dolphin.read_byte(GP_BASE + index + GSW_BASE)
+
+
+def apply_story_state(gsw_values=None, gswf_set_bits=None, gswf_clear_bits=None,
+                      *, quiet: bool = False):
+    """Bulk-apply GSW + GSWF writes in a single batch. Used to "fix" the
+    save-file story position before an HnS round-start teleport drops
+    every member into a map that wouldn't otherwise render cleanly
+    (e.g., chapter not yet completed, locked door GSWF unset, NPC
+    cutscene flag pending).
+
+    Each input is optional; pass only what you need to change.
+
+    Parameters:
+      gsw_values:       dict of {index: value} for GSW (Game Switch
+                        Word). Index 0 is the 32-bit world-state
+                        word; indices 1+ are 8-bit per-chapter or
+                        per-event values.
+      gswf_set_bits:    iterable of GSWF bit numbers to set to 1.
+      gswf_clear_bits:  iterable of GSWF bit numbers to clear to 0.
+      quiet:            if True, suppress the per-call summary log.
+
+    Returns: a tuple (n_gsw_written, n_gswf_set, n_gswf_cleared,
+    n_failures). Failures don't raise — they're logged and counted.
+    Useful so the caller can decide whether to surface a warning
+    when partial application happened (e.g., Dolphin disconnected
+    mid-batch).
+
+    Example — pin to "post-chapter-2 in Rogueport, doors unlocked":
+        apply_story_state(
+            gsw_values={0: 0x0F},
+            gswf_set_bits=[1234, 1235, 1240],
+            gswf_clear_bits=[1500],
+        )
+    """
+    n_gsw = 0
+    n_set = 0
+    n_clear = 0
+    n_fail = 0
+
+    if gsw_values:
+        for idx, val in gsw_values.items():
+            try:
+                gsw_set(int(idx), int(val))
+                n_gsw += 1
+            except Exception:
+                logger.exception(f"apply_story_state: GSW[{idx}] = {val} failed")
+                n_fail += 1
+
+    if gswf_set_bits:
+        for bit in gswf_set_bits:
+            try:
+                if gswf_set(int(bit)) is not False:
+                    n_set += 1
+                else:
+                    n_fail += 1
+            except Exception:
+                logger.exception(f"apply_story_state: GSWF set bit {bit} failed")
+                n_fail += 1
+
+    if gswf_clear_bits:
+        for bit in gswf_clear_bits:
+            try:
+                if gswf_clear(int(bit)) is not False:
+                    n_clear += 1
+                else:
+                    n_fail += 1
+            except Exception:
+                logger.exception(f"apply_story_state: GSWF clear bit {bit} failed")
+                n_fail += 1
+
+    if not quiet:
+        logger.info(
+            f"apply_story_state: {n_gsw} GSW written, "
+            f"{n_set} GSWF set, {n_clear} GSWF cleared"
+            + (f", {n_fail} failed" if n_fail else "")
+        )
+    return (n_gsw, n_set, n_clear, n_fail)
 def _strip_anim_suffix(name: str) -> str:
     """TTYD's animation names have suffixes encoding facing direction:
     M_S_1   = standing, front-facing
@@ -227,10 +314,12 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             self._hns_next()
         elif sub == "map":
             self._hns_map(*rest)
+        elif sub == "story":
+            self._hns_story(*rest)
         else:
             logger.info(f"hns: unknown subcommand '{sub}'. "
                         f"See /help hns or use start/stop/status/leave/join/"
-                        f"set/settings/maps/hud/role/solo/debug/next.")
+                        f"set/settings/maps/hud/role/solo/debug/next/story.")
 
 
     def _cmd_gswf(self, *args):
@@ -1042,6 +1131,137 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         logger.info(f"hns map: next round will be {map_id}:{br_disp}.")
         self._publish_match_now()
 
+    def _hns_story(self, *args):
+        """Bulk-write GSW + GSWF flags to fix the save-file story
+        position before an HnS round-start teleport. Wraps
+        apply_story_state().
+
+        With no args, applies the canonical HnS preset:
+          - GSWF bits 6000..6200 (inclusive) set to 1
+          - GSW indices 1700..1720 (inclusive) set to 99
+
+        Subcommands let you do ad-hoc fine-tuning:
+          /hns story                              - apply the preset
+          /hns story help                         - show this help
+          /hns story gsw <i>=<v> [<i>=<v> ...]    - bulk GSW set
+          /hns story set <bit> [<bit> ...]        - set GSWF bits to 1
+          /hns story clear <bit> [<bit> ...]      - clear GSWF bits to 0
+          /hns story show <bit|gsw=<i>>           - read current value
+
+        Numbers may be decimal (1234) or hex (0x4D2). GSW indices are
+        0..N where 0 is the 32-bit world word and 1+ are 8-bit per-event
+        slots.
+        """
+        if not args:
+            preset_set_bits   = list(range(6000, 6201))   # 6000..6200 inclusive
+            preset_gsw_values = {i: 99 for i in range(1700, 1721)}  # 1700..1720 incl.
+            logger.info(f"hns story: applying preset — "
+                        f"GSWF {preset_set_bits[0]}..{preset_set_bits[-1]} set, "
+                        f"GSW 1700..1720 = 99.")
+            n_g, n_s, n_c, n_f = apply_story_state(
+                gsw_values=preset_gsw_values,
+                gswf_set_bits=preset_set_bits,
+                quiet=True,
+            )
+            logger.info(f"hns story: preset done — "
+                        f"{n_g} GSW written, {n_s} GSWF set"
+                        + (f", {n_f} failed" if n_f else "") + ".")
+            return
+
+        if args[0].strip().lower() in ("help", "?", "-h", "--help"):
+            logger.info("hns story: bulk-apply story flags before a round.")
+            logger.info("  /hns story                     - apply the canonical HnS preset")
+            logger.info("                                   (GSWF 6000..6200 set, GSW 1700..1720 = 99)")
+            logger.info("  /hns story gsw <i>=<v> [...]   - bulk GSW set")
+            logger.info("  /hns story set <bit> [...]     - set GSWF bits")
+            logger.info("  /hns story clear <bit> [...]   - clear GSWF bits")
+            logger.info("  /hns story show <bit|gsw=i>    - read one value")
+            logger.info("Numbers may be decimal or hex (0x...).")
+            return
+
+        def _parse_int(tok: str):
+            tok = tok.strip()
+            try:
+                return int(tok, 0)
+            except ValueError:
+                return None
+
+        sub = args[0].strip().lower()
+        rest = args[1:]
+
+        if sub == "gsw":
+            if not rest:
+                logger.info("hns story gsw: usage: /hns story gsw <i>=<v> [...]")
+                return
+            pairs = {}
+            for tok in rest:
+                if "=" not in tok:
+                    logger.info(f"hns story gsw: '{tok}' isn't <index>=<value>.")
+                    return
+                k, v = tok.split("=", 1)
+                ki = _parse_int(k)
+                vi = _parse_int(v)
+                if ki is None or vi is None:
+                    logger.info(f"hns story gsw: '{tok}' has a non-numeric "
+                                f"index or value (use decimal or 0x hex).")
+                    return
+                pairs[ki] = vi
+            n_g, _, _, n_f = apply_story_state(gsw_values=pairs)
+            logger.info(f"hns story gsw: wrote {n_g} value(s)"
+                        + (f", {n_f} failed" if n_f else "") + ".")
+            return
+
+        if sub in ("set", "clear"):
+            if not rest:
+                logger.info(f"hns story {sub}: usage: /hns story {sub} <bit> [<bit> ...]")
+                return
+            bits = []
+            for tok in rest:
+                bi = _parse_int(tok)
+                if bi is None:
+                    logger.info(f"hns story {sub}: '{tok}' isn't a number.")
+                    return
+                bits.append(bi)
+            if sub == "set":
+                _, n_s, _, n_f = apply_story_state(gswf_set_bits=bits)
+                logger.info(f"hns story set: set {n_s} bit(s)"
+                            + (f", {n_f} failed" if n_f else "") + ".")
+            else:
+                _, _, n_c, n_f = apply_story_state(gswf_clear_bits=bits)
+                logger.info(f"hns story clear: cleared {n_c} bit(s)"
+                            + (f", {n_f} failed" if n_f else "") + ".")
+            return
+
+        if sub == "show":
+            if not rest:
+                logger.info("hns story show: usage: /hns story show <bit|gsw=i>")
+                return
+            tok = rest[0].strip()
+            if tok.lower().startswith("gsw="):
+                ki = _parse_int(tok.split("=", 1)[1])
+                if ki is None:
+                    logger.info(f"hns story show: '{tok}' index not numeric.")
+                    return
+                try:
+                    val = gsw_check(ki)
+                    logger.info(f"hns story show: GSW[{ki}] = {val} (0x{val:X}).")
+                except Exception as e:
+                    logger.info(f"hns story show: read failed: {e}")
+                return
+            bi = _parse_int(tok)
+            if bi is None:
+                logger.info(f"hns story show: '{tok}' isn't a number.")
+                return
+            try:
+                state = gswf_check(bi)
+                logger.info(f"hns story show: GSWF[{bi}] = {1 if state else 0}.")
+            except Exception as e:
+                logger.info(f"hns story show: read failed: {e}")
+            return
+
+        logger.info(f"hns story: unknown subcommand '{sub}'. "
+                    f"Use gsw / set / clear / show.")
+
     def _hns_hud(self, mode: str = "toggle"):
         ctx = self.ctx
         m = (mode or "toggle").strip().lower()
@@ -1285,6 +1505,7 @@ async def _patch_and_run_game(patch_file: str):
     metadata, output_file = Patch.create_rom_file(patch_file)
     Utils.async_start(_run_game(output_file))
     return metadata
+
 async def ttyd_sync_task(ctx: TTYDContext):
     logger.info("Starting Dolphin connector...")
     while not ctx.exit_event.is_set():
@@ -1335,49 +1556,41 @@ async def ttyd_sync_task(ctx: TTYDContext):
                         star_count = dolphin.read_byte(0x8000323B)
                         if not ctx.finished_game and star_count <= 7 and star_count >= ctx.slot_data["goal_stars"]:
                             await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
-                    else:
-                        if not ctx.finished_game and gswf_check(5085):
-                            await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
-                    await asyncio.sleep(.5)
-                except Exception as e:
-                    logger.info(traceback.format_exc())
-                    dolphin.un_hook()
-                    ctx.dolphin_connected = False
+                except Exception:
+                    logger.exception("ttyd_sync_task tick error")
                     await asyncio.sleep(1)
-            else:
-                await asyncio.sleep(1)
+                    continue
         else:
             try:
-                logger.info("Attempting to connect to Dolphin...")
-                dolphin.hook()
-                if not dolphin.is_hooked():
-                    logger.info("Connection to Dolphin failed... Attempting again")
-                    ctx.dolphin_connected = False
-                    await ctx.disconnect()
-                    await asyncio.sleep(3)
-                    continue
-                if not validate_connection():
-                    logger.info("Dolphin hooked but TTYD is not running. "
-                                "Please load Paper Mario: The Thousand-Year Door.")
-                    dolphin.un_hook()
-                    ctx.dolphin_connected = False
-                    await asyncio.sleep(5)
-                    continue
-                logger.info("Dolphin connected successfully.")
-                ctx.dolphin_connected = True
-            except Exception as e:
-                dolphin.un_hook()
-                logger.info("Connection to Dolphin failed... Attempting again")
-                logger.error(traceback.format_exc())
-                ctx.dolphin_connected = False
-                await ctx.disconnect()
+                if dolphin.is_hooked():
+                    pass
+                else:
+                    logger.info("Attempting to hook into Dolphin...")
+                    dolphin.hook()
+                    if dolphin.is_hooked():
+                        if validate_connection():
+                            logger.info("Hooked into TTYD successfully.")
+                            ctx.dolphin_connected = True
+                        else:
+                            logger.info("Game ID mismatch. Make sure TTYD (G8ME01) is running.")
+                            dolphin.un_hook()
+                            await asyncio.sleep(3)
+                    else:
+                        logger.info("Could not connect to Dolphin. Retrying in 3 seconds.")
+                        await asyncio.sleep(3)
+            except Exception:
+                logger.exception("ttyd_sync_task hook error")
                 await asyncio.sleep(3)
-                continue
+        await asyncio.sleep(0.1)
 
-def trigger_death(ctx: TTYDContext):
-    if ctx.slot is not None and dolphin.is_hooked() and ctx.dolphin_connected and validate_connection():
-        ctx.death_sent = True
-        dolphin.write_byte(0x8000323F, 1)
+def trigger_death(ctx):
+    """Receive a deathlink from another world: write 1 to the AP
+    scratch death byte so the game kills the player on next tick."""
+    try:
+        dolphin.write_byte(0x80003240, 1)
+    except Exception:
+        logger.exception("trigger_death: write failed")
+
 
 def launch(*args):
     async def main(args):
@@ -1397,16 +1610,17 @@ def launch(*args):
             _match_timer_task(ctx), name="MatchTimer")
 
         await ctx.exit_event.wait()
-        ctx.server_address = None
-
         await ctx.shutdown()
 
-    parser = get_base_parser()
-    parser.add_argument("patch_file", default="", type=str, nargs="?", help="Path to an APTTYD file")
-    args = parser.parse_args(args)
-
     import colorama
-
-    colorama.just_fix_windows_console()
+    colorama.init()
+    parser = get_base_parser(description="TTYD Client.")
+    parser.add_argument("--patch_file", default="",
+                        help="Path to the .apttyd patch file.")
+    args = parser.parse_args(args)
     asyncio.run(main(args))
     colorama.deinit()
+
+
+if __name__ == "__main__":
+    launch()
