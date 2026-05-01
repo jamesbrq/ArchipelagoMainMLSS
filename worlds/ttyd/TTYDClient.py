@@ -55,6 +55,20 @@ GSW_BASE = 0x578
 ROOM = 0x803DF728
 GAME_ID_ADDRESS = 0x80000000
 EXPECTED_GAME_ID = b"G8ME01"
+
+# Master toggle for the hide-and-seek subsystem. Flip to True to
+# re-enable. While False:
+#   - /hns and /hns_solo commands report disabled and no-op.
+#   - _match_timer_task isn't started (no 1Hz conductor publish).
+#   - We don't subscribe to ttyd_match_<team>.
+#   - Inbound match Bounces / SetReplies are ignored.
+#   - Per-tick GhostState scratch (selfFrozen, selfGameRole,
+#     pendingTeleport*) is still written by _publish_ghost_state_scratch
+#     but evaluates to all-zeros (no active match -> mod-side HnS
+#     features stay deactivated).
+# Ghost peer rendering, hammer PvP, teams, FF, and the SFX/loop sync
+# subsystems are unaffected.
+HNS_ENABLED = False
 def _check_universal_tracker_version() -> bool:
     import re
     if tracker_loaded:
@@ -280,6 +294,10 @@ class TTYDCommandProcessor(ClientCommandProcessor):
           /hns solo list                 - show solo bots
           /hns solo role <slot> <role>   - set a solo bot's role
         """
+        if not HNS_ENABLED:
+            logger.info("hns: hide-and-seek is disabled in this build. "
+                        "Set HNS_ENABLED=True in TTYDClient.py to re-enable.")
+            return
         ctx = self.ctx
         if not args:
             self._hns_status()
@@ -1372,29 +1390,32 @@ class TTYDContext(cmmCtx):
             if "death_link" in args["slot_data"]:
                 Utils.async_start(self.update_death_link(bool(args["slot_data"]["death_link"])))
             Utils.async_start(_subscribe_to_peers(self))
-            if self._match is None:
-                self._match = Ghosts.MatchState(
-                    team=int(self.team or 0),
-                    self_slot=int(self.slot or 0),
-                )
-            Utils.async_start(_subscribe_to_match(self))
+            if HNS_ENABLED:
+                if self._match is None:
+                    self._match = Ghosts.MatchState(
+                        team=int(self.team or 0),
+                        self_slot=int(self.slot or 0),
+                    )
+                Utils.async_start(_subscribe_to_match(self))
         elif cmd == "Retrieved":
             if "keys" not in args:
                 logger.warning(f"invalid Retrieved packet to TTYDClient: {args}")
                 return
             _on_ghost_update(self, args)
-            _dispatch_match_keys(self, args)
+            if HNS_ENABLED:
+                _dispatch_match_keys(self, args)
         elif cmd == "RoomInfo":
             self.seed_name = args["seed_name"]
         elif cmd == "SetReply":
             _on_ghost_update(self, args)
-            _dispatch_match_keys(self, args)
+            if HNS_ENABLED:
+                _dispatch_match_keys(self, args)
         elif cmd == "Bounced":
 
             data = args.get("data") or {}
             if data.get("ttyd_hit") is True:
                 _on_inbound_hit(self, data)
-            if data.get(MATCH_BOUNCE_EVENT) is True:
+            if HNS_ENABLED and data.get(MATCH_BOUNCE_EVENT) is True:
                 _on_match_bounce(self, data)
 
     def on_deathlink(self, data: typing.Dict[str, typing.Any]) -> None:
@@ -1617,8 +1638,9 @@ def launch(*args):
         ctx.gl_sync_task = asyncio.create_task(ttyd_sync_task(ctx), name="TTYD Sync Task")
         ctx.ghost_sync_task = asyncio.create_task(
             ttyd_ghost_sync_task(ctx), name="GhostSync")
-        ctx.match_timer_task = asyncio.create_task(
-            _match_timer_task(ctx), name="MatchTimer")
+        if HNS_ENABLED:
+            ctx.match_timer_task = asyncio.create_task(
+                _match_timer_task(ctx), name="MatchTimer")
 
         await ctx.exit_event.wait()
         ctx.server_address = None
