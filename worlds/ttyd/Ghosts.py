@@ -407,16 +407,18 @@ def parse_match_key(key: str) -> Optional[int]:
 
 
 # Defaults chosen to make a 5-player hide-and-seek match feel right.
-# hide_phase_seconds=0 is the "manual" sentinel — the conductor
-# advances HIDE -> SEEK via /hns next once everyone's hidden, instead
-# of an auto-countdown. round_time_limit_seconds=180 (3 min) keeps SEEK
-# bounded so a stalled chase doesn't hang the match.
-DEFAULT_ROUND_COUNT             = 5
-DEFAULT_HIDE_PHASE_SECONDS      = 0
-DEFAULT_ROUND_TIME_LIMIT_SEC    = 180
+# Both phase timers accept 0 as the "manual" sentinel — the conductor
+# advances HIDE -> SEEK and/or SEEK -> ROUND_OVER via /hns next, instead
+# of an auto-countdown. SEEK manual mode also relies on the all-hiders-
+# found path (handled in _on_match_hit_event) to end the round naturally.
+# Default leaves HIDE manual but caps SEEK at 3 min so a stalled chase
+# doesn't hang the match unless the conductor explicitly opts in.
+DEFAULT_ROUND_COUNT             = 10
+DEFAULT_HIDE_PHASE_SECONDS      = 180
+DEFAULT_ROUND_TIME_LIMIT_SEC    = 0
 # `seeker_count_threshold`: <threshold members -> 1 seeker; else 2.
 # 5 puts the boundary at "1 seeker for 4-player lobbies, 2 for 5+".
-DEFAULT_SEEKER_COUNT_THRESHOLD  = 5
+DEFAULT_SEEKER_COUNT_THRESHOLD  = 8
 
 
 # Story-advance preset applied at the start of every match. Pins the
@@ -491,7 +493,8 @@ MATCH_SETTING_BOUNDS = {
     "round_count":                (1,  20),
     # 0 = manual (conductor advances HIDE -> SEEK via /hns next).
     "hide_phase_seconds":         (0,  600),
-    "round_time_limit_seconds":   (30, 1800),
+    # 0 = manual (round ends on /hns next or all-hiders-found).
+    "round_time_limit_seconds":   (0,  1800),
     "seeker_count_threshold":     (2,  16),
 }
 
@@ -607,8 +610,10 @@ def format_match_text(state: MatchState) -> str:
     if state.status == MATCH_STATUS_IDLE:
         lines.append("No match active.")
         lines.append(f"Rounds: {s.round_count}")
-        lines.append(f"Hide phase: {s.hide_phase_seconds}s")
-        lines.append(f"Round limit: {s.round_time_limit_seconds}s")
+        hp = "manual" if int(s.hide_phase_seconds) <= 0 else f"{s.hide_phase_seconds}s"
+        rl = "manual" if int(s.round_time_limit_seconds) <= 0 else f"{s.round_time_limit_seconds}s"
+        lines.append(f"Hide phase: {hp}")
+        lines.append(f"Round limit: {rl}")
         if s.map_pool:
             shown = ", ".join(s.map_pool[:4])
             extra = len(s.map_pool) - 4
@@ -635,6 +640,12 @@ def format_match_text(state: MatchState) -> str:
                 and state.timer_seconds == 0
                 and int(s.hide_phase_seconds) <= 0):
             lines.append("(manual: /hns next when everyone's hidden)")
+        # SEEK-manual mode (round_time_limit_seconds == 0): same idea,
+        # round ends on /hns next or when every hider has been found.
+        if (state.status == MATCH_STATUS_SEEK
+                and state.timer_seconds == 0
+                and int(s.round_time_limit_seconds) <= 0):
+            lines.append("(manual: /hns next or find all hiders)")
         if cur_map:
             lines.append(f"Map: {cur_map}")
         def _role(slot):

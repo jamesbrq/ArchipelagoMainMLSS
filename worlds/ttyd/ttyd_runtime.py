@@ -1329,7 +1329,11 @@ def _on_match_bounce(ctx, data: dict) -> None:
             state.timer_seconds = 0
             state.members = []
             state.game_state = {}
-            state.conductor_slot = 0
+            # Keep state.conductor_slot — see /hns stop in TTYDClient.py.
+            # Clearing it would gate the publish_changed publish below
+            # (is_conductor() check in _publish_match_to_network), so
+            # non-owner clients would never see the post-stop IDLE
+            # state and their HUDs would stay frozen on the prior phase.
             publish_changed = True
 
     elif kind == "map_override":
@@ -1368,17 +1372,21 @@ async def _match_timer_task(ctx) -> None:
 
     Auto-advance phases:
       HIDE  -> SEEK         on hide_phase_seconds expiry
+                            (manual mode if hide_phase_seconds == 0)
       SEEK  -> ROUND_OVER   on round_time_limit_seconds expiry
-                            (also auto-advances on all-hiders-found,
+                            (manual mode if round_time_limit_seconds == 0;
+                            also auto-advances on all-hiders-found,
                             handled by _on_match_hit_event, not here)
 
     Manual phases (conductor uses /hns next):
       ROUND_OVER -> next round HIDE   (or MATCH_END if last round)
       MATCH_END  -> IDLE              (or /hns stop)
 
-    Tally accrues per second during SEEK while the timer is positive
-    so each hider's per-round contribution is naturally capped at
-    round_time_limit_seconds.
+    Tally accrues per second during SEEK as long as the round is still
+    active. With a positive round_time_limit_seconds the timer caps
+    each hider's per-round contribution naturally; in SEEK manual mode
+    accrual continues until /hns next or all-hiders-found ends the
+    round.
     """
     while not ctx.exit_event.is_set():
         await asyncio.sleep(1.0)
@@ -1389,8 +1397,19 @@ async def _match_timer_task(ctx) -> None:
         if state.status == Ghosts.MATCH_STATUS_IDLE:
             continue
 
-        # Tally accrual during SEEK while the timer is still running.
-        if state.status == Ghosts.MATCH_STATUS_SEEK and state.timer_seconds > 0:
+        seek_manual = (
+            state.status == Ghosts.MATCH_STATUS_SEEK
+            and int(state.settings.round_time_limit_seconds) <= 0
+        )
+        hide_manual = (
+            state.status == Ghosts.MATCH_STATUS_HIDE
+            and int(state.settings.hide_phase_seconds) <= 0
+        )
+
+        # Tally accrual during SEEK: every tick the round is still
+        # active (timer > 0 OR manual mode, which sits at timer == 0).
+        if (state.status == Ghosts.MATCH_STATUS_SEEK
+                and (state.timer_seconds > 0 or seek_manual)):
             gs = state.game_state
             tally = gs.setdefault("tally", {})
             members_role = gs.get("members_role") or {}
@@ -1404,14 +1423,13 @@ async def _match_timer_task(ctx) -> None:
             state.timer_seconds = max(0, state.timer_seconds - 1)
 
         # Auto-advance for HIDE and SEEK only. ROUND_OVER and
-        # MATCH_END are manual. HIDE also stays manual when
-        # hide_phase_seconds == 0 (the "manual" sentinel) — _begin_round
-        # leaves timer_seconds at 0 in that mode and conductor uses
-        # /hns next to advance.
+        # MATCH_END are manual. Both HIDE and SEEK stay manual when
+        # their respective phase-seconds setting is 0 — _begin_round /
+        # _on_match_timer_zero leave timer_seconds at 0 in that mode
+        # and conductor uses /hns next to advance.
         if (state.timer_seconds == 0
-                and ((state.status == Ghosts.MATCH_STATUS_HIDE
-                      and int(state.settings.hide_phase_seconds) > 0)
-                     or state.status == Ghosts.MATCH_STATUS_SEEK)):
+                and ((state.status == Ghosts.MATCH_STATUS_HIDE and not hide_manual)
+                     or (state.status == Ghosts.MATCH_STATUS_SEEK and not seek_manual))):
             try:
                 _on_match_timer_zero(ctx, state)
             except Exception:

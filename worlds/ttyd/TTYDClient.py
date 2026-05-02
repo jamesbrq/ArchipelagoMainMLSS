@@ -934,7 +934,12 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             st.timer_seconds = 0
             st.members = []
             st.game_state = {}
-            st.conductor_slot = 0
+            # Keep st.conductor_slot intact so the post-stop publish
+            # passes _publish_match_to_network's is_conductor() gate.
+            # Without this the IDLE state never reaches non-owner
+            # clients and their HUDs stay stuck on the previous phase.
+            # Also lets /hns set keep working between matches; the
+            # next /hns start re-runs _begin_match which sets it.
             logger.info("hns: match ended.")
             self._publish_match_now()
         else:
