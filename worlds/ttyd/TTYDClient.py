@@ -272,7 +272,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         """Hide-and-seek match commands.
 
         Match management:
-          /hns start                     - begin a match (you become conductor)
+          /hns start                     - begin a match
           /hns stop                      - end the current match early
           /hns status                    - show the current match state
           /hns leave                     - opt out of the next match
@@ -775,23 +775,25 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         if st is None or not st.is_active():
             logger.info("hns next: no active match.")
             return
-        if not st.is_conductor():
-            logger.info(f"hns next: only the conductor (slot "
-                        f"{st.conductor_slot}) can advance phases.")
-            return
 
-        # Force the timer to 0 then drive the standard transition.
-        st.timer_seconds = 0
-        from .ttyd_runtime import _on_match_timer_zero
-        _on_match_timer_zero(ctx, st)
-
-        new_label = Ghosts.MATCH_STATUS_LABELS.get(st.status, "?")
-        new_round = (st.game_state or {}).get("round", "?")
-        new_map   = (st.game_state or {}).get("current_map", "")
-        logger.info(f"hns next: advanced -> {new_label}"
-                    + (f", round {new_round}" if new_label in ("Hide","Seek","Round Over") else "")
-                    + (f", map {new_map}" if new_map else ""))
-        self._publish_match_now()
+        # If we're the local match owner, apply directly.
+        # Otherwise forward via Bounce — the owner will run the
+        # transition and republish; we'll see the new state on the
+        # next SetReply.
+        if st.is_conductor():
+            st.timer_seconds = 0
+            from .ttyd_runtime import _on_match_timer_zero
+            _on_match_timer_zero(ctx, st)
+            new_label = Ghosts.MATCH_STATUS_LABELS.get(st.status, "?")
+            new_round = (st.game_state or {}).get("round", "?")
+            new_map   = (st.game_state or {}).get("current_map", "")
+            logger.info(f"hns next: advanced -> {new_label}"
+                        + (f", round {new_round}" if new_label in ("Hide","Seek","Round Over") else "")
+                        + (f", map {new_map}" if new_map else ""))
+            self._publish_match_now()
+        else:
+            self._forward_match_command(kind="next")
+            logger.info("hns next: forwarded to match owner.")
 
     def _hns_debug(self):
         """Diagnostic: read back v28/v29 GhostState scratch from Dolphin
@@ -848,7 +850,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             self_role = _resolve_self_game_role(ctx)
             logger.info(f"  match.status      = {Ghosts.MATCH_STATUS_LABELS.get(st.status, '?')}")
             logger.info(f"  match.is_active() = {st.is_active()}")
-            logger.info(f"  match.is_conductor() = {st.is_conductor()}")
+            logger.info(f"  local match owner = {st.is_conductor()}")
             logger.info(f"  resolved my role  = {Ghosts.GAME_ROLE_LABELS.get(self_role, '?') or 'none'}")
             gs = st.game_state or {}
             logger.info(f"  game_state.map_seq      = {gs.get('map_seq')}")
@@ -872,8 +874,6 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             return
         status_label = Ghosts.MATCH_STATUS_LABELS.get(st.status, "?")
         logger.info(f"Match (team {st.team}): {status_label}")
-        if st.conductor_slot:
-            logger.info(f"  Conductor: slot {st.conductor_slot}")
         if st.timer_seconds > 0:
             logger.info(f"  Timer: {st.timer_seconds}s")
         if st.is_active():
@@ -929,17 +929,17 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         if st is None or not st.is_active():
             logger.info("hns: no active match.")
             return
-        if not st.is_conductor():
-            logger.info(f"hns: only the conductor (slot "
-                        f"{st.conductor_slot}) can stop the match.")
-            return
-        st.status = Ghosts.MATCH_STATUS_IDLE
-        st.timer_seconds = 0
-        st.members = []
-        st.game_state = {}
-        st.conductor_slot = 0
-        logger.info("hns: match ended.")
-        self._publish_match_now()
+        if st.is_conductor():
+            st.status = Ghosts.MATCH_STATUS_IDLE
+            st.timer_seconds = 0
+            st.members = []
+            st.game_state = {}
+            st.conductor_slot = 0
+            logger.info("hns: match ended.")
+            self._publish_match_now()
+        else:
+            self._forward_match_command(kind="stop")
+            logger.info("hns: stop forwarded to match owner.")
 
     def _hns_leave(self):
         ctx = self.ctx
@@ -951,9 +951,14 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         if slot in st.opted_out:
             logger.info("hns: already opted out.")
             return
-        st.opted_out.append(slot)
-        logger.info("hns: opted out of the next match. /hns join to re-enter.")
-        self._publish_match_now()
+        if st.is_conductor():
+            st.opted_out.append(slot)
+            logger.info("hns: opted out of the next match. /hns join to re-enter.")
+            self._publish_match_now()
+        else:
+            self._forward_match_command(kind="leave", extra={"slot": slot})
+            logger.info("hns: opt-out forwarded. You'll be excluded from "
+                        "the next match. /hns join to re-enter.")
 
     def _hns_join(self):
         ctx = self.ctx
@@ -965,9 +970,14 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         if slot not in st.opted_out:
             logger.info("hns: not opted out (already eligible).")
             return
-        st.opted_out.remove(slot)
-        logger.info("hns: opted in. You'll be included in the next match.")
-        self._publish_match_now()
+        if st.is_conductor():
+            st.opted_out.remove(slot)
+            logger.info("hns: opted in. You'll be included in the next match.")
+            self._publish_match_now()
+        else:
+            self._forward_match_command(kind="join", extra={"slot": slot})
+            logger.info("hns: opt-in forwarded. You'll be included in "
+                        "the next match.")
 
     def _hns_set(self, *args):
         ctx = self.ctx
@@ -1017,13 +1027,19 @@ class TTYDCommandProcessor(ClientCommandProcessor):
     def _hns_maps(self, *args):
         """Manage the round map pool.
 
-        /hns maps add <name>       - <name> can be a builtin short name
-                                      (rogueport, petalburg, ...) or a
-                                      raw <map>:<bero> pair
-        /hns maps remove <entry>   - remove by exact pool entry
-        /hns maps list             - show pool + builtin names available
-        /hns maps clear            - empty the pool
-        /hns maps builtins         - list available builtin names
+        /hns maps add <name>           - add a verified BUILTIN_MAPS
+                                          entry by short name
+                                          (rogueport, petalburg, ...).
+                                          Rejects unverified map:bero
+                                          pairs that would crash on load.
+        /hns maps add_raw <map>:<bero> - bypass the builtin check; lets
+                                          you add unverified pairs for
+                                          testing. Caveat emptor.
+        /hns maps remove <entry>       - remove by exact pool entry or
+                                          builtin short name
+        /hns maps list                 - show pool
+        /hns maps clear                - empty the pool
+        /hns maps builtins             - list available builtin names
         """
         ctx = self.ctx
         st = getattr(ctx, "_match", None)
@@ -1031,7 +1047,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             logger.info("hns: not connected to AP.")
             return
         if not args:
-            logger.info("hns: usage: /hns maps add <name> | remove <entry> | list | clear | builtins")
+            logger.info("hns: usage: /hns maps add <name> | add_raw <map>:<bero> | remove <entry> | list | clear | builtins")
             return
         sub = args[0].strip().lower()
         s = st.settings
@@ -1061,6 +1077,15 @@ class TTYDCommandProcessor(ClientCommandProcessor):
                             f"(see /hns maps builtins) or a valid map:bero pair.")
                 return
             map_id, bero = entry
+            # Restrict /hns maps add to verified BUILTIN_MAPS rows only.
+            # Unverified map:bero pairs can soft-lock or crash the engine
+            # on load; use /hns maps add_raw to bypass when testing.
+            if (map_id, bero) not in set(Ghosts.BUILTIN_MAPS.values()):
+                logger.info(f"hns: '{raw}' isn't a verified builtin "
+                            f"(see /hns maps builtins). Use "
+                            f"/hns maps add_raw <map>:<bero> to add "
+                            f"an unverified pair anyway.")
+                return
             stored = Ghosts.encode_map_pool_entry(map_id, bero)
             if stored in s.map_pool:
                 logger.info(f"hns: '{stored}' already in pool.")
@@ -1068,6 +1093,28 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             s.map_pool.append(stored)
             preset_note = f" (from preset '{raw}')" if raw in Ghosts.BUILTIN_MAPS else ""
             logger.info(f"hns: added '{stored}'{preset_note}. Pool size: {len(s.map_pool)}.")
+        elif sub == "add_raw":
+            # Escape hatch: accepts any map:bero pair without builtin
+            # verification. May crash or soft-lock on load — caveat
+            # emptor. Useful for testing maps that aren't yet in the
+            # curated BUILTIN_MAPS table.
+            if len(args) < 2:
+                logger.info("hns: usage: /hns maps add_raw <map>:<bero>")
+                return
+            raw = " ".join(args[1:]).strip()
+            entry = Ghosts.resolve_map_entry(raw)
+            if entry is None or not entry[0]:
+                logger.info(f"hns: '{raw}' isn't parseable as a "
+                            f"map:bero pair.")
+                return
+            map_id, bero = entry
+            stored = Ghosts.encode_map_pool_entry(map_id, bero)
+            if stored in s.map_pool:
+                logger.info(f"hns: '{stored}' already in pool.")
+                return
+            s.map_pool.append(stored)
+            logger.info(f"hns: added raw '{stored}' (unverified). "
+                        f"Pool size: {len(s.map_pool)}.")
         elif sub == "remove":
             if len(args) < 2:
                 logger.info("hns: usage: /hns maps remove <entry>")
@@ -1089,7 +1136,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             logger.info("hns: map pool cleared.")
         else:
             logger.info(f"hns: unknown maps subcommand '{sub}'. "
-                        f"Use add/remove/list/clear/builtins.")
+                        f"Use add/add_raw/remove/list/clear/builtins.")
             return
         self._publish_match_now()
 
@@ -1121,10 +1168,6 @@ class TTYDCommandProcessor(ClientCommandProcessor):
                 logger.info("hns map: no next-round override (random pool pick).")
             return
 
-        if not st.is_conductor():
-            logger.info(f"hns map: only the conductor (slot {st.conductor_slot}) "
-                        f"can change the next map.")
-            return
         if st.status not in (Ghosts.MATCH_STATUS_IDLE, Ghosts.MATCH_STATUS_ROUND_OVER):
             logger.info("hns map: can only set the next map between rounds "
                         "(ROUND_OVER) or before a match (IDLE).")
@@ -1132,9 +1175,14 @@ class TTYDCommandProcessor(ClientCommandProcessor):
 
         first = args[0].strip().lower()
         if first == "clear":
-            st.game_state.pop("next_map_override", None)
-            logger.info("hns map: override cleared. Next round picks from pool.")
-            self._publish_match_now()
+            if st.is_conductor():
+                st.game_state.pop("next_map_override", None)
+                logger.info("hns map: override cleared. Next round picks from pool.")
+                self._publish_match_now()
+            else:
+                self._forward_match_command(kind="map_override",
+                                             extra={"map_id": "", "bero": ""})
+                logger.info("hns map: clear forwarded to match owner.")
             return
 
         raw = " ".join(args).strip()
@@ -1144,10 +1192,16 @@ class TTYDCommandProcessor(ClientCommandProcessor):
                         f"/hns maps builtins) or a valid map:bero pair.")
             return
         map_id, bero = entry
-        st.game_state["next_map_override"] = [map_id, bero]
-        br_disp = bero if bero else "(default spawn)"
-        logger.info(f"hns map: next round will be {map_id}:{br_disp}.")
-        self._publish_match_now()
+        if st.is_conductor():
+            st.game_state["next_map_override"] = [map_id, bero]
+            br_disp = bero if bero else "(default spawn)"
+            logger.info(f"hns map: next round will be {map_id}:{br_disp}.")
+            self._publish_match_now()
+        else:
+            self._forward_match_command(kind="map_override",
+                                         extra={"map_id": map_id, "bero": bero})
+            br_disp = bero if bero else "(default spawn)"
+            logger.info(f"hns map: forwarded {map_id}:{br_disp} to match owner.")
 
     def _hns_story(self, *args):
         """Bulk-write GSW + GSWF flags to fix the save-file story
@@ -1315,6 +1369,34 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             asyncio.create_task(_publish_match_to_network(ctx))
         except Exception:
             pass
+
+    def _forward_match_command(self, *, kind: str, extra: dict | None = None):
+        """Send a match-mutation Bounce to the match owner. Used when
+        the local client isn't the owner — the owner receives the
+        Bounce in _on_match_bounce and applies the mutation +
+        republishes. The user never sees a "you're not the conductor"
+        rejection; from their perspective every command works.
+        """
+        ctx = self.ctx
+        st = getattr(ctx, "_match", None)
+        if st is None or not st.conductor_slot:
+            logger.info(f"hns: can't forward '{kind}' — no match owner.")
+            return
+        payload = {
+            MATCH_BOUNCE_EVENT: True,
+            "kind":   kind,
+            "from":   int(getattr(ctx, "slot", 0) or 0),
+        }
+        if extra:
+            payload.update(extra)
+        try:
+            asyncio.create_task(ctx.send_msgs([{
+                "cmd":   "Bounce",
+                "data":  payload,
+                "slots": [int(st.conductor_slot)],
+            }]))
+        except Exception:
+            logger.exception(f"hns: forward '{kind}' bounce failed")
 
     def _hns_role(self, *args):
         """Debug: manually set our published hide-and-seek role byte.
@@ -1614,6 +1696,7 @@ async def ttyd_sync_task(ctx: TTYDContext):
                 await ctx.disconnect()
                 await asyncio.sleep(3)
                 continue
+
 
 def trigger_death(ctx):
     """Receive a deathlink from another world: write 1 to the AP

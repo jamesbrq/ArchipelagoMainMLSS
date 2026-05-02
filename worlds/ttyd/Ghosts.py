@@ -373,10 +373,13 @@ def parse_match_key(key: str) -> Optional[int]:
         return None
 
 
-# Defaults chosen to make a 5-player hide-and-seek match feel right:
-# 30s to scatter, 3 minutes per round, 5 rounds total.
+# Defaults chosen to make a 5-player hide-and-seek match feel right.
+# hide_phase_seconds=0 is the "manual" sentinel — the conductor
+# advances HIDE -> SEEK via /hns next once everyone's hidden, instead
+# of an auto-countdown. round_time_limit_seconds=180 (3 min) keeps SEEK
+# bounded so a stalled chase doesn't hang the match.
 DEFAULT_ROUND_COUNT             = 5
-DEFAULT_HIDE_PHASE_SECONDS      = 30
+DEFAULT_HIDE_PHASE_SECONDS      = 0
 DEFAULT_ROUND_TIME_LIMIT_SEC    = 180
 # `seeker_count_threshold`: <threshold members -> 1 seeker; else 2.
 # 5 puts the boundary at "1 seeker for 4-player lobbies, 2 for 5+".
@@ -438,7 +441,8 @@ def encode_map_pool_entry(map_id: str, bero: str) -> str:
 
 MATCH_SETTING_BOUNDS = {
     "round_count":                (1,  20),
-    "hide_phase_seconds":         (5,  300),
+    # 0 = manual (conductor advances HIDE -> SEEK via /hns next).
+    "hide_phase_seconds":         (0,  600),
     "round_time_limit_seconds":   (30, 1800),
     "seeker_count_threshold":     (2,  16),
 }
@@ -454,7 +458,12 @@ class MatchSettings:
     map_pool:                  List[str] = field(default_factory=list)
 
 def default_match_settings() -> MatchSettings:
-    return MatchSettings()
+    # Seed with every verified builtin map so /hns maps remove and
+    # /hns maps clear operate on a known starting set. Empty out via
+    # /hns maps clear if you want a custom pool from scratch.
+    return MatchSettings(map_pool=[
+        encode_map_pool_entry(m, b) for (m, b) in BUILTIN_MAPS.values()
+    ])
 
 def compute_seeker_count(member_count: int, threshold: int) -> int:
     """Auto-pick seeker count from member count and the lobby's
@@ -571,6 +580,13 @@ def format_match_text(state: MatchState) -> str:
         phase_name = "Hide" if state.status == MATCH_STATUS_HIDE else "Seek"
         lines.append(f"Round {round_no}/{round_total}")
         lines.append(f"Phase: {phase_name}")
+        # In HIDE-manual mode (hide_phase_seconds == 0) the timer stays
+        # at 0 and the auto-advance is gated off — surface that
+        # someone needs to advance manually.
+        if (state.status == MATCH_STATUS_HIDE
+                and state.timer_seconds == 0
+                and int(s.hide_phase_seconds) <= 0):
+            lines.append("(manual: /hns next when everyone's hidden)")
         if cur_map:
             lines.append(f"Map: {cur_map}")
         def _role(slot):
@@ -618,7 +634,7 @@ def format_match_text(state: MatchState) -> str:
             else:
                 prefix = ""
             alive_marker     = "" if m.alive else " (out)"
-            conductor_marker = " *" if m.slot == state.conductor_slot else ""
+            conductor_marker = ""
             lines.append(f"{prefix}  {m.name}{conductor_marker}{alive_marker}")
         overflow = len(state.members) - SHOW_LIMIT
         if overflow > 0:

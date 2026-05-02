@@ -211,6 +211,13 @@ def _solo_build_match(ctx, n_bots: int) -> "Ghosts.MatchState":
 
     cur_map, cur_bero = _pick_round_map_for_settings(settings)
 
+    # Seed the map rotation history so round 2's /hns next pick
+    # via _pick_round_map(state) won't re-pick the same map.
+    # Mirrors the seeker rotation seeding below.
+    seed_history = []
+    if cur_map:
+        seed_history = [Ghosts.encode_map_pool_entry(cur_map, cur_bero)]
+
     state = Ghosts.MatchState(
         team=own_team,
         status=Ghosts.MATCH_STATUS_HIDE,
@@ -228,6 +235,7 @@ def _solo_build_match(ctx, n_bots: int) -> "Ghosts.MatchState":
             "members_role":            members_role,
             "tally":                   {},
             "initial_seekers_history": [own_slot],
+            "maps_played_history":     seed_history,
             "found_order":             [],
         },
     )
@@ -1240,7 +1248,7 @@ def _on_match_net_update(ctx, key: str, value) -> None:
                 team=team,
                 self_slot=int(getattr(ctx, "slot", 0) or 0),
             )
-            logger.info("Match was ended by the conductor.")
+            logger.info("Match ended.")
             _kick_hud_publish(ctx)
         return
 
@@ -1260,19 +1268,81 @@ def _on_match_net_update(ctx, key: str, value) -> None:
     _kick_hud_publish(ctx)
 
 def _on_match_bounce(ctx, data: dict) -> None:
-    """Inbound Bounce dispatch for match events (currently just hit
-    conversion). Conductor-only: non-conductors ignore."""
+    """Inbound Bounce dispatch for match events. Owner-only: clients
+    that aren't the local match owner ignore. The owner applies each
+    forwarded mutation to local state and republishes via the next
+    tick's _publish_match_to_network.
+
+    Supported kinds:
+      "hit"          — peer-vs-peer hammer hit (existing)
+      "next"         — forwarded /hns next from any non-owner
+      "stop"         — forwarded /hns stop from any non-owner
+      "map_override" — forwarded /hns map <name> from any non-owner
+                       (or empty map_id to clear the override)
+    """
     state = getattr(ctx, "_match", None)
     if state is None or not state.is_conductor():
         return
     if data.get(MATCH_BOUNCE_EVENT) is not True:
         return
     kind = data.get("kind", "")
+    publish_changed = False
+
     if kind == "hit":
         attacker = int(data.get("attacker", 0) or 0)
         victim   = int(data.get("victim",   0) or 0)
         if attacker > 0 and victim > 0:
             _on_match_hit_event(ctx, state, attacker, victim)
+        # _on_match_hit_event already calls _publish via timer task;
+        # no immediate republish needed.
+
+    elif kind == "next":
+        if state.is_active():
+            state.timer_seconds = 0
+            try:
+                _on_match_timer_zero(ctx, state)
+                publish_changed = True
+            except Exception:
+                logger.exception("forwarded /hns next failed")
+
+    elif kind == "stop":
+        if state.is_active():
+            state.status = Ghosts.MATCH_STATUS_IDLE
+            state.timer_seconds = 0
+            state.members = []
+            state.game_state = {}
+            state.conductor_slot = 0
+            publish_changed = True
+
+    elif kind == "map_override":
+        if state.status in (Ghosts.MATCH_STATUS_IDLE,
+                            Ghosts.MATCH_STATUS_ROUND_OVER):
+            map_id = str(data.get("map_id", "") or "")[:15]
+            bero   = str(data.get("bero",   "") or "")[:15]
+            if map_id:
+                state.game_state["next_map_override"] = [map_id, bero]
+            else:
+                state.game_state.pop("next_map_override", None)
+            publish_changed = True
+
+    elif kind == "leave":
+        slot = int(data.get("slot", 0) or 0)
+        if slot > 0 and slot not in state.opted_out:
+            state.opted_out.append(slot)
+            publish_changed = True
+
+    elif kind == "join":
+        slot = int(data.get("slot", 0) or 0)
+        if slot > 0 and slot in state.opted_out:
+            state.opted_out.remove(slot)
+            publish_changed = True
+
+    if publish_changed:
+        try:
+            asyncio.create_task(_publish_match_to_network(ctx))
+        except Exception:
+            logger.exception("forwarded-bounce republish failed")
+        _kick_hud_publish(ctx)
 
 
 async def _match_timer_task(ctx) -> None:
@@ -1316,10 +1386,14 @@ async def _match_timer_task(ctx) -> None:
             state.timer_seconds = max(0, state.timer_seconds - 1)
 
         # Auto-advance for HIDE and SEEK only. ROUND_OVER and
-        # MATCH_END are manual.
+        # MATCH_END are manual. HIDE also stays manual when
+        # hide_phase_seconds == 0 (the "manual" sentinel) — _begin_round
+        # leaves timer_seconds at 0 in that mode and conductor uses
+        # /hns next to advance.
         if (state.timer_seconds == 0
-                and state.status in (Ghosts.MATCH_STATUS_HIDE,
-                                      Ghosts.MATCH_STATUS_SEEK)):
+                and ((state.status == Ghosts.MATCH_STATUS_HIDE
+                      and int(state.settings.hide_phase_seconds) > 0)
+                     or state.status == Ghosts.MATCH_STATUS_SEEK)):
             try:
                 _on_match_timer_zero(ctx, state)
             except Exception:
@@ -1353,7 +1427,7 @@ def _begin_match(ctx, state) -> None:
     except Exception:
         pass
     if not own_name:
-        own_name = "Conductor"
+        own_name = f"slot{own_slot}"
 
     members = [Ghosts.MatchMember(slot=own_slot, name=own_name,
                                    role=Ghosts.MATCH_ROLE_NONE)]
@@ -1374,7 +1448,8 @@ def _begin_match(ctx, state) -> None:
 
     state.members = members
 
-    # Initialize game-state.
+    # Initialize game-state. _begin_round populates current_map +
+    # appends the picked entry to maps_played_history.
     state.game_state = {
         "round":                   1,
         "round_total":             state.settings.round_count,
@@ -1382,6 +1457,7 @@ def _begin_match(ctx, state) -> None:
         "members_role":            {},
         "tally":                   {},
         "initial_seekers_history": [],
+        "maps_played_history":     [],
         "found_order":             [],
     }
     _begin_round(ctx, state)
@@ -1422,7 +1498,12 @@ def _begin_round(ctx, state) -> None:
     gs["members_role"] = members_role
     gs["found_order"] = []
     state.status = Ghosts.MATCH_STATUS_HIDE
-    state.timer_seconds = state.settings.hide_phase_seconds
+    # hide_phase_seconds == 0 is the "manual" sentinel — leave the
+    # timer at 0 so _match_timer_task's auto-advance branch
+    # (gated on timer_seconds > 0) doesn't fire. Conductor
+    # advances HIDE -> SEEK via /hns next.
+    hps = int(state.settings.hide_phase_seconds)
+    state.timer_seconds = hps if hps > 0 else 0
 
 
 def _pick_round_map_for_settings(settings):
@@ -1449,8 +1530,33 @@ def _pick_round_map(state):
       - "<map_name>:<bero>"     — e.g. "gor_01:dokan_1" — explicit
         entrance name. Required for most gameplay maps.
 
+    Rotation: tracks `maps_played_history` in game_state so the same
+    map isn't picked twice until every entry in the pool has been
+    used once. When the pool is exhausted (every map has been picked),
+    history wipes and selection re-opens to the full pool. Mirrors
+    the existing initial-seeker rotation in _pick_initial_seekers.
+
     Returns ("", "") when the pool is empty."""
-    return _pick_round_map_for_settings(state.settings)
+    pool_full = list(state.settings.map_pool or [])
+    if not pool_full:
+        return ("", "")
+
+    gs = state.game_state
+    history = list(gs.get("maps_played_history") or [])
+    pool = [entry for entry in pool_full if entry not in history]
+    if not pool:
+        # Every map already played — start a fresh cycle.
+        history = []
+        pool = list(pool_full)
+
+    entry = _random.choice(pool)
+    history.append(entry)
+    gs["maps_played_history"] = history
+
+    if ":" in entry:
+        m, b = entry.split(":", 1)
+        return (m.strip()[:15], b.strip()[:15])
+    return (entry.strip()[:15], "")
 
 
 def _pick_initial_seekers(state):
