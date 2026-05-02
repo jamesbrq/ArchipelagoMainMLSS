@@ -68,7 +68,7 @@ EXPECTED_GAME_ID = b"G8ME01"
 #     features stay deactivated).
 # Ghost peer rendering, hammer PvP, teams, FF, and the SFX/loop sync
 # subsystems are unaffected.
-HNS_ENABLED = False
+HNS_ENABLED = True
 def _check_universal_tracker_version() -> bool:
     import re
     if tracker_loaded:
@@ -1208,9 +1208,13 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         position before an HnS round-start teleport. Wraps
         apply_story_state().
 
-        With no args, applies the canonical HnS preset:
-          - GSWF bits 6000..6200 (inclusive) set to 1
-          - GSW indices 1700..1720 (inclusive) set to 99
+        The preset (Ghosts.HNS_STORY_GSW_VALUES / HNS_STORY_GSWF_SET_BITS
+        / HNS_STORY_GSWF_CLEAR_BITS) auto-applies on every client at
+        the start of each match — the owner runs it inside
+        _begin_match before publishing, and non-owners run it on the
+        inactive->active transition in _publish_match_runtime_scratch.
+        This /hns story command is for manual re-apply / inspection
+        / ad-hoc tuning.
 
         Subcommands let you do ad-hoc fine-tuning:
           /hns story                              - apply the preset
@@ -1225,25 +1229,35 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         slots.
         """
         if not args:
-            preset_set_bits   = list(range(6000, 6201))   # 6000..6200 inclusive
-            preset_gsw_values = {i: 99 for i in range(1700, 1721)}  # 1700..1720 incl.
+            # Use the shared constants from Ghosts.py — same preset
+            # _begin_match (round 1 owner) and _publish_match_runtime_scratch
+            # (non-owners on inactive->active transition) auto-apply.
+            preset_set_bits    = Ghosts.HNS_STORY_GSWF_SET_BITS
+            preset_clear_bits  = Ghosts.HNS_STORY_GSWF_CLEAR_BITS
+            preset_gsw_values  = Ghosts.HNS_STORY_GSW_VALUES
+            range_lo = preset_set_bits[0] if preset_set_bits else 0
+            range_hi = preset_set_bits[-1] if preset_set_bits else 0
             logger.info(f"hns story: applying preset — "
-                        f"GSWF {preset_set_bits[0]}..{preset_set_bits[-1]} set, "
-                        f"GSW 1700..1720 = 99.")
+                        f"GSWF {range_lo}..{range_hi} set ({len(preset_set_bits)} bits), "
+                        f"GSW {len(preset_gsw_values)} values")
             n_g, n_s, n_c, n_f = apply_story_state(
                 gsw_values=preset_gsw_values,
                 gswf_set_bits=preset_set_bits,
+                gswf_clear_bits=preset_clear_bits,
                 quiet=True,
             )
             logger.info(f"hns story: preset done — "
-                        f"{n_g} GSW written, {n_s} GSWF set"
+                        f"{n_g} GSW written, {n_s} GSWF set, {n_c} cleared"
                         + (f", {n_f} failed" if n_f else "") + ".")
             return
 
         if args[0].strip().lower() in ("help", "?", "-h", "--help"):
-            logger.info("hns story: bulk-apply story flags before a round.")
-            logger.info("  /hns story                     - apply the canonical HnS preset")
-            logger.info("                                   (GSWF 6000..6200 set, GSW 1700..1720 = 99)")
+            logger.info("hns story: bulk-apply story flags. Auto-fires on")
+            logger.info("every client at the start of each match (in")
+            logger.info("_begin_match for the owner, on the inactive->active")
+            logger.info("transition for non-owners). Manual subcommands:")
+            logger.info("  /hns story                     - re-apply the preset")
+            logger.info("                                   (Ghosts.HNS_STORY_*)")
             logger.info("  /hns story gsw <i>=<v> [...]   - bulk GSW set")
             logger.info("  /hns story set <bit> [...]     - set GSWF bits")
             logger.info("  /hns story clear <bit> [...]   - clear GSWF bits")

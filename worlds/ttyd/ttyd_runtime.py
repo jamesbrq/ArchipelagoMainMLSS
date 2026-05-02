@@ -159,6 +159,7 @@ def _solo_inject(ctx, self_state) -> None:
             "active_loops": [],
             "game_role":   int(bot.get("game_role", Ghosts.GAME_ROLE_NONE)),
         }
+        Ghosts.stamp_peer(peer)
         ctx._ghost_peers[Ghosts.ghost_key(0, slot)] = peer
 
 def _solo_clear_peers(ctx) -> None:
@@ -525,7 +526,23 @@ def _publish_match_runtime_scratch(ctx, addrs, self_role: int) -> None:
     cur_active = bool(match.is_active())
     prev_active = bool(getattr(ctx, "_match_was_active", False))
     if cur_active and not prev_active:
+        # Match just transitioned inactive -> active. Reset map-seq
+        # tracking and apply the story-state preset on every client
+        # so non-owners pin their save before the round-1 teleport
+        # lands them on the picked map. The owner already applied
+        # the preset inside _begin_match before publishing; this
+        # path covers everyone else.
         ctx._last_applied_map_seq = 0
+        try:
+            from .TTYDClient import apply_story_state
+            apply_story_state(
+                gsw_values=Ghosts.HNS_STORY_GSW_VALUES,
+                gswf_set_bits=Ghosts.HNS_STORY_GSWF_SET_BITS,
+                gswf_clear_bits=Ghosts.HNS_STORY_GSWF_CLEAR_BITS,
+                quiet=True,
+            )
+        except Exception:
+            logger.exception("hns: client-side story-state apply failed")
     ctx._match_was_active = cur_active
 
     # --- pending teleport ---
@@ -768,6 +785,7 @@ def _loopback_inject(ctx, state: dict) -> None:
     fake = dict(delayed_state)
     fake["x"] = delayed_state["x"] + GHOST_TEST_OFFSET_X
     fake["slot_name"] = "GHOST"
+    Ghosts.stamp_peer(fake)
     ctx._ghost_peers[Ghosts.ghost_key(0, 99)] = fake
 
 async def _subscribe_to_peers(ctx) -> None:
@@ -1460,6 +1478,26 @@ def _begin_match(ctx, state) -> None:
         "maps_played_history":     [],
         "found_order":             [],
     }
+
+    # Pin the save-file story state before round 1's teleport fires.
+    # Each member runs this on their own client (since _begin_match
+    # is the local-state mutator that the owner runs before they
+    # publish, and non-owners run their own copy when they receive
+    # the published state — see the matching call in _on_match_net_update
+    # if cross-client consistency on the pin is required).
+    # Late-imported to avoid a circular dep on TTYDClient at module
+    # load time.
+    try:
+        from .TTYDClient import apply_story_state
+        apply_story_state(
+            gsw_values=Ghosts.HNS_STORY_GSW_VALUES,
+            gswf_set_bits=Ghosts.HNS_STORY_GSWF_SET_BITS,
+            gswf_clear_bits=Ghosts.HNS_STORY_GSWF_CLEAR_BITS,
+            quiet=True,
+        )
+    except Exception:
+        logger.exception("hns: round-1 story-state apply failed")
+
     _begin_round(ctx, state)
 
 
@@ -1622,13 +1660,7 @@ def _on_match_hit_event(ctx, state, attacker_slot: int, victim_slot: int) -> Non
             break
 
     # Solo mode: update the bot's stored game_role so the next
-    # _solo_inject tick publishes peer.gameRole = SEEKER. Without
-    # this, a converted hider bot keeps publishing as hider and
-    # the seeker viewer's name-tag filter (peer.gameRole !=
-    # kGameRoleSeeker -> hide) keeps their tag hidden. Real
-    # (non-solo) matches don't need this — the victim's own client
-    # re-resolves _resolve_self_game_role from the updated
-    # members_role and re-publishes their gameRole byte.
+    # _solo_inject tick publishes peer.gameRole = SEEKER.
     for bot in (getattr(ctx, "_solo_bots", None) or []):
         if int(bot.get("slot", 0)) == victim_slot:
             bot["game_role"] = Ghosts.GAME_ROLE_SEEKER
@@ -1674,12 +1706,6 @@ def _end_match(ctx, state) -> None:
 
 
 async def ttyd_ghost_sync_task(ctx):
-    """Real-AP ghost sync. Two responsibilities:
-    1. Publish our local player state to AP DataStorage at ~20Hz so other
-       peers can render us as a ghost.
-    2. Repaint the peer block (received from AP via SetReply / Retrieved,
-       and any synthetic loopback ghost) into Dolphin RAM at ~60Hz.
-    """
     last_publish = 0.0
     while not ctx.exit_event.is_set():
         await asyncio.sleep(GHOST_RENDER_INTERVAL_S)

@@ -1,4 +1,5 @@
 import struct
+import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 from CommonClient import logger
@@ -176,6 +177,21 @@ def color_for_slot(slot: int) -> tuple:
     r, g, b = _PALETTE[slot % len(_PALETTE)]
     return (r, g, b, _GHOST_ALPHA)
 
+# Heartbeat-based presence: pack_peer_block drops any peer whose
+# `_last_seen` (monotonic timestamp stamped on ingest / synth) is older
+# than this threshold. Avoids rendering a stuck ghost at the last known
+# position when the publishing client disconnects or stalls. Picked to
+# survive a single dropped publish at the 1 Hz heartbeat rate without
+# leaving a sittable decoy when a hider goes AFK.
+PEER_PRESENCE_TIMEOUT_S = 4.0
+
+def stamp_peer(peer: dict) -> None:
+    """Mark `peer` as freshly observed. Called from ingest paths and
+    from any local synthesizer that writes into ctx._ghost_peers
+    (solo bots, /ghost_test loopback)."""
+    if isinstance(peer, dict):
+        peer["_last_seen"] = time.monotonic()
+
 def ingest_peer_update(peers: dict, key: str, value) -> None:
     """Apply one server-side update to the caller's peer dict. Mutates in
     place. `value` is the raw value from the AP package - either a dict
@@ -185,6 +201,7 @@ def ingest_peer_update(peers: dict, key: str, value) -> None:
     if value is None or not isinstance(value, dict):
         peers.pop(key, None)
         return
+    stamp_peer(value)
     peers[key] = value
 
 def pack_peer_block(peers: dict) -> bytes:
@@ -193,16 +210,29 @@ def pack_peer_block(peers: dict) -> bytes:
     Returns exactly BLOCK_SIZE bytes. Excess peers beyond MAX_PEERS
     are dropped; missing fields default to zero / empty string. Malformed
     individual peers are logged and skipped without breaking the rest of
-    the block."""
+    the block.
+
+    Also prunes stale entries: any peer whose `_last_seen` is older
+    than PEER_PRESENCE_TIMEOUT_S is skipped from the binary output AND
+    evicted from `peers` so the dict doesn't grow unboundedly when a
+    publisher disconnects. The mod's per-slot `if (!peer.active)` gate
+    handles the visual teardown on the next frame."""
     buf = struct.pack(_HEADER_FMT, GHOST_MAGIC, VERSION, 0, 0)
 
     sorted_keys = sorted(peers.keys())
+
+    now = time.monotonic()
+    expired_keys: List[str] = []
 
     written = 0
     for key in sorted_keys:
         if written >= MAX_PEERS:
             break
         peer = peers[key]
+        last_seen = peer.get("_last_seen") if isinstance(peer, dict) else None
+        if last_seen is not None and (now - last_seen) > PEER_PRESENCE_TIMEOUT_S:
+            expired_keys.append(key)
+            continue
         try:
             slot = int(key.rsplit("_", 1)[-1])
             r, g, b, a = color_for_slot(slot)
@@ -297,6 +327,9 @@ def pack_peer_block(peers: dict) -> bytes:
     if remaining > 0:
         buf += b"\x00" * (remaining * PEER_SIZE)
 
+    for k in expired_keys:
+        peers.pop(k, None)
+
     assert len(buf) == BLOCK_SIZE, f"ghost block sized {len(buf)}, expected {BLOCK_SIZE}"
     return buf
 
@@ -384,6 +417,21 @@ DEFAULT_ROUND_TIME_LIMIT_SEC    = 180
 # `seeker_count_threshold`: <threshold members -> 1 seeker; else 2.
 # 5 puts the boundary at "1 seeker for 4-player lobbies, 2 for 5+".
 DEFAULT_SEEKER_COUNT_THRESHOLD  = 5
+
+
+# Story-advance preset applied at the start of every match. Pins the
+# save-file state so round-start `seqSetSeq(kMapChange, ...)` drops
+# every member into a clean post-progression state regardless of
+# their actual save progress. Used by:
+#   - _begin_match (auto-fired at round 1 start)
+#   - /hns story (no-args manual apply for testing)
+#
+# Values are placeholders pending verification against a clean
+# known-good save (diff a fresh save against post-Chapter-N save +
+# replace these with the diff). Adjust as you collect real values.
+HNS_STORY_GSW_VALUES: Dict[int, int] = {i: 99 for i in range(1700, 1721)}
+HNS_STORY_GSWF_SET_BITS: List[int] = list(range(6000, 6201)) + [1188, 1213, 1216, 1488, 1489, 1490, 1496, 1926, 2228, 2231, 2436, 2437, 2500, 2832, 2834, 2841, 2865, 2979, 3575, 3726, 4191, 4192, 4193, 4355, 4359, ]
+HNS_STORY_GSWF_CLEAR_BITS: List[int] = []
 
 
 BUILTIN_MAPS: Dict[str, tuple] = {
