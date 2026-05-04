@@ -320,6 +320,12 @@ def _read_self_state(ctx) -> dict | None:
 
         paper_anim_ptr = int.from_bytes(buf[0x1C:0x20], "big")
         (motion_timer,) = struct.unpack_from(">H", buf, 0x28)
+        # mp+0x29 is the low byte of the u16 above. The engine writes
+        # 0x18 to it at *both* Vivian sink-entry (via sth at 0x28-29)
+        # and Vivian rise-entry (a separate write to just the low byte
+        # by the un-Veil handler). Used by the kVivian paper-time pin
+        # below as a phase-edge detector.
+        (vivian_phase_byte,) = struct.unpack_from(">B", buf, 0x29)
 
         (motion_id,) = struct.unpack_from(">H", buf, 0x2E)
 
@@ -375,8 +381,51 @@ def _read_self_state(ctx) -> dict | None:
 
             (mp_2d3,) = struct.unpack_from(">b", buf, 0x2D3)
             paper_local_time = float(mp_2d3)
+        elif anim_name == "M_B_3" or paper_anim == "PM_B_1":
+            # MarioMotion::kVivian (Veil) — Sink phase syncs correctly
+            # with this branch; Rise phase still does NOT render right
+            # on receivers. See PROJECT_STATE.md for full TODO notes.
+            #
+            # Current state: sink uses edge-pin to 24.0 (matches
+            # N_marioForceVivianAnime's animPoseSetLocalTime call at
+            # sink entry). Rise tries per-frame scrub to mp+0xA8
+            # (wAnimPosition.y) — gets the *direction* right but the
+            # paper anim still doesn't visually match what the
+            # publisher shows. Several other approaches also failed:
+            # see PROJECT_STATE.md "Vivian rise still wrong" TODO.
+            #
+            # Suspected real fix: the publisher's actual paper-anim
+            # time scrub uses `vivianState[0x182]` (a half-word in
+            # Vivian's *party state* struct, NOT Mario's player
+            # struct). vivian_use:1801 calls
+            #   animPoseSetLocalTime(paperPose, float(vivianState[0x182]))
+            # each frame. We can't currently read that field from
+            # Python because we don't have the Vivian state-struct
+            # address — would need a mod-side scratch publish.
+            prev_phase_byte = getattr(ctx, "_prev_vivian_phase_byte",
+                                       0) if ctx is not None else 0
+            if anim_name == "M_S_1" and int(vivian_phase_byte) != 0:
+                # TODO(vivian-rise): see notes above. Current best
+                # guess (mp+0xA8 / wAnimPosition.y); known not fully
+                # correct. Left in place so the receiver gets *some*
+                # decreasing value rather than nothing.
+                paper_local_time = float(ofs2_y)
+            elif int(vivian_phase_byte) != 0 and int(prev_phase_byte) == 0:
+                # Sink-entry edge: pin once at 24.0, let engine tick.
+                # This branch works correctly.
+                paper_local_time = float(vivian_phase_byte)
+            # else: held / sinking countdown with anim still M_B_3 —
+            # leave at -1.0 so the engine ticks naturally.
     except Exception:
         return None
+
+    # Snapshot mp+0x29 for the next call's edge-detect (covers both
+    # Vivian sink-entry and rise-entry as a single rising-edge event).
+    if ctx is not None:
+        try:
+            ctx._prev_vivian_phase_byte = int(vivian_phase_byte)
+        except Exception:
+            pass
 
     map_name = _client_read_string(_client_ROOM(), 16)
     if not map_name:
@@ -398,6 +447,12 @@ def _read_self_state(ctx) -> dict | None:
         "scale_y": scale_y,
         "scale_z": scale_z,
         "stretch_y": stretch_y,
+        # flags1 reads as 0 during room transitions (the player struct
+        # is in a torn-down state mid-kMapChange). Receivers gate on
+        # this in pack_peer_block and write active=0 so the ghost
+        # tears down for the duration of the transition instead of
+        # snapping to (0,0,0) at world origin.
+        "flags1": flags1,
         "flags2": flags2,
         "flags3": flags3,
         "motion_timer": motion_timer,
@@ -775,11 +830,33 @@ def _loopback_inject(ctx, state: dict) -> None:
         buf.append((now, dict(state)))
         cutoff = now - GHOST_TEST_DELAY_S
         delayed_state = None
+        # Multi-pop merge: when several buffered states age past the
+        # cutoff on the same tick (common after any small publish-loop
+        # drift), we used to keep only the last popped state and drop
+        # the rest, silently losing one-shot SFX events from the
+        # intermediate frames. Loops survive that path because each
+        # state carries a full active_loops snapshot — but discrete
+        # events live in `sfx_events` and disappear if any state
+        # carrying them gets skipped. Concatenate sfx_events from
+        # every popped state so the loopback ghost faithfully replays
+        # every Mario one-shot at the right offset position.
+        merged_sfx: list = []
         while buf and buf[0][0] <= cutoff:
             _, delayed_state = buf.popleft()
+            popped_sfx = delayed_state.get("sfx_events") if isinstance(delayed_state, dict) else None
+            if popped_sfx:
+                merged_sfx.extend(popped_sfx)
         if delayed_state is None:
             ctx._ghost_peers.pop(Ghosts.ghost_key(0, 99), None)
             return
+        if merged_sfx:
+            # Don't mutate the buffered dict — copy first so future
+            # buffer reuse / debug-inspection sees the unmodified
+            # original snapshot. Cap at SFX_EVENTS_PER_SLOT — the
+            # binary peer slot can only carry that many per frame;
+            # extras would be truncated at pack time anyway.
+            delayed_state = dict(delayed_state)
+            delayed_state["sfx_events"] = merged_sfx[:Ghosts.SFX_EVENTS_PER_SLOT]
 
     # Offset the X position so the ghost stands next to us, not on top.
     fake = dict(delayed_state)
@@ -1001,7 +1078,7 @@ def _on_inbound_hit(ctx, data: dict) -> None:
     except Exception:
         logger.exception("failed to write inbound hit to mod scratch")
 
-GHOST_TEST_DELAY_S = 1.0
+GHOST_TEST_DELAY_S = 2.0
 
 GHOST_PUBLISH_INTERVAL_S = 1.0 / 20.0
 
@@ -1134,11 +1211,31 @@ async def _publish_match_hud(ctx) -> None:
 
     Safe to call repeatedly. Cheap (single 1KB write per call). If the
     user has the HUD toggled off, we instead clear the magic so the
-    mod stops rendering."""
+    mod stops rendering.
+
+    Gated on `ctx.save_loaded()` so the HUD doesn't render on title /
+    file-select / intro cutscene. The gate is here (not just in
+    `ttyd_ghost_sync_task`) because `_kick_hud_publish` and several
+    call sites in `TTYDClient.py` schedule this directly via
+    `asyncio.create_task` and bypass the loop-level save_loaded check.
+    Putting the gate inside the function covers all paths."""
     if not getattr(ctx, "dolphin_connected", False):
         return
     if not _resolve_ghost_addresses(ctx):
         return
+
+    try:
+        in_game = ctx.save_loaded()
+    except Exception:
+        in_game = False
+    if not in_game:
+        # Not in-game (title / file-select / intro). Write the clear
+        # magic so the mod's DrawLobbyHud early-outs even if a HUD
+        # block was already pushed before the save was unloaded
+        # (e.g. user disconnected to title screen mid-match).
+        await _clear_match_hud(ctx)
+        return
+
     if not getattr(ctx, "_match_hud_enabled", True):
 
         await _clear_match_hud(ctx)
@@ -1731,6 +1828,22 @@ async def ttyd_ghost_sync_task(ctx):
         if not (dolphin.is_hooked() and ctx.dolphin_connected):
             continue
         if ctx.team is None or ctx.slot is None:
+            continue
+
+        # Gate the entire pipeline on "save loaded into game world".
+        # ctx.save_loaded() reads the AP scratch byte at 0x80003228
+        # (1 = in-game). Without this, _write_peer_block runs against
+        # a zeroed/garbage GhostState pointer at the title screen,
+        # file-select, and intro cutscene, and we publish stale Mario
+        # position / animation to other clients. Inbound _on_ghost_update
+        # ingest keeps refreshing peers' _last_seen during menus, so
+        # the heartbeat-timeout eviction in pack_peer_block won't
+        # clobber legitimate teammates while we're parked here.
+        try:
+            in_game = ctx.save_loaded()
+        except Exception:
+            in_game = False
+        if not in_game:
             continue
 
         try:

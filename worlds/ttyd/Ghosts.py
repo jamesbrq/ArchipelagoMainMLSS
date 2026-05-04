@@ -61,8 +61,15 @@ GS_OFF_PENDING_TELEPORT_SEQ = GS_OFF_SELF_FROZEN + 1                     # 0x123
 GS_OFF_PENDING_TELEPORT_MAP  = GS_OFF_SELF_FROZEN + 4                    # 0x1234
 GS_OFF_PENDING_TELEPORT_BERO = GS_OFF_PENDING_TELEPORT_MAP + 16          # 0x1244
 
+# Debug "play this SFX" command bus. /hns play_sfx writes id then bumps
+# seq; mod's UpdateAll edge-detects on seq and calls psndSFXOn(id).
+GS_OFF_DEBUG_SFX_ID    = GS_OFF_PENDING_TELEPORT_BERO + 16              # 0x1254
+GS_OFF_DEBUG_SFX_SEQ   = GS_OFF_DEBUG_SFX_ID + 4                         # 0x1258
+GS_OFF_DEBUG_SFX_FLAGS = GS_OFF_DEBUG_SFX_SEQ + 1                        # 0x1259
+# +2 bytes pad at 0x125A-0x125B for 4-byte alignment.
+
 # Total expected GhostState size (for sanity-checking offsets here).
-GS_TOTAL_SIZE = GS_OFF_PENDING_TELEPORT_BERO + 16                        # 0x1254 (4692)
+GS_TOTAL_SIZE = GS_OFF_DEBUG_SFX_FLAGS + 3                               # 0x125C (4700)
 
 
 def compute_ghost_state_addresses(ghost_state_ptr: int) -> dict:
@@ -105,6 +112,9 @@ def compute_ghost_state_addresses(ghost_state_ptr: int) -> dict:
         "pending_teleport_seq":   base + GS_OFF_PENDING_TELEPORT_SEQ,
         "pending_teleport_map":   base + GS_OFF_PENDING_TELEPORT_MAP,
         "pending_teleport_bero":  base + GS_OFF_PENDING_TELEPORT_BERO,
+        "debug_sfx_id":           base + GS_OFF_DEBUG_SFX_ID,
+        "debug_sfx_seq":          base + GS_OFF_DEBUG_SFX_SEQ,
+        "debug_sfx_flags":        base + GS_OFF_DEBUG_SFX_FLAGS,
     }
 
 SFX_EVENTS_PER_SLOT = 4
@@ -232,6 +242,22 @@ def pack_peer_block(peers: dict) -> bytes:
         last_seen = peer.get("_last_seen") if isinstance(peer, dict) else None
         if last_seen is not None and (now - last_seen) > PEER_PRESENCE_TIMEOUT_S:
             expired_keys.append(key)
+            continue
+        # Mid-transition gate: the publisher's player struct reads
+        # flags1 == 0 only while a kMapChange is in progress (the
+        # struct is in a torn-down state). Pack a zero slot so the
+        # mod's `if (!peer.active)` gate tears down the rendered
+        # ghost cleanly instead of letting it snap to (0,0,0) at
+        # world origin between frames. Pad rather than skip so the
+        # slot's array index stays stable across frames (mod's
+        # g_slots[i] is keyed by index, not by peer slot id, so
+        # shifting other peers down would re-bind the mod render
+        # state to the wrong player). Entry stays in the dict —
+        # _last_seen is fresh, slot reappears the moment a non-zero
+        # flags1 publish lands.
+        if isinstance(peer, dict) and int(peer.get("flags1", 1) or 0) == 0:
+            buf += b"\x00" * PEER_SIZE
+            written += 1
             continue
         try:
             slot = int(key.rsplit("_", 1)[-1])

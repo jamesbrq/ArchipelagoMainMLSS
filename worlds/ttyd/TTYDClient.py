@@ -334,10 +334,14 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             self._hns_map(*rest)
         elif sub == "story":
             self._hns_story(*rest)
+        elif sub == "play_sfx":
+            self._hns_play_sfx(*rest)
+        elif sub == "mario_state":
+            self._hns_mario_state()
         else:
             logger.info(f"hns: unknown subcommand '{sub}'. "
                         f"See /help hns or use start/stop/status/leave/join/"
-                        f"set/settings/maps/hud/role/solo/debug/next/story.")
+                        f"set/settings/maps/hud/role/solo/debug/next/story/play_sfx/mario_state.")
 
 
     def _cmd_gswf(self, *args):
@@ -794,6 +798,129 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         else:
             self._forward_match_command(kind="next")
             logger.info("hns next: forwarded to match owner.")
+
+    def _hns_play_sfx(self, *args):
+        """Debug: fire psndSFXOn(<id>) on the local Mario.
+
+        Usage:
+          /hns play_sfx <id> [3d]
+
+        <id> accepts hex (`0x1013`, `0X1013`) or decimal (`4115`).
+        Adding the literal `3d` token routes the call through
+        psndSFXOn_3D anchored at Mario's position; otherwise the
+        plain (2D) variant is used.
+
+        The mod's psndSFXOn hook captures the call into
+        OnLocalSfxFired, which means the sound also propagates to
+        peers whenever the id passes the SfxIsAllowed whitelist.
+        Useful for probing SFX_TABLE.csv ids and confirming whether
+        a given id is the right boat / water / ambient sound."""
+        ctx = self.ctx
+        if not args:
+            logger.info("hns play_sfx: usage: /hns play_sfx <id> [3d]")
+            return
+        raw = args[0].strip()
+        try:
+            sfx_id = int(raw, 0) if raw.lower().startswith("0x") else int(raw)
+        except ValueError:
+            logger.info(f"hns play_sfx: '{raw}' is not a valid id (use 0x.. or decimal).")
+            return
+        if not (0 < sfx_id <= 0xFFFFFFFF):
+            logger.info(f"hns play_sfx: id {sfx_id} out of range.")
+            return
+        flags = 0
+        for tok in args[1:]:
+            if tok.strip().lower() == "3d":
+                flags |= 0x01
+
+        addrs = getattr(ctx, "_ghost_addrs", None)
+        if not addrs:
+            logger.info("hns play_sfx: GhostState not resolved yet (load a save first).")
+            return
+        try:
+            dolphin.write_bytes(addrs["debug_sfx_id"],
+                                int(sfx_id).to_bytes(4, "big"))
+            dolphin.write_byte(addrs["debug_sfx_flags"], flags & 0xFF)
+            cur_seq = dolphin.read_byte(addrs["debug_sfx_seq"])
+            new_seq = (cur_seq + 1) & 0xFF
+            dolphin.write_byte(addrs["debug_sfx_seq"], new_seq)
+        except Exception:
+            logger.exception("hns play_sfx: write failed")
+            return
+        variant = "psndSFXOn_3D" if (flags & 0x01) else "psndSFXOn"
+        logger.info(f"hns play_sfx: queued {variant}(0x{sfx_id:X}) "
+                    f"(seq {cur_seq} -> {new_seq}). Listen / watch peers.")
+
+    def _hns_mario_state(self):
+        """Diagnostic: snapshot the current Mario player-struct fields
+        Python reads in `_read_self_state`, plus the mod's published
+        `selfPaperAgbName` scratch. Used to inspect what the engine
+        is doing during odd states (e.g. the Vivian-rising phase
+        where the receiver's paper anim doesn't replay correctly).
+
+        Run it at the moments you care about — e.g. mid-sink, held,
+        right before the rise starts, during the rise, after the
+        jump-out — and compare values to see which motion_id /
+        motion_timer / anim transitions the rising actually goes
+        through."""
+        ctx = self.ctx
+        try:
+            try:
+                from .ttyd_runtime import MARIO_PTR_ADDR as mario_ptr_addr
+            except Exception:
+                mario_ptr_addr = 0x8041E900
+
+            player_ptr = int.from_bytes(
+                dolphin.read_bytes(mario_ptr_addr, 4), "big")
+            if not (0x80000000 <= player_ptr < 0x81800000):
+                logger.info(f"hns mario_state: player_ptr=0x{player_ptr:08X} out of range "
+                            "(save not loaded?)")
+                return
+
+            buf = dolphin.read_bytes(player_ptr, 0x2D8)
+            import struct as _s
+            (flags1,) = _s.unpack_from(">I", buf, 0x00)
+            (flags2,) = _s.unpack_from(">I", buf, 0x04)
+            (flags3,) = _s.unpack_from(">I", buf, 0x0C)
+            anim_ptr  = int.from_bytes(buf[0x18:0x1C], "big")
+            paper_ptr = int.from_bytes(buf[0x1C:0x20], "big")
+            (motion_timer,) = _s.unpack_from(">H", buf, 0x28)
+            (motion_id,)    = _s.unpack_from(">H", buf, 0x2E)
+            (mp_2d3,)       = _s.unpack_from(">b", buf, 0x2D3)
+
+            anim_name = ""
+            if 0x80000000 <= anim_ptr < 0x81800000:
+                raw = dolphin.read_bytes(anim_ptr, 16)
+                anim_name = raw.split(b"\x00", 1)[0].decode("ascii", errors="replace")
+            paper_anim = ""
+            if 0x80000000 <= paper_ptr < 0x81800000:
+                raw = dolphin.read_bytes(paper_ptr, 16)
+                paper_anim = raw.split(b"\x00", 1)[0].decode("ascii", errors="replace")
+
+            paper_agb = ""
+            try:
+                addrs = getattr(ctx, "_ghost_addrs", None)
+                if addrs is not None:
+                    agb_addr = addrs.get("self_paper_agb")
+                    if agb_addr is not None:
+                        raw = dolphin.read_bytes(agb_addr, 32)
+                        paper_agb = raw.split(b"\x00", 1)[0].decode(
+                            "ascii", errors="replace")
+            except Exception:
+                pass
+
+            logger.info("hns mario_state:")
+            logger.info(f"  motion_id     = 0x{motion_id:04X} ({motion_id})")
+            logger.info(f"  motion_timer  = 0x{motion_timer:04X} ({motion_timer})")
+            logger.info(f"  anim          = {anim_name!r}")
+            logger.info(f"  paper_anim    = {paper_anim!r}")
+            logger.info(f"  paper_agb     = {paper_agb!r}  (mod-published)")
+            logger.info(f"  flags1        = 0x{flags1:08X}")
+            logger.info(f"  flags2        = 0x{flags2:08X}")
+            logger.info(f"  flags3        = 0x{flags3:08X}")
+            logger.info(f"  mp[0x2D3]     = {mp_2d3} (signed; M_W_6 paper time field)")
+        except Exception:
+            logger.exception("hns mario_state: read failed")
 
     def _hns_debug(self):
         """Diagnostic: read back v28/v29 GhostState scratch from Dolphin
