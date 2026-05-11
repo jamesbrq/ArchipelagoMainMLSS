@@ -4,7 +4,7 @@
     "id": 77772000,
     "progression": "filler",
     "rom_id": 83,
-    "frequency": 50
+    "frequency": 51
   },
   {
     "item_name": "All or Nothing",
@@ -1537,6 +1537,27 @@
     "id": 77772230,
     "progression": "filler",
     "rom_id": 194,
+    "frequency": 1
+  },
+  {
+    "item_name": "House Key",
+    "id": 77772231,
+    "progression": "progression",
+    "rom_id": 49,
+    "frequency": 1
+  },
+  {
+    "item_name": "Box",
+    "id": 77772232,
+    "progression": "progression",
+    "rom_id": 95,
+    "frequency": 1
+  },
+  {
+    "item_name": "Walrus Whiskers",
+    "id": 77772233,
+    "progression": "progression",
+    "rom_id": 105,
     "frequency": 1
   }
 ]

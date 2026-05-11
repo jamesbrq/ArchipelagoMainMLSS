@@ -6609,5 +6609,110 @@
       "rogueport",
       "dazzle"
     ]
+  },
+  {
+    "name": "Rogueport Eastside: Garf's Trouble Reward",
+    "id": 78780989,
+    "rel": "gor",
+    "offsets": [
+      "0x42970",
+      "0x42AB4"
+    ],
+    "vanilla_item": 77772000,
+    "tags": [
+      "rogueport",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Rogueport Center: Garf's House Key",
+    "id": 78780990,
+    "rel": "gor",
+    "offsets": [
+      "0x3C7F0"
+    ],
+    "vanilla_item": 77772231,
+    "tags": [
+      "rogueport",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Rogueport Center: McGoomba's Trouble Reward",
+    "id": 78780991,
+    "rel": "gor",
+    "offsets": [
+      "0x3304C"
+    ],
+    "vanilla_item": 77772000,
+    "tags": [
+      "rogueport",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Rogueport Center: McGoomba's Box",
+    "id": 78780992,
+    "rel": "gor",
+    "offsets": [
+      "0x32FC4"
+    ],
+    "vanilla_item": 77772232,
+    "tags": [
+      "rogueport",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Rogueport Westside: Arfur's Trouble Reward",
+    "id": 78780993,
+    "rel": "gor",
+    "offsets": [
+      "0x44054"
+    ],
+    "vanilla_item": 77772000,
+    "tags": [
+      "rogueport",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Rogueport Westside: Goomther's Trouble Reward",
+    "id": 78780994,
+    "rel": "gor",
+    "offsets": [
+      "0x34698"
+    ],
+    "vanilla_item": 77772000,
+    "tags": [
+      "rogueport",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Rogueport Center: Mousimilian's Trouble Reward",
+    "id": 78780995,
+    "rel": "gor",
+    "offsets": [
+      "0x33514"
+    ],
+    "vanilla_item": 77772000,
+    "tags": [
+      "rogueport",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Rogueport Docks: Bomberto's Trouble Reward",
+    "id": 78780996,
+    "rel": "gor",
+    "offsets": [
+      "0x22D6C"
+    ],
+    "vanilla_item": 77772000,
+    "tags": [
+      "rogueport",
+      "trouble"
+    ]
   }
 ]

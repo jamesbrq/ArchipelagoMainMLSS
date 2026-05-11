@@ -3095,5 +3095,14 @@
   "Rogueport Sewers Town: Dazzle Item 15": {
     "has": "Star Piece",
     "count": 100
+  },
+  "Rogueport Eastside: Garf's Trouble Reward": {
+    "has": "House Key"
+  },
+  "Rogueport Center: McGoomba's Trouble Reward": {
+    "has": "Box"
+  },
+  "Rogueport Docks: Bomberto's Trouble Reward": {
+    "has": "Walrus Whiskers"
   }
 }
