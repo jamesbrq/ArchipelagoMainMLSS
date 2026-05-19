@@ -232,6 +232,7 @@ class TTYDWorld(World):
             self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("trouble"))
         if self.options.pit_items == PitItems.option_filler:
             self.lock_filler_items_remove_from_pool(get_locations_by_tags("pit_floor"))
+            self.lock_vanilla_items_remove_from_pool(locationName_to_data["Rogueport Sewers Pit Entrance: Pine T. Jr's Trouble Reward"])
         if self.options.dazzle_rewards == DazzleRewards.option_vanilla:
             self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("dazzle"))
         elif self.options.dazzle_rewards == DazzleRewards.option_filler:
@@ -464,9 +465,9 @@ class TTYDWorld(World):
         return TTYDItem(item.item_name, progression, item.id, self.player)
 
     def lock_item(self, location: str, item_name: str):
-        item = self.create_item(item_name)
-        item.location = self.get_location(location)
         if location not in self.disabled_locations:
+            item = self.create_item(item_name)
+            item.location = self.get_location(location)
             self.get_location(location).place_locked_item(item)
 
     def lock_vanilla_items(self, locations: LocationData | List[LocationData]) -> None:
@@ -482,10 +483,12 @@ class TTYDWorld(World):
         if isinstance(locations, LocationData):
             locations = [locations]
         for location in locations:
-            self.locked_item_frequencies[
-                items_by_id[location.vanilla_item].item_name] = self.locked_item_frequencies.get(
-                items_by_id[location.vanilla_item].item_name, 0) + 1
             if location.name not in self.disabled_locations:
+                if self.get_location(location.name).locked:
+                    continue
+                self.locked_item_frequencies[
+                    items_by_id[location.vanilla_item].item_name] = self.locked_item_frequencies.get(
+                    items_by_id[location.vanilla_item].item_name, 0) + 1
                 item = self.create_item(items_by_id[location.vanilla_item].item_name)
                 item.location = self.get_location(location.name)
                 self.get_location(location.name).place_locked_item(item)
@@ -494,18 +497,20 @@ class TTYDWorld(World):
         if isinstance(locations, LocationData):
             locations = [locations]
         for location in locations:
-            filler_item_name = self.get_filler_item_name()
-            self.locked_item_frequencies[filler_item_name] = self.locked_item_frequencies.get(filler_item_name, 0) + 1
             if location.name not in self.disabled_locations:
+                filler_item_name = self.get_filler_item_name()
+                self.locked_item_frequencies[filler_item_name] = self.locked_item_frequencies.get(filler_item_name,                                                                             0) + 1
                 item = self.create_item(filler_item_name)
                 item.location = self.get_location(location.name)
                 self.get_location(location.name).place_locked_item(item)
 
     def lock_item_remove_from_pool(self, location: str, item_name: str):
-        self.locked_item_frequencies[item_name] = self.locked_item_frequencies.get(item_name, 0) + 1
-        item = self.create_item(item_name)
-        item.location = self.get_location(location)
         if location not in self.disabled_locations:
+            self.locked_item_frequencies[item_name] = self.locked_item_frequencies.get(item_name, 0) + 1
+            item = self.create_item(item_name)
+            item.location = self.get_location(location)
+            item = self.create_item(item_name)
+            item.location = self.get_location(location)
             self.get_location(location).place_locked_item(item)
 
     def get_filler_item_name(self) -> str:

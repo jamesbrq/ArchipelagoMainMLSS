@@ -786,7 +786,7 @@
   {
     "item_name": "Life Shroom",
     "id": 77772108,
-    "progression": "filler",
+    "progression": "progression",
     "rom_id": 151,
     "frequency": 10
   },
@@ -1284,7 +1284,7 @@
     "item_name": "Star Piece",
     "id": 77772177,
     "progression": "progression",
-    "rom_id": 125,
+    "rom_id": 90,
     "frequency": 100
   },
   {
@@ -1558,6 +1558,27 @@
     "id": 77772233,
     "progression": "progression",
     "rom_id": 105,
+    "frequency": 1
+  },
+  {
+    "item_name": "Special Card",
+    "id": 77772234,
+    "progression": "useful",
+    "rom_id": 91,
+    "frequency": 1
+  },
+  {
+    "item_name": "Courage Shell Pack",
+    "id": 77772235,
+    "progression": "progression",
+    "rom_id": 90,
+    "frequency": 1
+  },
+  {
+    "item_name": "Silver Card",
+    "id": 77772236,
+    "progression": "useful",
+    "rom_id": 94,
     "frequency": 1
   }
 ]

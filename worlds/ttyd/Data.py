@@ -738,6 +738,8 @@ location_gsw_info = {
     78780994: (GSWType.GSW, 1734, 2), # Goomthers Reward
     78780995: (GSWType.GSW, 1735, 2), # Mousimilians Reward
     78780996: (GSWType.GSW, 1736, 2), # Bombertos Reward
+    78780997: (GSWType.GSW, 1737, 2), # Koopooks Reward
+    78780998: (GSWType.GSWF, 1629, 1), # Koopooks Reward
 }
 
 item_prices = {

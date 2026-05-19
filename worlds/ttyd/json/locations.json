@@ -6714,5 +6714,91 @@
       "rogueport",
       "trouble"
     ]
+  },
+  {
+    "name": "Hooktail's Castle Life Shroom Room: Koopook's Trouble Reward",
+    "id": 78780997,
+    "rel": "gon",
+    "offsets": [
+      "0x117F4"
+    ],
+    "vanilla_item": 77772234,
+    "tags": [
+      "chapter_1",
+      "hooktails_castle",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Petalburg Eastside: Kroop's Trouble Reward",
+    "id": 78780998,
+    "rel": "nok",
+    "offsets": [
+      "0x68CC",
+      "0x6988",
+      "0x978C"
+    ],
+    "vanilla_item": 77772201,
+    "tags": [
+      "chapter_1",
+      "petal_right",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Rogueport Center: Plenn T's Trouble Reward",
+    "id": 78780999,
+    "rel": "gor",
+    "offsets": [
+      "0x3B070"
+    ],
+    "vanilla_item": 77772204,
+    "tags": [
+      "chapter_1",
+      "rogueport",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Great Tree Entrance: Puni Elder's Trouble Reward",
+    "id": 78781000,
+    "rel": "mri",
+    "offsets": [
+      "0x2DBD0"
+    ],
+    "vanilla_item": 77772000,
+    "tags": [
+      "chapter_2",
+      "great_tree",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Rogueport Westside: Lahla's Trouble Reward",
+    "id": 78781001,
+    "rel": "gor",
+    "offsets": [
+      "0x53084"
+    ],
+    "vanilla_item": 77772000,
+    "tags": [
+      "chapter_2",
+      "rogueport_westside",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Rogueport Sewers Pit Entrance: Pine T. Jr's Trouble Reward",
+    "id": 78781002,
+    "rel": "tik",
+    "offsets": [
+      "0x53084"
+    ],
+    "vanilla_item": 77772236,
+    "tags": [
+      "chapter_2",
+      "pit",
+      "trouble"
+    ]
   }
 ]
