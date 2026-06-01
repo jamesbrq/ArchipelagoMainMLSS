@@ -87,9 +87,6 @@
       }
     ]
   },
-  "Boggly Woods Outside Great Tree: FP Plus": {
-    "function": "super_boots"
-  },
   "Great Tree Entrance: Mystic Egg": {
     "can_reach": "Great Tree Entrance: Emerald Star"
   },
