@@ -623,6 +623,8 @@ def _publish_match_runtime_scratch(ctx, addrs, self_role: int) -> None:
 
 PEER_PUBLISH_HEARTBEAT_S = 1.0
 
+PEER_PRESENCE_TIMEOUT_S = 5.0  # peer counts as "in my room" only if heard within this
+
 PEER_PUBLISH_EPS_POS  = 0.5
 PEER_PUBLISH_EPS_ROT  = 1.0
 PEER_PUBLISH_EPS_SCALE = 0.01
@@ -714,6 +716,29 @@ def _publish_ghost_state_scratch(ctx):
     return addrs, team_id, self_role
 
 
+def _peer_sharing_my_room(ctx, my_map: str, now: float) -> bool:
+    """True iff at least one other player is on my map and fresh within
+    PEER_PRESENCE_TIMEOUT_S. Gates the high-rate stream; when False we
+    publish only on discovery (connect + map change)."""
+    if not my_map:
+        return False
+    peers = getattr(ctx, "_ghost_peers", None) or {}
+    for peer in peers.values():
+        if not isinstance(peer, dict):
+            continue
+        if (peer.get("map", "") or "") != my_map:
+            continue
+        last_seen = peer.get("_last_seen")
+        if last_seen is None:
+            continue
+        try:
+            if (now - float(last_seen)) <= PEER_PRESENCE_TIMEOUT_S:
+                return True
+        except (TypeError, ValueError):
+            continue
+    return False
+
+
 async def _publish_self_state(ctx) -> None:
     """Read the local player's state from the game's Player struct and
     publish it to AP DataStorage so other peers can render us. Skips
@@ -774,13 +799,27 @@ async def _publish_self_state(ctx) -> None:
     last_state = getattr(ctx, "_last_published_state", None)
     last_t     = float(getattr(ctx, "_last_published_time", 0.0))
     loopback   = bool(getattr(ctx, "_ghost_loopback_active", False))
-    must_publish = (
+
+    # Discovery (connect + map change) is exempt from the co-location
+    # gate; it keeps peers' map view fresh and breaks the mutual-
+    # suppression deadlock when two players enter the same room.
+    is_discovery = (
         last_state is None
-        or loopback                                   # loopback ghost needs every tick
-        or bool(sfx_events)                            # don't drop SFX events
-        or (now - last_t) >= PEER_PUBLISH_HEARTBEAT_S  # heartbeat
-        or _peer_state_changed(last_state, state)
+        or (last_state.get("map") != state.get("map"))
     )
+
+    if is_discovery or loopback:
+        must_publish = True
+    elif _peer_sharing_my_room(ctx, state.get("map", ""), now):
+        must_publish = (
+            bool(sfx_events)                            # don't drop SFX events
+            or (now - last_t) >= PEER_PUBLISH_HEARTBEAT_S  # heartbeat
+            or _peer_state_changed(last_state, state)
+        )
+    else:
+        # Alone: suppress all streaming. SFX ring already drained above
+        # (can't overflow); with no one here, those events are dropped.
+        must_publish = False
 
     # Always run the local injectors so the loopback ghost / solo bots
     # render every tick locally, regardless of whether we publish to AP.
@@ -1080,7 +1119,7 @@ def _on_inbound_hit(ctx, data: dict) -> None:
 
 GHOST_TEST_DELAY_S = 2.0
 
-GHOST_PUBLISH_INTERVAL_S = 1.0 / 20.0
+GHOST_PUBLISH_INTERVAL_S = 1.0 / 5.0
 
 GHOST_RENDER_INTERVAL_S = 1.0 / 60.0
 

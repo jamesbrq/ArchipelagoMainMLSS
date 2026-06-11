@@ -41,6 +41,8 @@ from .ttyd_runtime import (
     _solo_default_role,
     _solo_clear_peers,
     _solo_build_match,
+    _resolve_self_game_role,
+    GHOST_TEST_OFFSET_X,
 )
 
 
