@@ -228,8 +228,6 @@ class TTYDWorld(World):
             self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("shine"))
         if not self.options.shopsanity:
             self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("shop"))
-        if not self.options.troublesanity:
-            self.lock_vanilla_items_remove_from_pool(get_locations_by_tags("trouble"))
         if self.options.pit_items == PitItems.option_filler:
             self.lock_filler_items_remove_from_pool(get_locations_by_tags("pit_floor"))
             self.lock_vanilla_items_remove_from_pool(locationName_to_data["Rogueport Sewers Pit Entrance: Pine T. Jr's Trouble Reward"])

@@ -158,14 +158,6 @@ class Keysanity(DefaultOnToggle):
     display_name = "Keysanity"
 
 
-class Troublesanity(DefaultOnToggle):
-    """
-    The trouble center will have their items randomized.
-    Disabling this will keep the trouble center items in their original locations.
-    """
-    display_name = "Troublesanity"
-
-
 class DazzleRewards(Choice):
     """
     This determines what type of items are given as rewards by Dazzle.
@@ -529,7 +521,6 @@ class TTYDOptions(PerGameCommonOptions):
     shop_purchase_limit: ShopPurchaseLimit
     shinesanity: Shinesanity
     keysanity: Keysanity
-    troublesanity: Troublesanity
     dazzle_rewards: DazzleRewards
     pit_items: PitItems
     limit_chapter_logic: LimitChapterLogic
