@@ -324,3 +324,151 @@ def pack_peer_block(peers: dict) -> bytes:
     return buf
 
 CLEAR_MAGIC = b"\x00" * 4
+
+
+# ---------------------------------------------------------------------------
+# VisionLink: sparse-presence + batched-history movement over AP Bounce.
+#
+# Wire protocol (all over a single Bounce tag so it never collides with the
+# hammer Bounce or other games). Each payload carries a kind discriminator:
+#   presence: {VL: "p", s, tm, mp, nm, hm}
+#   move:     {VL: "m", s, mp, d:{<discrete render fields>}, sm:[[t,x,y,z,ry,rx,rz],...]}
+# Movement samples carry only the continuously-varying channels; discrete
+# render state (anim, flags, paper, scale, ...) rides in `d` at the write
+# rate. Positions are deduped at the source — a sample identical to the
+# previous one is never emitted.
+# ---------------------------------------------------------------------------
+
+VLINK_TAG       = "ttydVisionLink"
+VLINK_KIND      = "VL"
+VLINK_PRESENCE  = "p"
+VLINK_MOVE      = "m"
+
+# Sample = [t, x, y, z, rotY, rotX, rotZ]; t is a source-local monotonic
+# seconds stamp used only for relative spacing (clocks are not synced).
+_SAMPLE_LEN = 7
+_POS_QUANT  = 2   # decimal places for position (sub-cm)
+_ROT_QUANT  = 1   # decimal places for angles
+
+
+def make_sample(t, x, y, z, ry, rx, rz):
+    return [round(t, 3),
+            round(x, _POS_QUANT), round(y, _POS_QUANT), round(z, _POS_QUANT),
+            round(ry, _ROT_QUANT), round(rx, _ROT_QUANT), round(rz, _ROT_QUANT)]
+
+
+def samples_differ(a, b) -> bool:
+    """True if two samples differ in any motion channel (ignoring t)."""
+    if a is None or b is None:
+        return True
+    return a[1:] != b[1:]
+
+
+def build_presence(slot, team, map_name, name, hammerable) -> dict:
+    return {VLINK_KIND: VLINK_PRESENCE, "s": int(slot), "tm": int(team),
+            "mp": map_name or "", "nm": (name or "")[:16], "hm": int(hammerable)}
+
+
+def build_move(slot, map_name, discrete: dict, samples: list) -> dict:
+    return {VLINK_KIND: VLINK_MOVE, "s": int(slot), "mp": map_name or "",
+            "d": discrete, "sm": samples}
+
+
+def _lerp(a, b, f):
+    return a + (b - a) * f
+
+
+def _lerp_angle(a, b, f):
+    d = b - a
+    while d > 180.0:
+        d -= 360.0
+    while d < -180.0:
+        d += 360.0
+    r = a + d * f
+    while r >= 360.0:
+        r -= 360.0
+    while r < 0.0:
+        r += 360.0
+    return r
+
+
+class PlaybackBuffer:
+    """Per-peer timeline of motion samples, played back against the wall
+    clock. Each arriving batch is re-anchored so its newest sample maps to
+    the arrival instant; this absorbs network jitter and keeps playback
+    current without synced clocks. `sample()` interpolates inside the
+    buffered window and extrapolates a bounded amount past the head so the
+    head can be rendered at near-zero perceived lag, snapping back to truth
+    as the next batch lands."""
+
+    __slots__ = ("buf", "hold", "_buffer_s")
+
+    def __init__(self, buffer_s: float = 1.5):
+        self.buf = []          # list of [at, x, y, z, ry, rx, rz], at ascending
+        self.hold = None       # last emitted pose, for starvation hold
+        self._buffer_s = buffer_s
+
+    def append(self, samples: list, now: float) -> None:
+        if not samples:
+            return
+        valid = [s for s in samples if isinstance(s, (list, tuple)) and len(s) >= _SAMPLE_LEN]
+        if not valid:
+            return
+        t_newest = max(s[0] for s in valid)
+        offset = now - t_newest                       # anchor newest -> now
+        last_at = self.buf[-1][0] if self.buf else float("-inf")
+        for s in sorted(valid, key=lambda e: e[0]):
+            at = s[0] + offset
+            if at <= last_at:
+                continue                              # monotonic + dedup
+            self.buf.append([at, float(s[1]), float(s[2]), float(s[3]),
+                             float(s[4]), float(s[5]), float(s[6])])
+            last_at = at
+        cutoff = now - self._buffer_s
+        if len(self.buf) > 2:
+            drop = 0
+            while drop < len(self.buf) - 2 and self.buf[drop + 1][0] < cutoff:
+                drop += 1
+            if drop:
+                del self.buf[:drop]
+
+    def sample(self, render_time: float, extrap_cap: float):
+        """Return (x, y, z, ry, rx, rz) at render_time, or None if empty."""
+        buf = self.buf
+        if not buf:
+            return self.hold
+        if render_time <= buf[0][0]:
+            self.hold = tuple(buf[0][1:])
+            return self.hold
+        if render_time >= buf[-1][0]:
+            last = buf[-1]
+            if len(buf) >= 2:
+                prev = buf[-2]
+                dt = last[0] - prev[0]
+                over = render_time - last[0]
+                if over > extrap_cap:
+                    over = extrap_cap
+                f = (over / dt) if dt > 1e-6 else 0.0
+                x = last[1] + (last[1] - prev[1]) * f
+                y = last[2] + (last[2] - prev[2]) * f
+                z = last[3] + (last[3] - prev[3]) * f
+                ry = _lerp_angle(prev[4], last[4], 1.0 + f)
+                rx = _lerp_angle(prev[5], last[5], 1.0 + f)
+                rz = _lerp_angle(prev[6], last[6], 1.0 + f)
+                self.hold = (x, y, z, ry, rx, rz)
+            else:
+                self.hold = tuple(last[1:])
+            return self.hold
+        lo, hi = 0, len(buf) - 1
+        while hi - lo > 1:
+            mid = (lo + hi) // 2
+            if buf[mid][0] <= render_time:
+                lo = mid
+            else:
+                hi = mid
+        a, b = buf[lo], buf[hi]
+        span = b[0] - a[0]
+        f = (render_time - a[0]) / span if span > 1e-6 else 0.0
+        self.hold = (_lerp(a[1], b[1], f), _lerp(a[2], b[2], f), _lerp(a[3], b[3], f),
+                     _lerp_angle(a[4], b[4], f), _lerp_angle(a[5], b[5], f), _lerp_angle(a[6], b[6], f))
+        return self.hold

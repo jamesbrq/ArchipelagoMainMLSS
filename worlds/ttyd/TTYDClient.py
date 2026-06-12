@@ -1,5 +1,4 @@
 import asyncio
-import collections
 import struct
 import subprocess
 import traceback
@@ -9,19 +8,17 @@ import Patch
 import Utils
 from CommonClient import ClientCommandProcessor, get_base_parser, gui_enabled, logger, server_loop
 import dolphin_memory_engine as dolphin
-from NetUtils import NetworkItem, ClientStatus, SlotType
+from NetUtils import NetworkItem, ClientStatus
 from . import Ghosts
 from .Data import location_gsw_info, location_to_unit
 from .Items import items_by_id
 
 from .ttyd_runtime import (
-    _publish_self_state,
-    _on_ghost_update,
     _on_ghost_disconnect,
-    _subscribe_to_peers,
     _on_inbound_hit,
+    _vlink_on_bounce,
+    vlink_force_presence,
     ttyd_ghost_sync_task,
-    GHOST_TEST_DELAY_S,
 )
 
 
@@ -223,27 +220,12 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         """Toggle the single-player ghost loopback test."""
         ctx = self.ctx
         ctx._ghost_loopback_active = not getattr(ctx, "_ghost_loopback_active", False)
-
-        # Reset the position-delay buffer; it's only used when
-        # GHOST_TEST_DELAY_S > 0 but cheap to clear unconditionally.
-        ctx._loopback_delay_buf = collections.deque()
-
         if ctx._ghost_loopback_active:
-            if GHOST_TEST_DELAY_S > 0.0:
-                logger.info(f"Ghost loopback test ON. A translucent ghost should "
-                            f"appear ~{GHOST_TEST_OFFSET_X:.0f} units to your right "
-                            f"and trail your actions by {GHOST_TEST_DELAY_S:.1f}s.")
-            else:
-                logger.info(f"Ghost loopback test ON. A translucent ghost should "
-                            f"appear ~{GHOST_TEST_OFFSET_X:.0f} units to your right, "
-                            f"mirroring your actions in real time. The ghost rides "
-                            f"the same publish path as real peers, so its motion "
-                            f"reflects real-AP smoothness (20Hz publish + mod-side "
-                            f"60Hz lerp).")
+            logger.info("Ghost loopback test ON. A translucent ghost should appear "
+                        "a short distance to your right, mirroring your actions in "
+                        "real time.")
         else:
             logger.info("Ghost loopback test OFF.")
-            # Drop any synthetic loopback peer from the local table so
-            # the next _write_peer_block doesn't repaint a stale ghost.
             getattr(ctx, "_ghost_peers", {}).pop(Ghosts.ghost_key(0, 99), None)
 
     def _ghost_names(self, mode: str = "toggle"):
@@ -272,7 +254,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         ctx._ghost_names_hidden = new_hidden
 
         try:
-            asyncio.create_task(_publish_self_state(ctx))
+            vlink_force_presence(ctx)
         except Exception:
             pass
 
@@ -312,7 +294,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             label = Ghosts.TEAM_LABELS.get(team_id, str(team_id))
             logger.info(f"Joined team {label}.")
             try:
-                asyncio.create_task(_publish_self_state(ctx))
+                vlink_force_presence(ctx)
             except Exception:
                 pass
 
@@ -320,7 +302,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             ctx._ghost_team_id = Ghosts.TEAM_NONE
             logger.info("Left team. You are no longer aligned.")
             try:
-                asyncio.create_task(_publish_self_state(ctx))
+                vlink_force_presence(ctx)
             except Exception:
                 pass
 
@@ -396,7 +378,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         ctx._ghost_friendly_fire = new
         logger.info(f"Friendly fire {'ON' if new else 'OFF'}.")
         try:
-            asyncio.create_task(_publish_self_state(ctx))
+            vlink_force_presence(ctx)
         except Exception:
             pass
 
@@ -405,7 +387,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
 class TTYDContext(cmmCtx):
     command_processor = TTYDCommandProcessor
     game = "Paper Mario: The Thousand-Year Door"
-    tags = {"AP"}
+    tags = {"AP", Ghosts.VLINK_TAG}
     dolphin_connected: bool = False
     seed_verified: bool = False
     slot_data: dict | None = {}
@@ -436,21 +418,14 @@ class TTYDContext(cmmCtx):
             self.team = args["team"]
             if "death_link" in args["slot_data"]:
                 Utils.async_start(self.update_death_link(bool(args["slot_data"]["death_link"])))
-            Utils.async_start(_subscribe_to_peers(self))
-        elif cmd == "Retrieved":
-            if "keys" not in args:
-                logger.warning(f"invalid Retrieved packet to TTYDClient: {args}")
-                return
-            _on_ghost_update(self, args)
         elif cmd == "RoomInfo":
             self.seed_name = args["seed_name"]
-        elif cmd == "SetReply":
-            _on_ghost_update(self, args)
         elif cmd == "Bounced":
-
             data = args.get("data") or {}
             if data.get("ttyd_hit") is True:
                 _on_inbound_hit(self, data)
+            elif data.get(Ghosts.VLINK_KIND) is not None:
+                _vlink_on_bounce(self, data)
 
     def on_deathlink(self, data: typing.Dict[str, typing.Any]) -> None:
         super().on_deathlink(data)

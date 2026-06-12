@@ -9,7 +9,6 @@ avoid a load-time import cycle.
 """
 
 import asyncio
-import collections
 import struct
 import typing
 
@@ -331,6 +330,10 @@ async def _drain_sfx_ring(ctx) -> list:
     except Exception:
         pass
 
+    if events:  # TEMP DIAGNOSTIC: log full drained set before trim
+        logger.info("[GP-DBG] sfx ring -> %s",
+                    [f"{e['sfx_id']:#x}" for e in events])
+
     if len(events) > Ghosts.SFX_EVENTS_PER_SLOT:
         events = events[-Ghosts.SFX_EVENTS_PER_SLOT:]
     return events
@@ -338,59 +341,6 @@ async def _drain_sfx_ring(ctx) -> list:
 
 
 
-PEER_PUBLISH_HEARTBEAT_S = 1.0
-
-PEER_PRESENCE_TIMEOUT_S = 5.0  # peer counts as "in my room" only if heard within this
-
-PEER_PUBLISH_EPS_POS  = 0.5
-PEER_PUBLISH_EPS_ROT  = 1.0
-PEER_PUBLISH_EPS_SCALE = 0.01
-
-
-def _wrap_angle_delta(a: float, b: float) -> float:
-    """Shortest-arc difference (a - b) wrapped to [-180, 180]. Avoids
-    triggering the rot-eps gate on harmless 359 -> 1 wrap-arounds."""
-    d = float(a) - float(b)
-    while d >  180.0: d -= 360.0
-    while d < -180.0: d += 360.0
-    return d
-
-
-def _peer_state_changed(prev: dict, cur: dict) -> bool:
-    """True iff the published peer state has changed enough since the
-    last publish to warrant another one. Excludes motion_timer because
-    it ticks every frame even for idle animations — receivers run their
-    own playhead via animPoseMain so small drift is invisible."""
-    # Definitive equality: any change forces publish.
-    for k in ("map", "anim", "motion_id", "paper_agb", "paper_anim",
-              "show_name", "hammerable", "team_id",
-              "slot_name"):
-        if prev.get(k) != cur.get(k):
-            return True
-    # Active-loops list — element-wise, since order is stable for our
-    # source.
-    if list(prev.get("active_loops") or []) != list(cur.get("active_loops") or []):
-        return True
-    # Position deltas (meters, world space).
-    for k in ("x", "y", "z"):
-        if abs(float(prev.get(k, 0.0)) - float(cur.get(k, 0.0))) > PEER_PUBLISH_EPS_POS:
-            return True
-    # Rotation deltas (degrees). Use shortest-arc wrap so 359 -> 1
-    # registers as 2 degrees, not 358.
-    for k in ("rot_y", "rot_x", "rot_z"):
-        if abs(_wrap_angle_delta(cur.get(k, 0.0), prev.get(k, 0.0))) > PEER_PUBLISH_EPS_ROT:
-            return True
-    if abs(_wrap_angle_delta(cur.get("camera_angle", 0.0),
-                              prev.get("camera_angle", 0.0))) > PEER_PUBLISH_EPS_ROT:
-        return True
-    # Pivot + scale + stretch.
-    for k in ("rot_pivot_x", "rot_pivot_y", "rot_pivot_z"):
-        if abs(float(prev.get(k, 0.0)) - float(cur.get(k, 0.0))) > PEER_PUBLISH_EPS_POS:
-            return True
-    for k in ("scale_x", "scale_y", "scale_z", "stretch_y"):
-        if abs(float(prev.get(k, 1.0)) - float(cur.get(k, 1.0))) > PEER_PUBLISH_EPS_SCALE:
-            return True
-    return False
 
 
 def _publish_ghost_state_scratch(ctx):
@@ -418,219 +368,6 @@ def _publish_ghost_state_scratch(ctx):
     return addrs, team_id
 
 
-def _peer_sharing_my_room(ctx, my_map: str, now: float) -> bool:
-    """True iff at least one other player is on my map and fresh within
-    PEER_PRESENCE_TIMEOUT_S. Gates the high-rate stream; when False we
-    publish only on discovery (connect + map change)."""
-    if not my_map:
-        return False
-    peers = getattr(ctx, "_ghost_peers", None) or {}
-    for peer in peers.values():
-        if not isinstance(peer, dict):
-            continue
-        if (peer.get("map", "") or "") != my_map:
-            continue
-        last_seen = peer.get("_last_seen")
-        if last_seen is None:
-            continue
-        try:
-            if (now - float(last_seen)) <= PEER_PRESENCE_TIMEOUT_S:
-                return True
-        except (TypeError, ValueError):
-            continue
-    return False
-
-
-async def _publish_self_state(ctx) -> None:
-    """Read the local player's state from the game's Player struct and
-    publish it to AP DataStorage so other peers can render us. Skips
-    the AP `Set` silently if the read fails or the map name is empty
-    (boot, cutscenes, between-map transitions).
-
-    Publish-on-change gate (saves AP server traffic): if nothing
-    meaningful has changed since the last publish AND we're inside the
-    heartbeat window AND no SFX events / active-loop changes are
-    pending, skip the network Set entirely. Standing-still co-located
-    players drop from the 5 Hz ceiling to the 1 Hz heartbeat."""
-    if ctx.team is None or ctx.slot is None:
-        return
-
-    addrs, team_id = _publish_ghost_state_scratch(ctx)
-
-    state = _read_self_state(ctx)
-    if state is None:
-        return
-
-    own_name = ""
-    try:
-        own_name = ctx.player_names.get(ctx.slot, "") or ""
-    except Exception:
-        pass
-    state["slot_name"] = own_name[:16]
-
-    state["show_name"] = 1 if getattr(ctx, "_ghost_names_hidden", False) else 0
-
-    optout_manual = 1 if getattr(ctx, "_ghost_hammer_optout", False) else 0
-    optout_grace = 0
-    if addrs is not None:
-        try:
-            grace_byte = dolphin.read_bytes(addrs["hit_grace"], 1)
-            if grace_byte and grace_byte[0] != 0:
-                optout_grace = 1
-        except Exception:
-            pass
-    state["hammerable"] = 1 if (optout_manual or optout_grace) else 0
-
-    state["team_id"] = team_id
-
-    sfx_events = await _drain_sfx_ring(ctx)
-    if sfx_events:
-        state["sfx_events"] = sfx_events
-
-    state["active_loops"] = _read_self_active_loops(ctx)
-
-    now = asyncio.get_event_loop().time()
-    last_state = getattr(ctx, "_last_published_state", None)
-    last_t     = float(getattr(ctx, "_last_published_time", 0.0))
-    loopback   = bool(getattr(ctx, "_ghost_loopback_active", False))
-
-    # Discovery (connect + map change) is exempt from the co-location
-    # gate; it keeps peers' map view fresh and breaks the mutual-
-    # suppression deadlock when two players enter the same room.
-    is_discovery = (
-        last_state is None
-        or (last_state.get("map") != state.get("map"))
-    )
-
-    if is_discovery or loopback:
-        must_publish = True
-    elif _peer_sharing_my_room(ctx, state.get("map", ""), now):
-        must_publish = (
-            bool(sfx_events)                            # don't drop SFX events
-            or (now - last_t) >= PEER_PUBLISH_HEARTBEAT_S  # heartbeat
-            or _peer_state_changed(last_state, state)
-        )
-    else:
-        # Alone: suppress all streaming. SFX ring already drained above
-        # (can't overflow); with no one here, those events are dropped.
-        must_publish = False
-
-    # Run the loopback injector so the /ghost_test ghost renders every
-    # tick locally, regardless of whether we publish to AP.
-    if loopback:
-        _loopback_inject(ctx, state)
-
-    if not must_publish:
-        return
-
-    hint_y, hint_x, hint_z = _consume_spin_hints(ctx)
-    state["spin_dir_hint_y"] = hint_y
-    state["spin_dir_hint_x"] = hint_x
-    state["spin_dir_hint_z"] = hint_z
-
-    await ctx.send_msgs([{
-        "cmd":         "Set",
-        "key":         Ghosts.ghost_key(ctx.team, ctx.slot),
-        "default":     None,
-        "want_reply":  False,
-        "operations":  [{"operation": "replace", "value": state}],
-    }])
-    # Snapshot for the next change-check.
-    ctx._last_published_state = dict(state)
-    ctx._last_published_time  = now
-
-def _loopback_inject(ctx, state: dict) -> None:
-    """Inject the just-published self state into ctx._ghost_peers as a
-    synthetic peer for /ghost_test. The 60Hz _write_peer_block will
-    then pack and write it alongside any real peers.
-
-    With GHOST_TEST_DELAY_S == 0 (default), the current state is
-    injected immediately. With a non-zero delay, states are pushed
-    onto a deque and dequeued once they're older than the delay -
-    useful for single-client testing where you want to compare your
-    live actions against the ghost playing back your past actions."""
-    now = asyncio.get_event_loop().time()
-
-    if GHOST_TEST_DELAY_S <= 0.0:
-        delayed_state = state
-    else:
-        buf = getattr(ctx, "_loopback_delay_buf", None)
-        if buf is None:
-            buf = collections.deque()
-            ctx._loopback_delay_buf = buf
-        buf.append((now, dict(state)))
-        cutoff = now - GHOST_TEST_DELAY_S
-        delayed_state = None
-        # Multi-pop merge: when several buffered states age past the
-        # cutoff on the same tick (common after any small publish-loop
-        # drift), we used to keep only the last popped state and drop
-        # the rest, silently losing one-shot SFX events from the
-        # intermediate frames. Loops survive that path because each
-        # state carries a full active_loops snapshot — but discrete
-        # events live in `sfx_events` and disappear if any state
-        # carrying them gets skipped. Concatenate sfx_events from
-        # every popped state so the loopback ghost faithfully replays
-        # every Mario one-shot at the right offset position.
-        merged_sfx: list = []
-        while buf and buf[0][0] <= cutoff:
-            _, delayed_state = buf.popleft()
-            popped_sfx = delayed_state.get("sfx_events") if isinstance(delayed_state, dict) else None
-            if popped_sfx:
-                merged_sfx.extend(popped_sfx)
-        if delayed_state is None:
-            ctx._ghost_peers.pop(Ghosts.ghost_key(0, 99), None)
-            return
-        if merged_sfx:
-            # Don't mutate the buffered dict — copy first so future
-            # buffer reuse / debug-inspection sees the unmodified
-            # original snapshot. Cap at SFX_EVENTS_PER_SLOT — the
-            # binary peer slot can only carry that many per frame;
-            # extras would be truncated at pack time anyway.
-            delayed_state = dict(delayed_state)
-            delayed_state["sfx_events"] = merged_sfx[:Ghosts.SFX_EVENTS_PER_SLOT]
-
-    # Offset the X position so the ghost stands next to us, not on top.
-    fake = dict(delayed_state)
-    fake["x"] = delayed_state["x"] + GHOST_TEST_OFFSET_X
-    fake["slot_name"] = "GHOST"
-    Ghosts.stamp_peer(fake)
-    ctx._ghost_peers[Ghosts.ghost_key(0, 99)] = fake
-
-async def _subscribe_to_peers(ctx) -> None:
-    if ctx.team is None or getattr(ctx, "_ghost_subscribed", False):
-        return
-
-    keys = []
-    for slot_id, slot_info in (ctx.slot_info or {}).items():
-
-        if slot_id == 0 or slot_id == ctx.slot:
-            continue
-        if slot_info.type != SlotType.player:
-            continue
-        keys.append(Ghosts.ghost_key(ctx.team, slot_id))
-
-    if not keys:
-        return
-
-    await ctx.send_msgs([{"cmd": "SetNotify", "keys": keys}])
-    await ctx.send_msgs([{"cmd": "Get",       "keys": keys}])
-    ctx._ghost_subscribed = True
-
-def _on_ghost_update(ctx, args: dict) -> None:
-    """Handle SetReply (live broadcast) and Retrieved (response to our Get).
-    Both deliver peer state in slightly different shapes; we normalize and
-    dispatch each entry into Ghosts.ingest_peer_update."""
-    if not hasattr(ctx, "_ghost_peers"):
-        ctx._ghost_peers = {}
-
-    if "keys" in args and isinstance(args["keys"], dict):
-
-        for key, value in args["keys"].items():
-            Ghosts.ingest_peer_update(ctx._ghost_peers, key, value)
-    elif "key" in args:
-
-        Ghosts.ingest_peer_update(ctx._ghost_peers, args["key"], args.get("value"))
-
 def _on_ghost_disconnect(ctx) -> None:
     """Reset subscription state, clear known peers, and zero the magic in
     Dolphin so the mod stops rendering Ghosts immediately. Tolerates
@@ -638,6 +375,7 @@ def _on_ghost_disconnect(ctx) -> None:
     before AP fully connected) - a no-op write is harmless."""
     ctx._ghost_subscribed = False
     ctx._ghost_peers = {}
+    ctx._vlink = None
     addrs = getattr(ctx, "_ghost_addrs", None)
     if addrs is not None:
         try:
@@ -777,96 +515,9 @@ def _on_inbound_hit(ctx, data: dict) -> None:
     except Exception:
         logger.exception("failed to write inbound hit to mod scratch")
 
-GHOST_TEST_DELAY_S = 2.0
-
-GHOST_PUBLISH_INTERVAL_S = 1.0 / 5.0
-
 GHOST_RENDER_INTERVAL_S = 1.0 / 60.0
 
-SPIN_HINT_THRESHOLD_DEG_PER_PUBLISH = 90.0
-
-def _wrap180(deg: float) -> float:
-    """Clamp an angle delta to [-180, 180] using minimal-rotation wrap."""
-    while deg > 180.0:
-        deg -= 360.0
-    while deg < -180.0:
-        deg += 360.0
-    return deg
-
-def _sample_spin_for_hint(ctx) -> None:
-    """Per-frame sampler for spin-direction hints. Reads local Mario's
-    yaw/pitch/roll, computes wrapped deltas from the previous frame
-    (which are unambiguous at 60Hz - even the fastest game rotations
-    don't exceed 180 degrees in 16ms), and accumulates an UNWRAPPED
-    angular displacement over each publish interval.
-
-    State stored on ctx:
-      _spin_last_y/x/z       last raw angle read (from engine, wrapped)
-      _spin_unwrap_y/x/z     accumulated unwrapped displacement since
-                             the previous publish reset
-      _spin_init             True after the first sample so the first
-                             delta isn't computed against zero
-
-    Cheap: a single 12-byte read at offsets 0x1AC, 0xBC, 0xC4 of the
-    Player struct. Uses the existing MARIO_PTR_ADDR to find Mario.
-
-    Errors silently ignored - if Mario isn't loaded we just skip the
-    sample and the unwrap accumulator stays where it is. The next
-    valid sample picks up where we left off."""
-    try:
-        mario_addr = int.from_bytes(
-            dolphin.read_bytes(MARIO_PTR_ADDR, 4), "big")
-        if not (0x80000000 <= mario_addr < 0x81800000):
-            return
-        # Single 12-byte block covering 0xBC..0xC8 covers rot_x and rot_z.
-        # rot_y at 0x1AC needs a second small read.
-        chunk_xz = dolphin.read_bytes(mario_addr + 0xBC, 12)  # 0xBC..0xC8
-        (rot_x,)  = struct.unpack_from(">f", chunk_xz, 0x00)
-        (rot_z,)  = struct.unpack_from(">f", chunk_xz, 0x08)
-        chunk_y  = dolphin.read_bytes(mario_addr + 0x1AC, 4)
-        (rot_y,) = struct.unpack_from(">f", chunk_y, 0x00)
-    except Exception:
-        return
-
-    if not getattr(ctx, "_spin_init", False):
-        ctx._spin_last_y = rot_y
-        ctx._spin_last_x = rot_x
-        ctx._spin_last_z = rot_z
-        ctx._spin_unwrap_y = 0.0
-        ctx._spin_unwrap_x = 0.0
-        ctx._spin_unwrap_z = 0.0
-        ctx._spin_init = True
-        return
-
-    # Per-frame wrapped delta - unambiguous at 60Hz. Accumulate into
-    # the unwrapped displacement, which gets reset at publish time.
-    ctx._spin_unwrap_y += _wrap180(rot_y - ctx._spin_last_y)
-    ctx._spin_unwrap_x += _wrap180(rot_x - ctx._spin_last_x)
-    ctx._spin_unwrap_z += _wrap180(rot_z - ctx._spin_last_z)
-    ctx._spin_last_y = rot_y
-    ctx._spin_last_x = rot_x
-    ctx._spin_last_z = rot_z
-
-def _consume_spin_hints(ctx) -> tuple:
-    """Called at publish time. Returns (hint_y, hint_x, hint_z) where
-    each is -1, 0, or +1 based on whether the unwrapped angular
-    displacement since the last publish exceeded the threshold.
-    Resets the unwrap accumulators."""
-    if not getattr(ctx, "_spin_init", False):
-        return (0, 0, 0)
-    def sgn(d: float) -> int:
-        if d >  SPIN_HINT_THRESHOLD_DEG_PER_PUBLISH: return  1
-        if d < -SPIN_HINT_THRESHOLD_DEG_PER_PUBLISH: return -1
-        return 0
-    hy = sgn(ctx._spin_unwrap_y)
-    hx = sgn(ctx._spin_unwrap_x)
-    hz = sgn(ctx._spin_unwrap_z)
-    ctx._spin_unwrap_y = 0.0
-    ctx._spin_unwrap_x = 0.0
-    ctx._spin_unwrap_z = 0.0
-    return (hy, hx, hz)
-
-def _read_self_active_loops(ctx) -> list:
+def _read_self_active_loops_impl(ctx) -> list:
     """v26: read the mod's selfActiveLoops scratch (mod-written every
     frame, sampled from g_localChannelMap). Returns a list of u16
     sfxIds currently playing on the local Mario. Receivers diff this
@@ -903,10 +554,376 @@ def _read_self_active_loops(ctx) -> list:
         return []
 
 
+# TEMP DIAGNOSTIC: log whenever the set of self loops changes (covers
+# fold-in start and fold-out stop), incl. plane 0x17f / boat 0x190.
+# Remove this wrapper (and rename _impl back) after the trace.
+def _read_self_active_loops(ctx) -> list:
+    loops = _read_self_active_loops_impl(ctx)
+    cur = tuple(loops)
+    if cur != getattr(ctx, "_dbg_last_loops", None):
+        ctx._dbg_last_loops = cur
+        logger.info("[GP-DBG] self loops -> %s",
+                    [f"{s:#x}" for s in loops] if loops else "(none)")
+    return loops
+
+
+# ===========================================================================
+# VisionLink: sparse-presence + batched-history movement over AP Bounce.
+#
+#   presence  -> Bounce by tag (all VisionLink clients), on room change,
+#                a keepalive, or a new-peer handshake. Carries a full pose
+#                so an idle peer still renders.
+#   move      -> Bounce by slots (co-located peers only), at MOVE rate,
+#                carrying the new 20 Hz samples since the last write plus a
+#                short overlap for single-drop resilience. Deduped: an
+#                identical motion sample is never sampled or sent twice.
+#
+# Receivers buffer each peer's samples and play them back INTERP_DELAY
+# behind the wall clock (pure interpolation; extrapolation off by default),
+# so motion is smooth and a stopped peer holds at its true last sample.
+# ===========================================================================
+
+VL_SAMPLE_INTERVAL_S    = 1.0 / 20.0
+VL_MOVE_INTERVAL_S      = 0.20
+VL_PRESENCE_KEEPALIVE_S = 20.0
+VL_INTERP_DELAY_S       = 0.20
+VL_EXTRAP_CAP_S         = 0.0
+VL_PLAYBACK_BUFFER_S    = 1.5
+VL_HISTORY_S            = 1.5
+VL_PRESENCE_TIMEOUT_S   = 30.0
+VL_OVERLAP_SAMPLES      = 2
+VL_LOOPBACK_SLOT        = 99
+VL_LOOPBACK_DELAY_S     = 1.0
+VL_LOOPBACK_SFX_PERSIST_S = 0.10
+VL_LOOPBACK_MAX         = 16
+VL_LOOPBACK_SPACING_S   = 0.45
+
+
+def _vlink_state(ctx):
+    s = getattr(ctx, "_vlink", None)
+    if s is None:
+        s = {
+            "samples": [],
+            "sent_t": -1.0,
+            "last_sample_t": 0.0,
+            "last_move_t": 0.0,
+            "last_presence_t": 0.0,
+            "last_room": None,
+            "force_presence": False,
+            "pending_sfx": [],
+            "last_loops": None,
+            "loopback_buf": [],
+            "loopback_ghosts": {},
+            "peers": {},
+            "known": set(),
+        }
+        ctx._vlink = s
+    return s
+
+
+def _vlink_player_slots(ctx) -> list:
+    out = []
+    for slot_id, info in (ctx.slot_info or {}).items():
+        if slot_id == 0 or slot_id == ctx.slot:
+            continue
+        if info.type != SlotType.player:
+            continue
+        out.append(slot_id)
+    return out
+
+
+def _vlink_discrete(ctx, state: dict, team_id: int, active_loops: list, sfx_events: list) -> dict:
+    own_name = ""
+    try:
+        own_name = (ctx.player_names.get(ctx.slot, "") or "")[:16]
+    except Exception:
+        pass
+    optout = 1 if getattr(ctx, "_ghost_hammer_optout", False) else 0
+    grace = 0
+    addrs = getattr(ctx, "_ghost_addrs", None)
+    if addrs is not None:
+        try:
+            gb = dolphin.read_bytes(addrs["hit_grace"], 1)
+            if gb and gb[0] != 0:
+                grace = 1
+        except Exception:
+            pass
+    d = {
+        "anim": state.get("anim", ""),
+        "flags1": int(state.get("flags1", 1)),
+        "flags2": int(state.get("flags2", 0)),
+        "flags3": int(state.get("flags3", 0)),
+        "motion_id": int(state.get("motion_id", 0)),
+        "motion_timer": int(state.get("motion_timer", 0)),
+        "camera_angle": round(float(state.get("camera_angle", 0.0)), 2),
+        "rot_pivot_x": round(float(state.get("rot_pivot_x", 0.0)), 2),
+        "rot_pivot_y": round(float(state.get("rot_pivot_y", 0.0)), 2),
+        "rot_pivot_z": round(float(state.get("rot_pivot_z", 0.0)), 2),
+        "scale_x": round(float(state.get("scale_x", 1.0)), 3),
+        "scale_y": round(float(state.get("scale_y", 1.0)), 3),
+        "scale_z": round(float(state.get("scale_z", 1.0)), 3),
+        "stretch_y": round(float(state.get("stretch_y", 1.0)), 3),
+        "paper_agb": state.get("paper_agb", ""),
+        "paper_anim": state.get("paper_anim", ""),
+        "paper_local_time": round(float(state.get("paper_local_time", -1.0)), 3),
+        "slot_name": own_name,
+        "show_name": 1 if getattr(ctx, "_ghost_names_hidden", False) else 0,
+        "hammerable": 1 if (optout or grace) else 0,
+        "team_id": int(team_id),
+        "active_loops": active_loops or [],
+    }
+    if sfx_events:
+        d["sfx_events"] = sfx_events
+    return d
+
+
+def _vlink_sample(ctx, state: dict, now: float) -> None:
+    s = _vlink_state(ctx)
+    smp = Ghosts.make_sample(now, state["x"], state["y"], state["z"],
+                             state["rot_y"], state["rot_x"], state["rot_z"])
+    buf = s["samples"]
+    if buf and not Ghosts.samples_differ(smp, buf[-1]):
+        return
+    buf.append(smp)
+    cutoff = now - VL_HISTORY_S
+    while len(buf) > 2 and buf[1][0] < cutoff:
+        buf.pop(0)
+
+
+def _vlink_colocated_slots(ctx, my_map: str, now: float) -> list:
+    if not my_map:
+        return []
+    s = _vlink_state(ctx)
+    out = []
+    for slot, p in s["peers"].items():
+        if (now - p.get("last_seen", 0.0)) > VL_PRESENCE_TIMEOUT_S:
+            continue
+        if p.get("map", "") == my_map:
+            out.append(slot)
+    return out
+
+
+async def _vlink_send_presence(ctx, state: dict, team_id: int, now: float) -> None:
+    name = ""
+    try:
+        name = (ctx.player_names.get(ctx.slot, "") or "")[:16]
+    except Exception:
+        pass
+    d = _vlink_discrete(ctx, state, team_id, _read_self_active_loops(ctx), [])
+    payload = Ghosts.build_presence(ctx.slot, team_id, state.get("map", ""), name, d["hammerable"])
+    payload["x"] = round(float(state["x"]), 2)
+    payload["y"] = round(float(state["y"]), 2)
+    payload["z"] = round(float(state["z"]), 2)
+    payload["ry"] = round(float(state["rot_y"]), 1)
+    payload["rx"] = round(float(state["rot_x"]), 1)
+    payload["rz"] = round(float(state["rot_z"]), 1)
+    payload["d"] = d
+    try:
+        await ctx.send_msgs([{"cmd": "Bounce", "tags": [Ghosts.VLINK_TAG], "data": payload}])
+    except Exception:
+        logger.exception("vlink presence send failed")
+
+
+async def _vlink_send_move(ctx, state: dict, team_id: int, targets: list, now: float) -> None:
+    s = _vlink_state(ctx)
+    buf = s["samples"]
+    if not buf or not targets:
+        return
+    sent_t = s["sent_t"]
+    new = [smp for smp in buf if smp[0] > sent_t]
+    loops = _read_self_active_loops(ctx)
+    loops_changed = (loops != s.get("last_loops"))
+    if not new and not s["pending_sfx"] and not loops_changed:
+        return
+    overlap = [smp for smp in buf if smp[0] <= sent_t][-VL_OVERLAP_SAMPLES:]
+    batch = overlap + new
+    if not batch:
+        return
+    sfx = s["pending_sfx"][:Ghosts.SFX_EVENTS_PER_SLOT]
+    s["pending_sfx"] = s["pending_sfx"][Ghosts.SFX_EVENTS_PER_SLOT:]
+    d = _vlink_discrete(ctx, state, team_id, loops, sfx)
+    payload = Ghosts.build_move(ctx.slot, state.get("map", ""), d, batch)
+    if new:
+        s["sent_t"] = new[-1][0]
+    s["last_loops"] = list(loops)
+    try:
+        await ctx.send_msgs([{"cmd": "Bounce", "slots": list(targets), "data": payload}])
+    except Exception:
+        logger.exception("vlink move send failed")
+
+
+def vlink_force_presence(ctx) -> None:
+    """Request an immediate presence broadcast on the next sync tick.
+    Used by commands that change team / name visibility / hammerable so
+    peers see the change without waiting for the keepalive."""
+    _vlink_state(ctx)["force_presence"] = True
+
+
+def _vlink_on_bounce(ctx, data: dict) -> None:
+    """Dispatch an inbound VisionLink Bounce (presence or move) into the
+    per-peer playback state. Safe to call for any Bounce; returns
+    immediately if the payload isn't ours."""
+    kind = data.get(Ghosts.VLINK_KIND)
+    if kind is None:
+        return
+    try:
+        slot = int(data.get("s"))
+    except (TypeError, ValueError):
+        return
+    if ctx.slot is not None and slot == ctx.slot:
+        return
+    s = _vlink_state(ctx)
+    now = asyncio.get_event_loop().time()
+    peer = s["peers"].get(slot)
+    if peer is None:
+        peer = {"pb": Ghosts.PlaybackBuffer(VL_PLAYBACK_BUFFER_S),
+                "discrete": {}, "map": "", "name": "", "team": 0,
+                "hammerable": 0, "last_seen": now}
+        s["peers"][slot] = peer
+    peer["last_seen"] = now
+
+    if kind == Ghosts.VLINK_PRESENCE:
+        peer["map"] = data.get("mp", "")
+        peer["name"] = data.get("nm", "")
+        peer["team"] = int(data.get("tm", 0))
+        peer["hammerable"] = int(data.get("hm", 0))
+        d = data.get("d") or {}
+        if d:
+            peer["discrete"] = d
+        x = data.get("x")
+        if x is not None:
+            peer["pb"].append([Ghosts.make_sample(
+                now, x, data.get("y", 0.0), data.get("z", 0.0),
+                data.get("ry", 0.0), data.get("rx", 0.0), data.get("rz", 0.0))], now)
+        if slot not in s["known"]:
+            s["known"].add(slot)
+            s["force_presence"] = True   # reply with our presence next tick
+    elif kind == Ghosts.VLINK_MOVE:
+        if data.get("mp"):
+            peer["map"] = data.get("mp")
+        d = data.get("d") or {}
+        if d:
+            peer["discrete"] = d
+            peer["team"] = int(d.get("team_id", peer.get("team", 0)))
+            peer["hammerable"] = int(d.get("hammerable", peer.get("hammerable", 0)))
+        sm = data.get("sm") or []
+        if sm:
+            peer["pb"].append(sm, now)
+
+
+def _vlink_playback(ctx, now: float) -> None:
+    s = _vlink_state(ctx)
+    render_time = now - VL_INTERP_DELAY_S
+    out = {}
+    dead = []
+    for slot, peer in s["peers"].items():
+        if (now - peer.get("last_seen", 0.0)) > VL_PRESENCE_TIMEOUT_S:
+            dead.append(slot)
+            continue
+        pose = peer["pb"].sample(render_time, VL_EXTRAP_CAP_S)
+        if pose is None:
+            continue
+        entry = dict(peer.get("discrete") or {})
+        entry["map"] = peer.get("map", "")
+        entry["x"], entry["y"], entry["z"] = pose[0], pose[1], pose[2]
+        entry["rot_y"], entry["rot_x"], entry["rot_z"] = pose[3], pose[4], pose[5]
+        entry.setdefault("team_id", peer.get("team", 0))
+        entry.setdefault("hammerable", peer.get("hammerable", 0))
+        if not entry.get("slot_name"):
+            entry["slot_name"] = peer.get("name", "")
+        Ghosts.stamp_peer(entry)
+        out[Ghosts.ghost_key(peer.get("team", 0), slot)] = entry
+    for slot in dead:
+        s["peers"].pop(slot, None)
+        s["known"].discard(slot)
+    ctx._ghost_peers = out
+
+
+def _vlink_loopback(ctx, state: dict, frame_sfx: list, now: float) -> None:
+    """/ghost test [N]: render N synthetic peers trailing the local player at
+    STAGGERED delays (ghost k at VL_LOOPBACK_DELAY_S + k*VL_LOOPBACK_SPACING_S).
+
+    Staggering matters for audio: if every ghost replayed the same frame they
+    would fire the same sfxId on the same frame N times at once, and TTYD's
+    sound engine steals/limits duplicate voices, so most would silently drop.
+    Spreading them in time keeps each sound to roughly one instance at a time.
+
+    The trail buffer is kept non-destructively; each ghost has its own cursor
+    and replays the SFX of every frame it crosses, held for a few frames so
+    the mod (reading at its own rate) is guaranteed to sample each one."""
+    s = _vlink_state(ctx)
+    count = max(1, min(int(getattr(ctx, "_ghost_loopback_count", 1) or 1),
+                       VL_LOOPBACK_MAX))
+    buf = s["loopback_buf"]
+    ghosts = s["loopback_ghosts"]
+    peers = ctx._ghost_peers
+
+    # Restart the trail after a gap (toggled off/on, long hitch) so stale
+    # frames + their SFX don't all flush at once.
+    if buf and now - buf[-1]["at"] > 0.5:
+        buf.clear()
+        ghosts.clear()
+    buf.append({"at": now, "state": dict(state),
+                "sfx": list(frame_sfx or []),
+                "loops": _read_self_active_loops(ctx)})
+
+    max_delay = VL_LOOPBACK_DELAY_S + (count - 1) * VL_LOOPBACK_SPACING_S
+    keep_from = now - max_delay - 0.5
+    while len(buf) > 2 and buf[0]["at"] < keep_from:
+        buf.pop(0)
+
+    # Drop slots / cursors beyond the current count.
+    for k in range(count, VL_LOOPBACK_MAX):
+        peers.pop(Ghosts.ghost_key(0, VL_LOOPBACK_SLOT - k), None)
+        ghosts.pop(k, None)
+
+    for k in range(count):
+        target = now - (VL_LOOPBACK_DELAY_S + k * VL_LOOPBACK_SPACING_S)
+        g = ghosts.get(k)
+        new_ghost = g is None
+        if new_ghost:
+            g = {"last_at": 0.0, "sfx_win": []}
+            ghosts[k] = g
+        shown = None
+        crossed = []
+        for snap in buf:
+            if snap["at"] <= target:
+                if (not new_ghost) and snap["at"] > g["last_at"] and snap["sfx"]:
+                    crossed.extend(snap["sfx"])
+                shown = snap
+            else:
+                break
+        if shown is None:
+            continue
+        g["last_at"] = shown["at"]
+
+        win = [w for w in g["sfx_win"] if w[0] > now]
+        for ev in crossed:
+            win.append((now + VL_LOOPBACK_SFX_PERSIST_S, ev))
+        g["sfx_win"] = win
+
+        fake = dict(shown["state"])
+        fake["x"] = fake["x"] + GHOST_TEST_OFFSET_X * (k + 1)
+        fake["slot_name"] = "GHOST" if count == 1 else f"GHOST{k + 1}"
+        fake["active_loops"] = shown["loops"]
+        if win:
+            fake["sfx_events"] = [w[1] for w in win][-Ghosts.SFX_EVENTS_PER_SLOT:]
+        Ghosts.stamp_peer(fake)
+        peers[Ghosts.ghost_key(0, VL_LOOPBACK_SLOT - k)] = fake
+
+
+def vlink_clear_loopback(ctx) -> None:
+    """Tear down all loopback ghost slots and reset the trail buffer."""
+    s = _vlink_state(ctx)
+    s["loopback_buf"] = []
+    s["loopback_ghosts"] = {}
+    peers = getattr(ctx, "_ghost_peers", None)
+    if isinstance(peers, dict):
+        for k in range(VL_LOOPBACK_MAX):
+            peers.pop(Ghosts.ghost_key(0, VL_LOOPBACK_SLOT - k), None)
 
 
 async def ttyd_ghost_sync_task(ctx):
-    last_publish = 0.0
     while not ctx.exit_event.is_set():
         await asyncio.sleep(GHOST_RENDER_INTERVAL_S)
 
@@ -914,16 +931,6 @@ async def ttyd_ghost_sync_task(ctx):
             continue
         if ctx.team is None or ctx.slot is None:
             continue
-
-        # Gate the entire pipeline on "save loaded into game world".
-        # ctx.save_loaded() reads the AP scratch byte at 0x80003228
-        # (1 = in-game). Without this, _write_peer_block runs against
-        # a zeroed/garbage GhostState pointer at the title screen,
-        # file-select, and intro cutscene, and we publish stale Mario
-        # position / animation to other clients. Inbound _on_ghost_update
-        # ingest keeps refreshing peers' _last_seen during menus, so
-        # the heartbeat-timeout eviction in pack_peer_block won't
-        # clobber legitimate teammates while we're parked here.
         try:
             in_game = ctx.save_loaded()
         except Exception:
@@ -936,17 +943,54 @@ async def ttyd_ghost_sync_task(ctx):
         except Exception:
             logger.exception("ghost outbound-hit drain error")
 
-        _sample_spin_for_hint(ctx)
+        _, team_id = _publish_ghost_state_scratch(ctx)
+        now = asyncio.get_event_loop().time()
+        s = _vlink_state(ctx)
+        loopback = bool(getattr(ctx, "_ghost_loopback_active", False))
+
+        state = _read_self_state(ctx)
+        if state is not None:
+            if now - s["last_sample_t"] >= VL_SAMPLE_INTERVAL_S:
+                s["last_sample_t"] = now
+                _vlink_sample(ctx, state, now)
+
+            my_map = state.get("map", "")
+
+            try:
+                ring = await _drain_sfx_ring(ctx)
+            except Exception:
+                ring = []
+            if ring and _vlink_colocated_slots(ctx, my_map, now):
+                s["pending_sfx"].extend(ring)
+                _cap = Ghosts.SFX_EVENTS_PER_SLOT * 8
+                if len(s["pending_sfx"]) > _cap:
+                    s["pending_sfx"] = s["pending_sfx"][-_cap:]
+
+            room_changed = (my_map != s["last_room"])
+            if (room_changed or s.get("force_presence")
+                    or now - s["last_presence_t"] >= VL_PRESENCE_KEEPALIVE_S):
+                s["last_presence_t"] = now
+                s["last_room"] = my_map
+                s["force_presence"] = False
+                try:
+                    await _vlink_send_presence(ctx, state, team_id, now)
+                except Exception:
+                    logger.exception("vlink presence error")
+
+            if now - s["last_move_t"] >= VL_MOVE_INTERVAL_S:
+                s["last_move_t"] = now
+                colo = _vlink_colocated_slots(ctx, my_map, now)
+                if colo:
+                    try:
+                        await _vlink_send_move(ctx, state, team_id, colo, now)
+                    except Exception:
+                        logger.exception("vlink move error")
+
+        _vlink_playback(ctx, now)
+        if loopback and state is not None:
+            _vlink_loopback(ctx, state, ring, now)
 
         try:
             _write_peer_block(ctx)
         except Exception:
             logger.exception("ghost render tick error")
-
-        now = asyncio.get_event_loop().time()
-        if now - last_publish >= GHOST_PUBLISH_INTERVAL_S:
-            last_publish = now
-            try:
-                await _publish_self_state(ctx)
-            except Exception:
-                logger.exception("ghost publish error")
