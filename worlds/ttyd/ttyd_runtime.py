@@ -43,6 +43,9 @@ SFX_EVENT_BYTES      = 4
 
 HIT_KIND_HAMMER = 1
 
+# Solo auto-hammer test: default seconds between simulated inbound hits.
+AUTOHAMMER_INTERVAL_S = 10.0
+
 GHOST_TEST_OFFSET_X = 50.0
 
 def _resolve_ghost_addresses(ctx) -> bool:
@@ -120,6 +123,9 @@ def _read_self_state(ctx) -> dict | None:
         (vivian_phase_byte,) = struct.unpack_from(">B", buf, 0x29)
 
         (motion_id,) = struct.unpack_from(">H", buf, 0x2E)
+
+        (color_raw,) = struct.unpack_from(">b", buf, 0x3D)  # marioGetColor byte; -1 sentinel
+        color_index = color_raw if 0 <= color_raw <= 3 else 0
 
         (base_x,  base_y,  base_z)  = struct.unpack_from(">fff", buf, 0x8C)
         (ofs1_x,  ofs1_y,  ofs1_z)  = struct.unpack_from(">fff", buf, 0x98)
@@ -249,6 +255,7 @@ def _read_self_state(ctx) -> dict | None:
         "flags3": flags3,
         "motion_timer": motion_timer,
         "motion_id": motion_id,
+        "color_index": color_index,
         "camera_angle": camera_angle,
         "paper_agb": paper_agb,
         "paper_anim": paper_anim,
@@ -264,6 +271,7 @@ def _write_peer_block(ctx) -> None:
         return
     peer_block_addr = ctx._ghost_addrs["peer_block"]
     peers = getattr(ctx, "_ghost_peers", {})
+
     try:
         payload = Ghosts.pack_peer_block(peers)
         dolphin.write_bytes(peer_block_addr, payload)
@@ -329,10 +337,6 @@ async def _drain_sfx_ring(ctx) -> list:
         dolphin.write_bytes(tail_addr, bytes([head]))
     except Exception:
         pass
-
-    if events:  # TEMP DIAGNOSTIC: log full drained set before trim
-        logger.info("[GP-DBG] sfx ring -> %s",
-                    [f"{e['sfx_id']:#x}" for e in events])
 
     if len(events) > Ghosts.SFX_EVENTS_PER_SLOT:
         events = events[-Ghosts.SFX_EVENTS_PER_SLOT:]
@@ -517,7 +521,8 @@ def _on_inbound_hit(ctx, data: dict) -> None:
 
 GHOST_RENDER_INTERVAL_S = 1.0 / 60.0
 
-def _read_self_active_loops_impl(ctx) -> list:
+
+def _read_self_active_loops(ctx) -> list:
     """v26: read the mod's selfActiveLoops scratch (mod-written every
     frame, sampled from g_localChannelMap). Returns a list of u16
     sfxIds currently playing on the local Mario. Receivers diff this
@@ -554,19 +559,6 @@ def _read_self_active_loops_impl(ctx) -> list:
         return []
 
 
-# TEMP DIAGNOSTIC: log whenever the set of self loops changes (covers
-# fold-in start and fold-out stop), incl. plane 0x17f / boat 0x190.
-# Remove this wrapper (and rename _impl back) after the trace.
-def _read_self_active_loops(ctx) -> list:
-    loops = _read_self_active_loops_impl(ctx)
-    cur = tuple(loops)
-    if cur != getattr(ctx, "_dbg_last_loops", None):
-        ctx._dbg_last_loops = cur
-        logger.info("[GP-DBG] self loops -> %s",
-                    [f"{s:#x}" for s in loops] if loops else "(none)")
-    return loops
-
-
 # ===========================================================================
 # VisionLink: sparse-presence + batched-history movement over AP Bounce.
 #
@@ -595,7 +587,7 @@ VL_OVERLAP_SAMPLES      = 2
 VL_LOOPBACK_SLOT        = 99
 VL_LOOPBACK_DELAY_S     = 1.0
 VL_LOOPBACK_SFX_PERSIST_S = 0.10
-VL_LOOPBACK_MAX         = 16
+VL_LOOPBACK_MAX         = 32
 VL_LOOPBACK_SPACING_S   = 0.45
 
 
@@ -654,6 +646,7 @@ def _vlink_discrete(ctx, state: dict, team_id: int, active_loops: list, sfx_even
         "flags2": int(state.get("flags2", 0)),
         "flags3": int(state.get("flags3", 0)),
         "motion_id": int(state.get("motion_id", 0)),
+        "color_index": int(state.get("color_index", 0)),
         "motion_timer": int(state.get("motion_timer", 0)),
         "camera_angle": round(float(state.get("camera_angle", 0.0)), 2),
         "rot_pivot_x": round(float(state.get("rot_pivot_x", 0.0)), 2),
@@ -947,6 +940,19 @@ async def ttyd_ghost_sync_task(ctx):
         now = asyncio.get_event_loop().time()
         s = _vlink_state(ctx)
         loopback = bool(getattr(ctx, "_ghost_loopback_active", False))
+
+        # Solo auto-hammer test: periodically inject an inbound hammer hit so
+        # the victim-side reaction (incl. the mid-hammer defer) can be tested
+        # without a second client. Independent of the visual loopback ghost.
+        if getattr(ctx, "_ghost_autohammer_active", False):
+            interval = getattr(ctx, "_ghost_autohammer_interval", AUTOHAMMER_INTERVAL_S)
+            last = getattr(ctx, "_ghost_autohammer_last_t", None)
+            if last is None:
+                ctx._ghost_autohammer_last_t = now
+            elif now - last >= interval:
+                ctx._ghost_autohammer_last_t = now
+                logger.info("[ghost] auto-hammer: simulating an inbound hammer hit")
+                _on_inbound_hit(ctx, {"ttyd_hit": True, "kind": "hammer", "from": ctx.slot})
 
         state = _read_self_state(ctx)
         if state is not None:

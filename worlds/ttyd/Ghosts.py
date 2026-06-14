@@ -5,19 +5,19 @@ from typing import Any, Dict, List, Optional
 from CommonClient import logger
 
 GHOST_MAGIC  = 0x47484F53
-VERSION      = 29
+VERSION      = 0
 
 APSETTINGS_ADDR             = 0x80003220
 APSETTINGS_GHOST_STATE_PTR  = APSETTINGS_ADDR + 0x3C  # mod::ghosts::GhostState *
 
 
-# Peer block (SharedBlock): 16-byte header + 16 PeerSlots.
+# Peer block (SharedBlock): 16-byte header + 32 PeerSlots.
 GS_OFF_PEER_BLOCK = 0x0000
 
 MAX_PEERS    = 16
 PEER_SIZE    = 212  # v26: +12 for activeLoops[6] uint16 + activeLoopCount byte + alignment
 HEADER_SIZE  = 16
-BLOCK_SIZE   = HEADER_SIZE + MAX_PEERS * PEER_SIZE   # 3408
+BLOCK_SIZE   = HEADER_SIZE + MAX_PEERS * PEER_SIZE   # 6800
 
 # Hit/team scratch (compact section after peerBlock).
 GS_OFF_PENDING_HIT          = GS_OFF_PEER_BLOCK + BLOCK_SIZE       # 0x0C90
@@ -58,7 +58,7 @@ GS_OFF_SELF_ACTIVE_LOOPS      = GS_OFF_SELF_ACTIVE_LOOP_COUNT + 4         # 0x12
 GS_OFF_RESERVED_TAIL = GS_OFF_SELF_ACTIVE_LOOPS + ACTIVE_LOOPS_PER_PEER * 2  # 0x122C
 RESERVED_TAIL_SIZE   = 0x30                                                  # through 0x125B
 
-GS_TOTAL_SIZE = GS_OFF_RESERVED_TAIL + RESERVED_TAIL_SIZE                # 0x125C
+GS_TOTAL_SIZE = GS_OFF_RESERVED_TAIL + RESERVED_TAIL_SIZE                    # 0x125C
 
 
 def compute_ghost_state_addresses(ghost_state_ptr: int) -> dict:
@@ -124,7 +124,7 @@ TEAM_LABELS = {
     TEAM_YELLOW: "Yellow",
 }
 
-_PEER_FMT   = ">B 15s 16s ffff BBBB I I H B B B bbb f 16s 32s 16s ff fff fff f H 2x f B B B x HBBHBBHBBHBB HHHHHH"
+_PEER_FMT   = ">B 15s 16s ffff BBBB I I H B B B bbb f 16s 32s 16s ff fff fff f H 2x f B B B B HBBHBBHBBHBB HHHHHH"
 _HEADER_FMT = ">IIII"
 
 assert struct.calcsize(_PEER_FMT)   == PEER_SIZE,   f"peer fmt size {struct.calcsize(_PEER_FMT)} != {PEER_SIZE}"
@@ -300,7 +300,8 @@ def pack_peer_block(peers: dict) -> bytes:
                 float(peer.get("paper_local_time", -1.0)),
                 sfx_count & 0xFF,
                 active_loop_count & 0xFF,
-                0,  # reserved byte (v29 layout pad)
+                0,  # gameRole (0xB6) — publisher writes 0 here
+                max(0, min(3, int(peer.get("color_index", 0)))),  # colorIndex (0xB7), emblem 0..3
                 sfx_packed[0],  sfx_packed[1],  sfx_packed[2],
                 sfx_packed[3],  sfx_packed[4],  sfx_packed[5],
                 sfx_packed[6],  sfx_packed[7],  sfx_packed[8],

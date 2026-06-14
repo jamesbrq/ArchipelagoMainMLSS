@@ -18,6 +18,7 @@ from .ttyd_runtime import (
     _on_inbound_hit,
     _vlink_on_bounce,
     vlink_force_presence,
+    vlink_clear_loopback,
     ttyd_ghost_sync_task,
 )
 
@@ -119,7 +120,8 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         """Manage ghost peer settings.
 
         Subcommands:
-          /ghost test                      - toggle single-client loopback
+          /ghost test [N]                  - toggle single-client loopback (N ghosts, 1..32)
+          /ghost hammertest [on|off] [sec] - solo: auto-hammer yourself on a timer
           /ghost names [on|off|toggle]     - hide/show your name tag
           /ghost friendly_fire [on|off]    - toggle FF for your hammer
           /ghost team join <color>         - join red/blue/green/yellow
@@ -128,12 +130,14 @@ class TTYDCommandProcessor(ClientCommandProcessor):
           /ghost team list                 - list all peers grouped by team
         """
         if not args:
-            logger.info("ghost: subcommands - test / names / friendly_fire / team")
+            logger.info("ghost: subcommands - test / hammertest / names / friendly_fire / team")
             return
         sub = args[0].strip().lower()
         rest = args[1:]
         if sub == "test":
-            self._ghost_test()
+            self._ghost_test(*rest)
+        elif sub in ("hammertest", "ht"):
+            self._ghost_hammertest(*rest)
         elif sub == "names":
             self._ghost_names(*rest)
         elif sub in ("friendly_fire", "ff"):
@@ -142,7 +146,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
             self._ghost_team(*rest)
         else:
             logger.info(f"ghost: unknown subcommand '{sub}'. "
-                        f"Use test/names/friendly_fire/team.")
+                        f"Use test/hammertest/names/friendly_fire/team.")
 
 
 
@@ -216,17 +220,86 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         result = gsw_check(int(gsw))
         logger.info(f"GSWF Check: {result}")
 
-    def _ghost_test(self):
-        """Toggle the single-player ghost loopback test."""
+    def _ghost_test(self, *args):
+        """Toggle the single-player ghost loopback test.
+
+        /ghost test         - toggle on/off (keeps the last ghost count)
+        /ghost test <N>     - turn on with N synthetic ghosts (1..32) trailing you
+        """
         ctx = self.ctx
+        if args:
+            try:
+                count = max(1, min(int(args[0]), Ghosts.MAX_PEERS))
+            except ValueError:
+                logger.info(f"ghost test: count must be a number (1..{Ghosts.MAX_PEERS}).")
+                return
+            ctx._ghost_loopback_count = count
+            ctx._ghost_loopback_active = True
+            logger.info(f"Ghost loopback test ON with {count} ghost(s) trailing you to your "
+                        f"right. Note: only the first maxRenderedPeers (default 12) actually "
+                        f"render \u2014 raise that GhostState tunable to see all {count}.")
+            return
+
         ctx._ghost_loopback_active = not getattr(ctx, "_ghost_loopback_active", False)
         if ctx._ghost_loopback_active:
-            logger.info("Ghost loopback test ON. A translucent ghost should appear "
-                        "a short distance to your right, mirroring your actions in "
-                        "real time.")
+            cnt = int(getattr(ctx, "_ghost_loopback_count", 1) or 1)
+            logger.info(f"Ghost loopback test ON ({cnt} ghost(s)). A translucent ghost should "
+                        f"appear a short distance to your right, mirroring your actions in real "
+                        f"time.")
         else:
+            vlink_clear_loopback(ctx)
             logger.info("Ghost loopback test OFF.")
-            getattr(ctx, "_ghost_peers", {}).pop(Ghosts.ghost_key(0, 99), None)
+
+    def _ghost_hammertest(self, *args):
+        """Toggle the solo auto-hammer test. While on, the client simulates
+        an inbound hammer hit on you every N seconds (default 10) by writing
+        the mod's PENDING_HIT slot, exactly as a real peer's Bounce would.
+        Lets you verify the victim-side stagger reaction - including the
+        defer-while-mid-swing fix - without a second client. Independent of
+        /ghost test, though running both gives you a visible ghost too.
+
+        Usage:
+          /ghost hammertest               - toggle on/off
+          /ghost hammertest on|off        - set explicitly
+          /ghost hammertest [on] <sec>    - set the interval in seconds
+        """
+        ctx = self.ctx
+        mode = "toggle"
+        interval = None
+        for a in args:
+            al = a.strip().lower()
+            if al in ("on", "true"):
+                mode = "on"
+            elif al in ("off", "false"):
+                mode = "off"
+            elif al == "toggle":
+                mode = "toggle"
+            else:
+                try:
+                    interval = float(a)
+                except ValueError:
+                    pass
+
+        if mode == "on":
+            new_state = True
+        elif mode == "off":
+            new_state = False
+        else:
+            new_state = not getattr(ctx, "_ghost_autohammer_active", False)
+
+        if interval is not None and interval > 0:
+            ctx._ghost_autohammer_interval = interval
+
+        ctx._ghost_autohammer_active = new_state
+        ctx._ghost_autohammer_last_t = None  # re-arm; first hit after one interval
+
+        if new_state:
+            iv = getattr(ctx, "_ghost_autohammer_interval", 10.0)
+            logger.info(f"Ghost auto-hammer test ON: simulating an inbound "
+                        f"hammer hit every {iv:.0f}s. Hold your hammer charge "
+                        f"to exercise the mid-swing case.")
+        else:
+            logger.info("Ghost auto-hammer test OFF.")
 
     def _ghost_names(self, mode: str = "toggle"):
         """Toggle ghost name tags. Affects both what you see (other
