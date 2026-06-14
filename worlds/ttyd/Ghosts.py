@@ -340,10 +340,11 @@ CLEAR_MAGIC = b"\x00" * 4
 # previous one is never emitted.
 # ---------------------------------------------------------------------------
 
-VLINK_TAG       = "ttydVisionLink"
+VLINK_TAG       = "TTYDBounce"
 VLINK_KIND      = "VL"
 VLINK_PRESENCE  = "p"
 VLINK_MOVE      = "m"
+VLINK_PART      = "x"   # clean-disconnect: receivers drop the peer at once
 
 # Sample = [t, x, y, z, rotY, rotX, rotZ]; t is a source-local monotonic
 # seconds stamp used only for relative spacing (clocks are not synced).
@@ -373,6 +374,10 @@ def build_presence(slot, team, map_name, name, hammerable) -> dict:
 def build_move(slot, map_name, discrete: dict, samples: list) -> dict:
     return {VLINK_KIND: VLINK_MOVE, "s": int(slot), "mp": map_name or "",
             "d": discrete, "sm": samples}
+
+
+def build_part(slot) -> dict:
+    return {VLINK_KIND: VLINK_PART, "s": int(slot)}
 
 
 def _lerp(a, b, f):

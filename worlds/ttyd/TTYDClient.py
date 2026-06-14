@@ -17,6 +17,7 @@ from .ttyd_runtime import (
     _on_ghost_disconnect,
     _on_inbound_hit,
     _vlink_on_bounce,
+    _vlink_send_part,
     vlink_force_presence,
     vlink_clear_loopback,
     ttyd_ghost_sync_task,
@@ -505,6 +506,10 @@ class TTYDContext(cmmCtx):
         trigger_death(self)
 
     async def disconnect(self, allow_autoreconnect: bool = False):
+        try:
+            await _vlink_send_part(self)
+        except Exception:
+            pass
         await super().disconnect()
         self.slot = None
         self.slot_data = None
@@ -609,6 +614,10 @@ async def ttyd_sync_task(ctx: TTYDContext):
                 try:
                     if not validate_connection():
                         logger.info("TTYD is no longer running. Disconnecting from Dolphin.")
+                        try:
+                            await _vlink_send_part(ctx)
+                        except Exception:
+                            pass
                         dolphin.un_hook()
                         ctx.dolphin_connected = False
                         ctx.seed_verified = False

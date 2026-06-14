@@ -577,12 +577,12 @@ def _read_self_active_loops(ctx) -> list:
 
 VL_SAMPLE_INTERVAL_S    = 1.0 / 20.0
 VL_MOVE_INTERVAL_S      = 0.20
-VL_PRESENCE_KEEPALIVE_S = 20.0
+VL_PRESENCE_KEEPALIVE_S = 5.0
 VL_INTERP_DELAY_S       = 0.20
 VL_EXTRAP_CAP_S         = 0.0
 VL_PLAYBACK_BUFFER_S    = 1.5
 VL_HISTORY_S            = 1.5
-VL_PRESENCE_TIMEOUT_S   = 30.0
+VL_PRESENCE_TIMEOUT_S   = 13.0
 VL_OVERLAP_SAMPLES      = 2
 VL_LOOPBACK_SLOT        = 99
 VL_LOOPBACK_DELAY_S     = 1.0
@@ -604,6 +604,7 @@ def _vlink_state(ctx):
             "force_presence": False,
             "pending_sfx": [],
             "last_loops": None,
+            "last_discrete": None,
             "loopback_buf": [],
             "loopback_ghosts": {},
             "peers": {},
@@ -670,6 +671,26 @@ def _vlink_discrete(ctx, state: dict, team_id: int, active_loops: list, sfx_even
     return d
 
 
+def _vlink_discrete_signature(d: dict) -> tuple:
+    # Visual/categorical fields only. Excludes motion_timer and camera_angle
+    # (both advance on their own every frame, so including them would defeat
+    # change-gating) and sfx_events/active_loops (gated separately). d values
+    # are already rounded by _vlink_discrete, so float jitter won't false-trip.
+    return (
+        d.get("anim", ""),
+        d.get("flags1", 0), d.get("flags2", 0), d.get("flags3", 0),
+        d.get("motion_id", 0),
+        d.get("color_index", 0),
+        d.get("scale_x", 1.0), d.get("scale_y", 1.0), d.get("scale_z", 1.0),
+        d.get("stretch_y", 1.0),
+        d.get("rot_pivot_x", 0.0), d.get("rot_pivot_y", 0.0), d.get("rot_pivot_z", 0.0),
+        d.get("paper_agb", ""), d.get("paper_anim", ""),
+        d.get("paper_local_time", -1.0),
+        d.get("hammerable", 0), d.get("team_id", 0),
+        d.get("show_name", 0), d.get("slot_name", ""),
+    )
+
+
 def _vlink_sample(ctx, state: dict, now: float) -> None:
     s = _vlink_state(ctx)
     smp = Ghosts.make_sample(now, state["x"], state["y"], state["z"],
@@ -717,6 +738,19 @@ async def _vlink_send_presence(ctx, state: dict, team_id: int, now: float) -> No
         logger.exception("vlink presence send failed")
 
 
+async def _vlink_send_part(ctx) -> None:
+    # Broadcast a one-shot 'part' on clean disconnect / game-close so peers
+    # drop our ghost immediately instead of waiting out VL_PRESENCE_TIMEOUT_S.
+    # Best-effort: if the socket is already gone, peers' timeout still clears us.
+    if getattr(ctx, "slot", None) is None:
+        return
+    try:
+        await ctx.send_msgs([{"cmd": "Bounce", "tags": [Ghosts.VLINK_TAG],
+                              "data": Ghosts.build_part(ctx.slot)}])
+    except Exception:
+        logger.debug("vlink part send failed (socket likely closed)")
+
+
 async def _vlink_send_move(ctx, state: dict, team_id: int, targets: list, now: float) -> None:
     s = _vlink_state(ctx)
     buf = s["samples"]
@@ -726,7 +760,12 @@ async def _vlink_send_move(ctx, state: dict, team_id: int, targets: list, now: f
     new = [smp for smp in buf if smp[0] > sent_t]
     loops = _read_self_active_loops(ctx)
     loops_changed = (loops != s.get("last_loops"))
-    if not new and not s["pending_sfx"] and not loops_changed:
+
+    d = _vlink_discrete(ctx, state, team_id, loops, [])
+    sig = _vlink_discrete_signature(d)
+    discrete_changed = (sig != s.get("last_discrete"))
+
+    if not new and not s["pending_sfx"] and not loops_changed and not discrete_changed:
         return
     overlap = [smp for smp in buf if smp[0] <= sent_t][-VL_OVERLAP_SAMPLES:]
     batch = overlap + new
@@ -734,11 +773,13 @@ async def _vlink_send_move(ctx, state: dict, team_id: int, targets: list, now: f
         return
     sfx = s["pending_sfx"][:Ghosts.SFX_EVENTS_PER_SLOT]
     s["pending_sfx"] = s["pending_sfx"][Ghosts.SFX_EVENTS_PER_SLOT:]
-    d = _vlink_discrete(ctx, state, team_id, loops, sfx)
+    if sfx:
+        d["sfx_events"] = sfx
     payload = Ghosts.build_move(ctx.slot, state.get("map", ""), d, batch)
     if new:
         s["sent_t"] = new[-1][0]
     s["last_loops"] = list(loops)
+    s["last_discrete"] = sig
     try:
         await ctx.send_msgs([{"cmd": "Bounce", "slots": list(targets), "data": payload}])
     except Exception:
@@ -766,6 +807,10 @@ def _vlink_on_bounce(ctx, data: dict) -> None:
     if ctx.slot is not None and slot == ctx.slot:
         return
     s = _vlink_state(ctx)
+    if kind == Ghosts.VLINK_PART:
+        s["peers"].pop(slot, None)
+        s["known"].discard(slot)
+        return
     now = asyncio.get_event_loop().time()
     peer = s["peers"].get(slot)
     if peer is None:
