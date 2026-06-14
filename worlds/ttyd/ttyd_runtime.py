@@ -43,11 +43,6 @@ SFX_EVENT_BYTES      = 4
 
 HIT_KIND_HAMMER = 1
 
-# Solo auto-hammer test: default seconds between simulated inbound hits.
-AUTOHAMMER_INTERVAL_S = 10.0
-
-GHOST_TEST_OFFSET_X = 50.0
-
 def _resolve_ghost_addresses(ctx) -> bool:
     """Read APSettings.ghostStatePtr from RAM and populate
     ctx._ghost_addrs with computed absolute addresses for every
@@ -77,10 +72,6 @@ def _resolve_ghost_addresses(ctx) -> bool:
         # hasn't booted far enough yet. Try again next tick.
         logger.debug(f"ghost-state pointer not yet valid: {e}")
         return False
-    logger.info(
-        f"ghost-state container located at 0x{ptr:08X}; "
-        f"peer block at 0x{ctx._ghost_addrs['peer_block']:08X}"
-    )
     return True
 
 def _read_self_state(ctx) -> dict | None:
@@ -360,7 +351,7 @@ def _publish_ghost_state_scratch(ctx):
     addrs = ctx._ghost_addrs if _resolve_ghost_addresses(ctx) else None
 
     team_id = int(getattr(ctx, "_ghost_team_id", Ghosts.TEAM_NONE)) & 0xFF
-    friendly_fire = 1 if getattr(ctx, "_ghost_friendly_fire", False) else 0
+    friendly_fire = 0  # FF command removed; default off (same-team hits filtered)
 
     if addrs is not None:
         try:
@@ -584,11 +575,6 @@ VL_PLAYBACK_BUFFER_S    = 1.5
 VL_HISTORY_S            = 1.5
 VL_PRESENCE_TIMEOUT_S   = 13.0
 VL_OVERLAP_SAMPLES      = 2
-VL_LOOPBACK_SLOT        = 99
-VL_LOOPBACK_DELAY_S     = 1.0
-VL_LOOPBACK_SFX_PERSIST_S = 0.10
-VL_LOOPBACK_MAX         = 32
-VL_LOOPBACK_SPACING_S   = 0.45
 
 
 def _vlink_state(ctx):
@@ -605,8 +591,6 @@ def _vlink_state(ctx):
             "pending_sfx": [],
             "last_loops": None,
             "last_discrete": None,
-            "loopback_buf": [],
-            "loopback_ghosts": {},
             "peers": {},
             "known": set(),
         }
@@ -877,90 +861,6 @@ def _vlink_playback(ctx, now: float) -> None:
     ctx._ghost_peers = out
 
 
-def _vlink_loopback(ctx, state: dict, frame_sfx: list, now: float) -> None:
-    """/ghost test [N]: render N synthetic peers trailing the local player at
-    STAGGERED delays (ghost k at VL_LOOPBACK_DELAY_S + k*VL_LOOPBACK_SPACING_S).
-
-    Staggering matters for audio: if every ghost replayed the same frame they
-    would fire the same sfxId on the same frame N times at once, and TTYD's
-    sound engine steals/limits duplicate voices, so most would silently drop.
-    Spreading them in time keeps each sound to roughly one instance at a time.
-
-    The trail buffer is kept non-destructively; each ghost has its own cursor
-    and replays the SFX of every frame it crosses, held for a few frames so
-    the mod (reading at its own rate) is guaranteed to sample each one."""
-    s = _vlink_state(ctx)
-    count = max(1, min(int(getattr(ctx, "_ghost_loopback_count", 1) or 1),
-                       VL_LOOPBACK_MAX))
-    buf = s["loopback_buf"]
-    ghosts = s["loopback_ghosts"]
-    peers = ctx._ghost_peers
-
-    # Restart the trail after a gap (toggled off/on, long hitch) so stale
-    # frames + their SFX don't all flush at once.
-    if buf and now - buf[-1]["at"] > 0.5:
-        buf.clear()
-        ghosts.clear()
-    buf.append({"at": now, "state": dict(state),
-                "sfx": list(frame_sfx or []),
-                "loops": _read_self_active_loops(ctx)})
-
-    max_delay = VL_LOOPBACK_DELAY_S + (count - 1) * VL_LOOPBACK_SPACING_S
-    keep_from = now - max_delay - 0.5
-    while len(buf) > 2 and buf[0]["at"] < keep_from:
-        buf.pop(0)
-
-    # Drop slots / cursors beyond the current count.
-    for k in range(count, VL_LOOPBACK_MAX):
-        peers.pop(Ghosts.ghost_key(0, VL_LOOPBACK_SLOT - k), None)
-        ghosts.pop(k, None)
-
-    for k in range(count):
-        target = now - (VL_LOOPBACK_DELAY_S + k * VL_LOOPBACK_SPACING_S)
-        g = ghosts.get(k)
-        new_ghost = g is None
-        if new_ghost:
-            g = {"last_at": 0.0, "sfx_win": []}
-            ghosts[k] = g
-        shown = None
-        crossed = []
-        for snap in buf:
-            if snap["at"] <= target:
-                if (not new_ghost) and snap["at"] > g["last_at"] and snap["sfx"]:
-                    crossed.extend(snap["sfx"])
-                shown = snap
-            else:
-                break
-        if shown is None:
-            continue
-        g["last_at"] = shown["at"]
-
-        win = [w for w in g["sfx_win"] if w[0] > now]
-        for ev in crossed:
-            win.append((now + VL_LOOPBACK_SFX_PERSIST_S, ev))
-        g["sfx_win"] = win
-
-        fake = dict(shown["state"])
-        fake["x"] = fake["x"] + GHOST_TEST_OFFSET_X * (k + 1)
-        fake["slot_name"] = "GHOST" if count == 1 else f"GHOST{k + 1}"
-        fake["active_loops"] = shown["loops"]
-        if win:
-            fake["sfx_events"] = [w[1] for w in win][-Ghosts.SFX_EVENTS_PER_SLOT:]
-        Ghosts.stamp_peer(fake)
-        peers[Ghosts.ghost_key(0, VL_LOOPBACK_SLOT - k)] = fake
-
-
-def vlink_clear_loopback(ctx) -> None:
-    """Tear down all loopback ghost slots and reset the trail buffer."""
-    s = _vlink_state(ctx)
-    s["loopback_buf"] = []
-    s["loopback_ghosts"] = {}
-    peers = getattr(ctx, "_ghost_peers", None)
-    if isinstance(peers, dict):
-        for k in range(VL_LOOPBACK_MAX):
-            peers.pop(Ghosts.ghost_key(0, VL_LOOPBACK_SLOT - k), None)
-
-
 async def ttyd_ghost_sync_task(ctx):
     while not ctx.exit_event.is_set():
         await asyncio.sleep(GHOST_RENDER_INTERVAL_S)
@@ -984,20 +884,6 @@ async def ttyd_ghost_sync_task(ctx):
         _, team_id = _publish_ghost_state_scratch(ctx)
         now = asyncio.get_event_loop().time()
         s = _vlink_state(ctx)
-        loopback = bool(getattr(ctx, "_ghost_loopback_active", False))
-
-        # Solo auto-hammer test: periodically inject an inbound hammer hit so
-        # the victim-side reaction (incl. the mid-hammer defer) can be tested
-        # without a second client. Independent of the visual loopback ghost.
-        if getattr(ctx, "_ghost_autohammer_active", False):
-            interval = getattr(ctx, "_ghost_autohammer_interval", AUTOHAMMER_INTERVAL_S)
-            last = getattr(ctx, "_ghost_autohammer_last_t", None)
-            if last is None:
-                ctx._ghost_autohammer_last_t = now
-            elif now - last >= interval:
-                ctx._ghost_autohammer_last_t = now
-                logger.info("[ghost] auto-hammer: simulating an inbound hammer hit")
-                _on_inbound_hit(ctx, {"ttyd_hit": True, "kind": "hammer", "from": ctx.slot})
 
         state = _read_self_state(ctx)
         if state is not None:
@@ -1038,8 +924,6 @@ async def ttyd_ghost_sync_task(ctx):
                         logger.exception("vlink move error")
 
         _vlink_playback(ctx, now)
-        if loopback and state is not None:
-            _vlink_loopback(ctx, state, ring, now)
 
         try:
             _write_peer_block(ctx)

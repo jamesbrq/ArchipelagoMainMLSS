@@ -19,7 +19,6 @@ from .ttyd_runtime import (
     _vlink_on_bounce,
     _vlink_send_part,
     vlink_force_presence,
-    vlink_clear_loopback,
     ttyd_ghost_sync_task,
 )
 
@@ -121,33 +120,17 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         """Manage ghost peer settings.
 
         Subcommands:
-          /ghost test [N]                  - toggle single-client loopback (N ghosts, 1..32)
-          /ghost hammertest [on|off] [sec] - solo: auto-hammer yourself on a timer
           /ghost names [on|off|toggle]     - hide/show your name tag
-          /ghost friendly_fire [on|off]    - toggle FF for your hammer
-          /ghost team join <color>         - join red/blue/green/yellow
-          /ghost team leave                - clear team membership
-          /ghost team status               - show your team / FF state
-          /ghost team list                 - list all peers grouped by team
         """
         if not args:
-            logger.info("ghost: subcommands - test / hammertest / names / friendly_fire / team")
+            logger.info("ghost: subcommands - names")
             return
         sub = args[0].strip().lower()
         rest = args[1:]
-        if sub == "test":
-            self._ghost_test(*rest)
-        elif sub in ("hammertest", "ht"):
-            self._ghost_hammertest(*rest)
-        elif sub == "names":
+        if sub == "names":
             self._ghost_names(*rest)
-        elif sub in ("friendly_fire", "ff"):
-            self._ghost_friendly_fire(*rest)
-        elif sub == "team":
-            self._ghost_team(*rest)
         else:
-            logger.info(f"ghost: unknown subcommand '{sub}'. "
-                        f"Use test/hammertest/names/friendly_fire/team.")
+            logger.info(f"ghost: unknown subcommand '{sub}'. Use names.")
 
 
 
@@ -221,87 +204,6 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         result = gsw_check(int(gsw))
         logger.info(f"GSWF Check: {result}")
 
-    def _ghost_test(self, *args):
-        """Toggle the single-player ghost loopback test.
-
-        /ghost test         - toggle on/off (keeps the last ghost count)
-        /ghost test <N>     - turn on with N synthetic ghosts (1..32) trailing you
-        """
-        ctx = self.ctx
-        if args:
-            try:
-                count = max(1, min(int(args[0]), Ghosts.MAX_PEERS))
-            except ValueError:
-                logger.info(f"ghost test: count must be a number (1..{Ghosts.MAX_PEERS}).")
-                return
-            ctx._ghost_loopback_count = count
-            ctx._ghost_loopback_active = True
-            logger.info(f"Ghost loopback test ON with {count} ghost(s) trailing you to your "
-                        f"right. Note: only the first maxRenderedPeers (default 12) actually "
-                        f"render \u2014 raise that GhostState tunable to see all {count}.")
-            return
-
-        ctx._ghost_loopback_active = not getattr(ctx, "_ghost_loopback_active", False)
-        if ctx._ghost_loopback_active:
-            cnt = int(getattr(ctx, "_ghost_loopback_count", 1) or 1)
-            logger.info(f"Ghost loopback test ON ({cnt} ghost(s)). A translucent ghost should "
-                        f"appear a short distance to your right, mirroring your actions in real "
-                        f"time.")
-        else:
-            vlink_clear_loopback(ctx)
-            logger.info("Ghost loopback test OFF.")
-
-    def _ghost_hammertest(self, *args):
-        """Toggle the solo auto-hammer test. While on, the client simulates
-        an inbound hammer hit on you every N seconds (default 10) by writing
-        the mod's PENDING_HIT slot, exactly as a real peer's Bounce would.
-        Lets you verify the victim-side stagger reaction - including the
-        defer-while-mid-swing fix - without a second client. Independent of
-        /ghost test, though running both gives you a visible ghost too.
-
-        Usage:
-          /ghost hammertest               - toggle on/off
-          /ghost hammertest on|off        - set explicitly
-          /ghost hammertest [on] <sec>    - set the interval in seconds
-        """
-        ctx = self.ctx
-        mode = "toggle"
-        interval = None
-        for a in args:
-            al = a.strip().lower()
-            if al in ("on", "true"):
-                mode = "on"
-            elif al in ("off", "false"):
-                mode = "off"
-            elif al == "toggle":
-                mode = "toggle"
-            else:
-                try:
-                    interval = float(a)
-                except ValueError:
-                    pass
-
-        if mode == "on":
-            new_state = True
-        elif mode == "off":
-            new_state = False
-        else:
-            new_state = not getattr(ctx, "_ghost_autohammer_active", False)
-
-        if interval is not None and interval > 0:
-            ctx._ghost_autohammer_interval = interval
-
-        ctx._ghost_autohammer_active = new_state
-        ctx._ghost_autohammer_last_t = None  # re-arm; first hit after one interval
-
-        if new_state:
-            iv = getattr(ctx, "_ghost_autohammer_interval", 10.0)
-            logger.info(f"Ghost auto-hammer test ON: simulating an inbound "
-                        f"hammer hit every {iv:.0f}s. Hold your hammer charge "
-                        f"to exercise the mid-swing case.")
-        else:
-            logger.info("Ghost auto-hammer test OFF.")
-
     def _ghost_names(self, mode: str = "toggle"):
         """Toggle ghost name tags. Affects both what you see (other
         players' name tags above their ghosts) and what others see of
@@ -334,128 +236,6 @@ class TTYDCommandProcessor(ClientCommandProcessor):
 
         logger.info(f"Ghost name tags {'OFF' if new_hidden else 'ON'} "
                     f"(both your view and peers' view of you).")
-
-    def _ghost_team(self, *args):
-        """Set, clear, or query your team membership. Teams are local to
-        this AP team's visibility scope (you only see/hit peers on your
-        AP team to begin with). Same-team peers don't hammer each other
-        unless friendly fire is enabled (/ghost_friendly_fire).
-
-        Defaults to no team each session; not persisted across reconnect.
-
-        Usage: /ghost_team join <color>  - join red/blue/green/yellow
-               /ghost_team leave         - clear your team
-               /ghost_team status        - show your team + FF state
-               /ghost_team list          - show all visible peers' teams
-        """
-        ctx = self.ctx
-        if not args:
-            self._ghost_team_status()
-            return
-
-        sub = args[0].strip().lower()
-        if sub in ("join", "j", "set"):
-            if len(args) < 2:
-                logger.info("ghost_team: usage: /ghost_team join <red|blue|green|yellow>")
-                return
-            color = args[1].strip().lower()
-            team_id = Ghosts.TEAM_NAMES.get(color)
-            if team_id is None or team_id == Ghosts.TEAM_NONE:
-                logger.info(f"ghost_team: unknown color '{color}'. "
-                            f"Use red, blue, green, or yellow.")
-                return
-            ctx._ghost_team_id = team_id
-            label = Ghosts.TEAM_LABELS.get(team_id, str(team_id))
-            logger.info(f"Joined team {label}.")
-            try:
-                vlink_force_presence(ctx)
-            except Exception:
-                pass
-
-        elif sub in ("leave", "l", "clear", "none"):
-            ctx._ghost_team_id = Ghosts.TEAM_NONE
-            logger.info("Left team. You are no longer aligned.")
-            try:
-                vlink_force_presence(ctx)
-            except Exception:
-                pass
-
-        elif sub in ("status", "s", "?"):
-            self._ghost_team_status()
-
-        elif sub in ("list", "ls"):
-            self._ghost_team_list()
-
-        else:
-            logger.info(f"ghost_team: unknown subcommand '{sub}'. "
-                        f"Use join/leave/status/list.")
-
-    def _ghost_team_status(self):
-        ctx = self.ctx
-        team_id = int(getattr(ctx, "_ghost_team_id", Ghosts.TEAM_NONE))
-        ff = bool(getattr(ctx, "_ghost_friendly_fire", False))
-        label = Ghosts.TEAM_LABELS.get(team_id, "(unknown)")
-        if team_id == Ghosts.TEAM_NONE:
-            logger.info("Team: none. Friendly fire: "
-                        f"{'ON' if ff else 'OFF'} (only matters with a team).")
-        else:
-            logger.info(f"Team: {label}. Friendly fire: {'ON' if ff else 'OFF'}.")
-
-    def _ghost_team_list(self):
-        ctx = self.ctx
-        peers = getattr(ctx, "_ghost_peers", {}) or {}
-        if not peers:
-            logger.info("No peers visible.")
-            return
-
-        by_team = {}
-        for state in peers.values():
-            if not isinstance(state, dict):
-                continue
-            tid = int(state.get("team_id", 0))
-            name = str(state.get("slot_name", "") or "?")
-            by_team.setdefault(tid, []).append(name)
-
-        for tid in sorted(by_team.keys()):
-            label = Ghosts.TEAM_LABELS.get(tid, f"(?{tid})") or "no team"
-            members = ", ".join(sorted(by_team[tid]))
-            logger.info(f"  {label}: {members}")
-
-    def _ghost_friendly_fire(self, mode: str = "toggle"):
-        """Toggle friendly fire. When ON, you can hammer same-team peers
-        normally. When OFF (default), same-team hits are filtered out
-        on the attacker side. Per-session, not persisted.
-
-        FF is asymmetric: only YOUR setting governs YOUR swings. If
-        teammates have different FF settings, behaviors don't cancel
-        out - each player's hits are filtered (or not) by their own
-        flag.
-
-        Usage: /ghost_friendly_fire        - toggle
-               /ghost_friendly_fire on     - enable FF
-               /ghost_friendly_fire off    - disable FF
-        """
-        ctx = self.ctx
-        m = (mode or "toggle").strip().lower()
-        cur = bool(getattr(ctx, "_ghost_friendly_fire", False))
-        if m in ("on", "1", "true", "enable"):
-            new = True
-        elif m in ("off", "0", "false", "disable"):
-            new = False
-        elif m in ("toggle", "t", ""):
-            new = not cur
-        else:
-            logger.info(f"ghost_friendly_fire: unknown mode '{mode}'. "
-                        f"Use on/off/toggle.")
-            return
-
-        ctx._ghost_friendly_fire = new
-        logger.info(f"Friendly fire {'ON' if new else 'OFF'}.")
-        try:
-            vlink_force_presence(ctx)
-        except Exception:
-            pass
-
 
 
 class TTYDContext(cmmCtx):
@@ -533,9 +313,7 @@ class TTYDContext(cmmCtx):
 
     async def receive_items(self):
         current_length = dolphin.read_word(RECEIVED_LENGTH)
-        if current_length > 255:
-            return
-        if current_length > 0:
+        if current_length != 0:
             return
         index = dolphin.read_word(RECEIVED_INDEX)
         if index > len(self.items_received):
@@ -547,7 +325,6 @@ class TTYDContext(cmmCtx):
         packed_data = struct.pack(f'>{len(item_ids)}H', *item_ids)
         dolphin.write_bytes(RECEIVED_ITEM_ARRAY, packed_data)
         dolphin.write_word(RECEIVED_LENGTH, items)
-        dolphin.write_word(RECEIVED_INDEX, index + items)
 
     async def check_ttyd_locations(self):
         locations_to_send = set()
@@ -585,6 +362,63 @@ class TTYDContext(cmmCtx):
         if value > 1:
             return False
         return value > 0
+def _dolphin_user_dir(dolphin_path: str) -> str:
+    import os
+    exe_dir = os.path.dirname(os.path.abspath(dolphin_path))
+    if os.path.isfile(os.path.join(exe_dir, "portable.txt")):  # portable build
+        return os.path.join(exe_dir, "User")
+    return os.path.join(os.path.expanduser("~"), "Documents", "Dolphin Emulator")
+
+
+def _enable_mmu_windows(dolphin_path: str) -> None:
+    """Force MMU = True in Dolphin's per-game config for G8ME01 (Windows only)."""
+    import os
+    if os.name != "nt":
+        return
+    try:
+        ini_path = os.path.join(_dolphin_user_dir(dolphin_path), "GameSettings", "G8ME01.ini")
+        os.makedirs(os.path.dirname(ini_path), exist_ok=True)
+
+        lines = []
+        if os.path.isfile(ini_path):
+            with open(ini_path, "r", encoding="utf-8") as f:
+                lines = f.read().splitlines()
+
+        core_start = -1
+        core_end = -1   # index of the line after [Core]'s last entry
+        mmu_idx = -1
+        current = None
+        for idx, line in enumerate(lines):
+            s = line.strip()
+            if s.startswith("[") and s.endswith("]"):
+                if current == "core":
+                    core_end = idx
+                current = s[1:-1].strip().lower()
+                if current == "core":
+                    core_start = idx
+            elif current == "core" and "=" in s and s.split("=", 1)[0].strip().lower() == "mmu":
+                mmu_idx = idx
+        if core_start != -1 and core_end == -1:
+            core_end = len(lines)
+
+        if mmu_idx != -1:
+            lines[mmu_idx] = "MMU = True"
+        elif core_start != -1:
+            lines.insert(core_end, "MMU = True")
+        else:
+            if lines and lines[-1].strip():
+                lines.append("")
+            lines += ["[Core]", "MMU = True"]
+
+        with open(ini_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n")
+        logger.info(f"Enabled MMU for G8ME01 in {ini_path}")
+    except Exception:
+        logger.warning("Could not auto-enable MMU in Dolphin's game config. Enable it "
+                       "manually: right-click the game in Dolphin > Properties > "
+                       "Advanced > check 'Enable MMU'.", exc_info=True)
+
+
 async def _run_game(rom: str):
     import os
     auto_start = settings.get_settings().ttyd_options.rom_start
@@ -710,6 +544,10 @@ def trigger_death(ctx):
 
 def launch(*args):
     async def main(args):
+        try:
+            _enable_mmu_windows(settings.get_settings().ttyd_options.dolphin_path)
+        except Exception:
+            pass
         if args.patch_file:
             await asyncio.create_task(_patch_and_run_game(args.patch_file))
         ctx = TTYDContext(args.connect, args.password)
