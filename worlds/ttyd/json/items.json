@@ -4,7 +4,7 @@
     "id": 77772000,
     "progression": "filler",
     "rom_id": 83,
-    "frequency": 51
+    "frequency": 50
   },
   {
     "item_name": "All or Nothing",
@@ -786,7 +786,7 @@
   {
     "item_name": "Life Shroom",
     "id": 77772108,
-    "progression": "progression",
+    "progression": "filler",
     "rom_id": 151,
     "frequency": 10
   },
