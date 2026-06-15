@@ -44,17 +44,16 @@ SFX_EVENT_BYTES      = 4
 HIT_KIND_HAMMER = 1
 
 def _resolve_ghost_addresses(ctx) -> bool:
-    """Read APSettings.ghostStatePtr from RAM and populate
-    ctx._ghost_addrs with computed absolute addresses for every
-    ghost-peer scratch region. Cached for the session - the GhostState
-    pointer is allocated once at game boot and never moves.
+    """Read APSettings.ghostStatePtr and populate ctx._ghost_addrs.
 
-    Returns True on success (addresses now cached), False if the
-    pointer hasn't been published yet (mod's Init() hasn't run, or
-    the game hasn't booted to the relevant state). Callers should
-    treat False as "skip this tick" - it'll succeed on a later tick."""
-    if getattr(ctx, "_ghost_addrs", None) is not None:
-        return True
+    Re-reads the pointer every call and recomputes the address table only
+    when it CHANGES. Caching it for the whole client-process lifetime was a
+    corruption bug: on an in-place game reset (recovering from a crash screen
+    without closing Dolphin) DME stays hooked, the mod's Init() re-allocates
+    GhostState at a possibly different address, but the stale cached address
+    kept receiving the peer block + scratch every frame.
+
+    Returns False ("skip this tick") until the pointer is valid."""
     try:
         ptr = int.from_bytes(
             dolphin.read_bytes(Ghosts.APSETTINGS_GHOST_STATE_PTR, 4), "big"
@@ -64,13 +63,21 @@ def _resolve_ghost_addresses(ctx) -> bool:
     # Treat zero as "not yet published". The mod writes a non-zero
     # pointer in mod::ghosts::Init() at boot.
     if ptr == 0:
+        ctx._ghost_addrs = None
+        ctx._ghost_state_ptr = 0
         return False
+    if (getattr(ctx, "_ghost_addrs", None) is not None
+            and getattr(ctx, "_ghost_state_ptr", 0) == ptr):
+        return True
     try:
         ctx._ghost_addrs = Ghosts.compute_ghost_state_addresses(ptr)
+        ctx._ghost_state_ptr = ptr
     except ValueError as e:
         # Pointer out of plausible range; usually means the game just
         # hasn't booted far enough yet. Try again next tick.
         logger.debug(f"ghost-state pointer not yet valid: {e}")
+        ctx._ghost_addrs = None
+        ctx._ghost_state_ptr = 0
         return False
     return True
 
