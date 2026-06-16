@@ -13,7 +13,7 @@ import struct
 import typing
 
 from CommonClient import logger
-import dolphin_memory_engine as dolphin
+import dolphin_memory_engine_ttyd as dolphin
 from NetUtils import SlotType
 
 from . import Ghosts

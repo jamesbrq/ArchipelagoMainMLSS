@@ -1,3 +1,9 @@
+# Install the bundled (forked) dolphin_memory_engine before ANY dme import.
+# Must stay at the very top: the imports below (and .ttyd_runtime) bind
+# dolphin_memory_engine at module-load time.
+from .TTYDPatcher import setup_dme_path
+setup_dme_path()
+
 import asyncio
 import struct
 import subprocess
@@ -7,7 +13,7 @@ import settings
 import Patch
 import Utils
 from CommonClient import ClientCommandProcessor, get_base_parser, gui_enabled, logger, server_loop
-import dolphin_memory_engine as dolphin
+import dolphin_memory_engine_ttyd as dolphin
 from NetUtils import NetworkItem, ClientStatus
 from . import Ghosts
 from .Data import location_gsw_info, location_to_unit
@@ -238,6 +244,50 @@ class TTYDCommandProcessor(ClientCommandProcessor):
                     f"(both your view and peers' view of you).")
 
 
+    def _cmd_seed(self, *args):
+        """Show the ROM seed string vs the connected room seed. Debug
+        helper for the seed-verify check."""
+        if not dolphin.is_hooked():
+            logger.info("seed: Dolphin not hooked.")
+            return
+        ctx = self.ctx
+        try:
+            raw = dolphin.read_bytes(SEED, 0x10)
+        except Exception as e:
+            logger.info(f"seed: read failed at 0x{SEED:08X}: {e}")
+            return
+        rom_str = raw.split(b"\x00", 1)[0].decode("ascii", "replace")
+        room = getattr(ctx, "seed_name", None)
+        hexs = " ".join(f"{b:02X}" for b in raw)
+        logger.info(f"seed @0x{SEED:08X}: {rom_str!r}")
+        logger.info(f"  raw: {hexs}")
+        logger.info(f"  room seed_name: {room!r}")
+        logger.info(f"  verified flag: {getattr(ctx, 'seed_verified', None)}")
+        if room:
+            logger.info(f"  match (rom substring of room): {rom_str in room}")
+
+    def _cmd_heaps(self, *args):
+        """Show game heap sizes. Reads the diagnostic block the mod publishes
+        at 0x80003C00 (default/map/ext/effect/smart + smart contiguous free)."""
+        if not dolphin.is_hooked():
+            logger.info("heaps: Dolphin not hooked.")
+            return
+        try:
+            raw = dolphin.read_bytes(0x80003C00, 28)
+        except Exception as e:
+            logger.info(f"heaps: read failed: {e}")
+            return
+        vals = struct.unpack(">7I", raw)
+        if vals[0] != 0x48454150:
+            logger.info(f"heaps: no data (magic=0x{vals[0]:08X}); is the mod build running?")
+            return
+        for i, n in enumerate(("default", "map", "ext", "effect", "smart")):
+            b = vals[1 + i]
+            logger.info(f"  {n:<8} {b:>10} bytes ({b / 1024:.1f} KB)")
+        free = vals[6]
+        logger.info(f"  smart contiguous-free: {free} bytes ({free / 1024:.1f} KB)")
+
+
 class TTYDContext(cmmCtx):
     command_processor = TTYDCommandProcessor
     game = "Paper Mario: The Thousand-Year Door"
@@ -461,6 +511,7 @@ async def ttyd_sync_task(ctx: TTYDContext):
                         logger.info("Checking ROM seed...")
                         seed = read_string(SEED, 0x10)
                         if seed not in ctx.seed_name:
+                            logger.info(ctx.seed_name)
                             await ctx.disconnect()
                             logger.info("ROM Seed does not match Room seed. Please make sure you are using the correct patch.")
                             dolphin.un_hook()

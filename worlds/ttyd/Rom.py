@@ -104,8 +104,9 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write(seed_options["star_shuffle"].to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x24B)
         caller.patcher.dol.data.write(seed_options["dazzle_rewards"].to_bytes(1, "big"))
-        # caller.patcher.dol.data.seek(0x24C)
-        # caller.patcher.dol.data.write() RESERVED
+        console = bool(seed_options.get("console_mode", 0))
+        caller.patcher.dol.data.seek(0x24C)
+        caller.patcher.dol.data.write((1 if console else 0).to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x24D)
         caller.patcher.dol.data.write(seed_options["shop_purchase_limit"].to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x24E)
@@ -134,8 +135,43 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write(pkgutil.get_data(__name__, "data/US.bin"))
         caller.patcher.dol.data.seek(0x6CE38)
         caller.patcher.dol.data.write(int.to_bytes(0x4BF94A50, 4, "big"))
-        #caller.patcher.dol.data.seek(0x3C25FC)
-        #caller.patcher.dol.data.write(int.to_bytes(0x1D84, 4, "big"))
+        if not console:
+            caller.patcher.dol.data.seek(0x3C25FC)
+            caller.patcher.dol.data.write(int.to_bytes(0x33F4, 4, "big"))
+            caller.patcher.dol.data.seek(0x297FB4)
+            caller.patcher.dol.data.write(int.to_bytes(0x48000014, 4, "big"))
+            caller.patcher.dol.data.seek(0x297E74)
+            caller.patcher.dol.data.write(int.to_bytes(0x38A503FF, 4, "big"))
+            caller.patcher.dol.data.seek(0x2D368)
+            caller.patcher.dol.data.write(int.to_bytes(0x3C008200, 4, "big"))
+            caller.patcher.dol.data.write(int.to_bytes(0x901E0000, 4, "big"))
+            caller.patcher.dol.data.write(int.to_bytes(0x3C0083F0, 4, "big"))
+            caller.patcher.dol.data.write(int.to_bytes(0x901D0000, 4, "big"))
+            caller.patcher.dol.data.write(int.to_bytes(0x48000034, 4, "big"))
+            caller.patcher.dol.data.seek(0xDC7C)
+            caller.patcher.dol.data.write(int.to_bytes(0x3C800001, 4, "big"))
+            caller.patcher.dol.data.seek(0xDC90)
+            caller.patcher.dol.data.write(int.to_bytes(0x38804000, 4, "big"))
+            caller.patcher.dol.data.seek(0xDCA4)
+            caller.patcher.dol.data.write(int.to_bytes(0x3CA00001, 4, "big"))
+            caller.patcher.dol.data.seek(0xDCB4)
+            caller.patcher.dol.data.write(int.to_bytes(0x38A04000, 4, "big"))
+            caller.patcher.dol.data.seek(0x3E814)
+            caller.patcher.dol.data.write(int.to_bytes(0x3860FFFF, 4, "big"))
+            caller.patcher.dol.data.seek(0x3E818)
+            caller.patcher.dol.data.write(int.to_bytes(0x4800042C, 4, "big"))
+            caller.patcher.dol.data.seek(0x3F884)
+            caller.patcher.dol.data.write(int.to_bytes(0x38C00200, 4, "big"))
+            for _off in (0x3EF48, 0x3EFF8, 0x3F068, 0x3F118, 0x3F188, 0x3F238,
+                         0x3F2A8, 0x3F358, 0x3F3C4, 0x3F474, 0x3F4EC, 0x3F59C,
+                         0x3F60C, 0x3F6BC, 0x3F72C, 0x3F7DC, 0x3FD74, 0x3FE24):
+                caller.patcher.dol.data.seek(_off)
+                caller.patcher.dol.data.write(int.to_bytes(0x3C040040, 4, "big"))
+            caller.patcher.dol.data.seek(0x3FB18)
+            caller.patcher.dol.data.write(int.to_bytes(0x3C050040, 4, "big"))
+            for _off in (0x3F9B4, 0x3FB30, 0x3FE7C):
+                caller.patcher.dol.data.seek(_off)
+                caller.patcher.dol.data.write(int.to_bytes(0x3C800040, 4, "big"))
         caller.patcher.iso.add_new_directory("files/mod")
         caller.patcher.iso.add_new_directory("files/mod/subrels")
         for file in [file for file in rel_filepaths if file != "mod"]:
@@ -299,7 +335,8 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "shuffle_chapter_stats": world.options.shuffle_chapter_stats.value,
         "badge_bp": world.options.badge_bp.value,
         "badge_fp": world.options.badge_fp.value,
-        "partner_fp": world.options.partner_fp.value
+        "partner_fp": world.options.partner_fp.value,
+        "console_mode": world.options.console_mode.value
     }
 
     buffer = io.BytesIO()

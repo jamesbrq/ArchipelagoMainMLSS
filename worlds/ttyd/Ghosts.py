@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 from CommonClient import logger
 
 GHOST_MAGIC  = 0x47484F53
-VERSION      = 0
+VERSION      = 1
 
 APSETTINGS_ADDR             = 0x80003220
 APSETTINGS_GHOST_STATE_PTR  = APSETTINGS_ADDR + 0x3C  # mod::ghosts::GhostState *
@@ -14,7 +14,7 @@ APSETTINGS_GHOST_STATE_PTR  = APSETTINGS_ADDR + 0x3C  # mod::ghosts::GhostState 
 # Peer block (SharedBlock): 16-byte header + 32 PeerSlots.
 GS_OFF_PEER_BLOCK = 0x0000
 
-MAX_PEERS    = 16
+MAX_PEERS    = 32
 PEER_SIZE    = 212  # v26: +12 for activeLoops[6] uint16 + activeLoopCount byte + alignment
 HEADER_SIZE  = 16
 BLOCK_SIZE   = HEADER_SIZE + MAX_PEERS * PEER_SIZE   # 6800

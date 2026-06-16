@@ -505,10 +505,20 @@ class YoshiName(FreeText):
     default = "Yoshi"
 
 
+class ConsoleMode(Toggle):
+    """
+    ONLY ENABLE THIS IF YOU WANT TO PLAY ON CONSOLE.
+    This will disable all Multiplayer features, and cause the game to be patched in a way that is compatible with console play.
+    The game may lose some functionality compared to the PC version when this is enabled, and is intended for users who want to play the mod on console solo.
+    """
+    display_name = "Console Mode"
+
+
 @dataclass
 class TTYDOptions(PerGameCommonOptions):
     death_link: DeathLink
     start_inventory_from_pool: StartInventoryPool
+    console_mode: ConsoleMode
     goal: Goal
     goal_stars: GoalStars
     palace_stars: PalaceStars
