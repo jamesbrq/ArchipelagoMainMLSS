@@ -514,11 +514,30 @@ class ConsoleMode(Toggle):
     display_name = "Console Mode"
 
 
+class MultiplayerToggle(DefaultOnToggle):
+    """
+    Toggle multiplayer features on or off.
+    Turning this off means you will not see any other players in-game.
+    """
+    display_name = "Multiplayer"
+
+
+class RemoteItems(Toggle):
+    """
+    Toggle Remote Items on or off.
+    Turning this on means all items including ones in your own world will be sent to you from the server.
+    All local items will be AP items.
+    """
+    display_name = "Remote Items"
+
+
 @dataclass
 class TTYDOptions(PerGameCommonOptions):
     death_link: DeathLink
     start_inventory_from_pool: StartInventoryPool
     console_mode: ConsoleMode
+    multiplayer: MultiplayerToggle
+    remote_items: RemoteItems
     goal: Goal
     goal_stars: GoalStars
     palace_stars: PalaceStars

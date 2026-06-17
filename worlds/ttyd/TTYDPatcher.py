@@ -51,17 +51,24 @@ def setup_gclib_path():
         return lib_path
 
 
-def setup_dme_path():
-    """Put the bundled, renamed dolphin_memory_engine_ttyd package (under lib/)
-    on sys.path. MUST be called before `import dolphin_memory_engine_ttyd`.
+def _select_native_binary(pkg_dir: str) -> None:
+    import platform
+    import shutil
+    system = platform.system()
+    if system == "Linux":
+        src = "_abi3_linux_x86_64.so"
+    elif system == "Darwin":
+        machine = platform.machine().lower()
+        src = "_abi3_macos_arm64.so" if machine in ("arm64", "aarch64") else "_abi3_macos_x86_64.so"
+    else:
+        return
+    src_path = os.path.join(pkg_dir, src)
+    dest_path = os.path.join(pkg_dir, "_dolphin_memory_engine.abi3.so")
+    if os.path.exists(src_path) and not os.path.exists(dest_path):
+        shutil.copyfile(src_path, dest_path)
 
-    The package is renamed so it can never collide with Archipelago's stock
-    dolphin_memory_engine. Unlike gclib (pure-Python source), it is a compiled
-    CPython extension, so lib/dolphin_memory_engine_ttyd/ must contain the
-    ABI-tagged binaries (_dolphin_memory_engine.<tag>.pyd/.so) matching the
-    Python that Archipelago ships; CPython auto-selects the right one. Its
-    __init__.py must import the core relatively (from ._dolphin_memory_engine).
-    """
+
+def setup_dme_path():
     base_path = os.path.dirname(__file__)
     lib_path = os.path.join(base_path, "lib")
 
@@ -70,13 +77,7 @@ def setup_dme_path():
         while not zip_file_path.lower().endswith(".apworld"):
             zip_file_path = os.path.dirname(zip_file_path)
 
-        # Key the extraction dir to the .apworld's mtime: a rebuilt apworld
-        # re-extracts to a fresh dir, while repeated runs AND the
-        # multiprocessing-spawn child reuse the existing files. Re-extracting
-        # would try to overwrite _dolphin_memory_engine.pyd while the parent
-        # process holds it loaded -> Windows locks loaded DLLs -> PermissionError.
-        stamp = str(int(os.path.getmtime(zip_file_path)))
-        target_dir_path = os.path.join(tempfile.gettempdir(), "ttyd_temp_dme", stamp)
+        target_dir_path = os.path.join(tempfile.gettempdir(), "ttyd_temp_dme")
         lib_parent = os.path.join(target_dir_path, "ttyd", "lib")
         marker = os.path.join(lib_parent, "dolphin_memory_engine_ttyd", "__init__.py")
 
@@ -89,10 +90,22 @@ def setup_dme_path():
     else:
         lib_parent = lib_path
 
+    _select_native_binary(os.path.join(lib_parent, "dolphin_memory_engine_ttyd"))
+
     if lib_parent not in sys.path:
         sys.path.insert(0, lib_parent)
 
+    pkg_dir = os.path.join(lib_parent, "dolphin_memory_engine_ttyd")
+    if hasattr(os, "add_dll_directory") and os.path.isdir(pkg_dir):
+        try:
+            os.add_dll_directory(pkg_dir)
+        except OSError:
+            pass
+
     return lib_parent
+
+
+dolphin = None
 
 
 class TTYDPatcher:
