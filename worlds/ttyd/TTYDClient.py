@@ -439,6 +439,14 @@ class TTYDContext(cmmCtx):
             if info is None or info[0] != GSWType.GSWF:
                 continue
             flag = info[1]
+            # Tattle locations don't use the placeholder flag stored in
+            # location_gsw_info; the game tracks them at 0x117A + unit_id.
+            # Mirror the translation done in check_ttyd_locations so we push
+            # the real in-game GSWF bit, not the AP-internal placeholder.
+            if 78780850 <= item.location <= 78780973:
+                flag = 0x117A + location_to_unit[item.location][0]
+            if flag <= 0:
+                continue  # no valid flag to set; never push 0 into the ring
             if flag in self._pushed_recv_flags:
                 continue
             if gswf_check(flag):
@@ -602,7 +610,45 @@ async def _patch_and_run_game(patch_file: str):
     Utils.async_start(_run_game(output_file))
     return metadata
 
+def _installed_world_version():
+    """world_version of the apworld currently running this client."""
+    import pkgutil
+    import json
+    try:
+        data = pkgutil.get_data(__name__, "archipelago.json")
+        if data is None:
+            return None
+        return json.loads(data.decode("utf-8")).get("world_version")
+    except Exception:
+        return None
+
+
+def _patch_world_version(patch_file: str):
+    """world_version that was baked into the patch's options.json at generation.
+    The .apttyd is a zip archive; read the member directly without patching."""
+    import zipfile
+    import json
+    try:
+        with zipfile.ZipFile(patch_file) as zf:
+            with zf.open("options.json") as f:
+                return json.loads(f.read().decode("utf-8")).get("world_version")
+    except Exception:
+        return None
+
+
 async def ttyd_sync_task(ctx: TTYDContext):
+    if getattr(ctx, "patch_provided", False):
+        patch_version = getattr(ctx, "patch_world_version", None)
+        current_version = _installed_world_version()
+        if patch_version is None:
+            logger.warning("This patch is missing a world version - it was generated with an "
+                           "older apworld. The client will still connect, but behavior may be "
+                           "incorrect; regenerate with a matching apworld if you hit issues.")
+        elif current_version is not None and patch_version != current_version:
+            logger.warning(f"Patch world version ({patch_version}) does not match the installed "
+                           f"apworld version ({current_version}). The client will still connect, "
+                           f"but behavior may be incorrect; use the matching apworld version or "
+                           f"regenerate your patch if you hit issues.")
     logger.info("Starting Dolphin connector...")
     while not ctx.exit_event.is_set():
         try:
@@ -723,6 +769,10 @@ def launch(*args):
         if args.patch_file:
             await asyncio.create_task(_patch_and_run_game(args.patch_file))
         ctx = TTYDContext(args.connect, args.password)
+        ctx.patch_world_version = None
+        ctx.patch_provided = bool(args.patch_file)
+        if args.patch_file:
+            ctx.patch_world_version = _patch_world_version(args.patch_file)
         ctx.server_task = asyncio.create_task(server_loop(ctx), name="ServerLoop")
         if gui_enabled:
             if tracker_loaded:
