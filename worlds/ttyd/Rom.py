@@ -45,6 +45,7 @@ class TTYDPatchExtension(APPatchExtension):
 
     @staticmethod
     def patch_mod(caller: "TTYDProcedurePatch") -> None:
+        from CommonClient import logger
         manifest_data = pkgutil.get_data(__name__, "archipelago.json")
         if manifest_data is None:
             raise Exception("TTYD APWorld is missing manifest file (archipelago.json)")
@@ -56,10 +57,14 @@ class TTYDPatchExtension(APPatchExtension):
         seed_options = json.loads(caller.get_file("options.json").decode("utf-8"))
         patch_version = seed_options.get("world_version")
         if patch_version is None:
-            raise Exception("Patch file is missing world_version - regenerate with a newer APWorld")
-        if patch_version != current_version:
-            raise Exception(f"Patch version ({patch_version}) does not match APWorld version ({current_version}). "
-                            f"Please regenerate your patch file or use the matching APWorld version.")
+            logger.warning("TTYD patch file is missing world_version - it was generated with an "
+                           "older APWorld. Patching anyway, but behavior may be incorrect; "
+                           "regenerate with a matching APWorld if you hit issues.")
+        elif patch_version != current_version:
+            logger.warning(f"TTYD patch version ({patch_version}) does not match APWorld version "
+                           f"({current_version}). Patching anyway, but behavior may be incorrect; "
+                           f"regenerate your patch file or use the matching APWorld version if you "
+                           f"hit issues.")
 
         name_length = min(len(seed_options["player_name"]), 0x10)
         random.seed(seed_options["seed"] + seed_options["player"])

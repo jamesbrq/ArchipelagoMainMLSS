@@ -46,7 +46,7 @@ ROOM = 0x803DF728
 GAME_ID_ADDRESS = 0x80000000
 EXPECTED_GAME_ID = b"G8ME01"
 
-RECV_FLAG_RING = 0x80003C00
+RECV_FLAG_RING = 0x80004600
 RECV_FLAG_HEAD = RECV_FLAG_RING + 0x0
 RECV_FLAG_TAIL = RECV_FLAG_RING + 0x2
 RECV_FLAG_EVENTS = RECV_FLAG_RING + 0x4
@@ -485,38 +485,32 @@ class TTYDContext(cmmCtx):
         if value > 1:
             return False
         return value > 0
-def _dolphin_user_dir(dolphin_path: str) -> str:
+
+
+def _dolphin_sys_gamesettings_dir(dolphin_path: str) -> str:
+    """Resolve <Dolphin install>/Sys/GameSettings from the same path used to
+    launch the emulator. We don't run the exe for this - we just walk from it
+    to the Sys folder that ships beside it (inside the .app bundle on macOS)."""
     import os
     import sys
 
     exe_dir = os.path.dirname(os.path.abspath(dolphin_path))
-    if os.path.isfile(os.path.join(exe_dir, "portable.txt")):  # portable build
-        return os.path.join(exe_dir, "User")
 
-    env = os.environ.get("DOLPHIN_EMU_USERPATH")
-    if env:
-        return env
-
-    home = os.path.expanduser("~")
     if sys.platform == "darwin":
-        # macOS: a .app bundle may also carry its own portable User dir.
-        app = exe_dir
+        # dolphin_path may be the .app bundle itself or the inner binary.
+        app = os.path.abspath(dolphin_path)
         while app and not app.endswith(".app"):
             parent = os.path.dirname(app)
             if parent == app:
                 app = ""
                 break
             app = parent
-        if app and os.path.isfile(os.path.join(app, "Contents", "Resources", "portable.txt")):
-            return os.path.join(app, "Contents", "Resources", "User")
-        return os.path.join(home, "Library", "Application Support", "Dolphin")
-    if sys.platform.startswith("linux"):
-        legacy = os.path.join(home, ".dolphin-emu")
-        if os.path.isdir(legacy):
-            return legacy
-        xdg = os.environ.get("XDG_DATA_HOME") or os.path.join(home, ".local", "share")
-        return os.path.join(xdg, "dolphin-emu")
-    return os.path.join(home, "Documents", "Dolphin Emulator")
+        if app:
+            return os.path.join(app, "Contents", "Resources", "Sys", "GameSettings")
+        # Fall through to exe-relative if not a bundle.
+
+    return os.path.join(exe_dir, "Sys", "GameSettings")
+
 
 
 def _apply_dolphin_game_settings(dolphin_path: str) -> None:
@@ -528,7 +522,7 @@ def _apply_dolphin_game_settings(dolphin_path: str) -> None:
         "MEM1Size": "67108864",  # 0x04000000 = 64 MB
     }
     try:
-        ini_path = os.path.join(_dolphin_user_dir(dolphin_path), "GameSettings", "G8ME01.ini")
+        ini_path = os.path.join(_dolphin_sys_gamesettings_dir(dolphin_path), "G8ME01.ini")
         os.makedirs(os.path.dirname(ini_path), exist_ok=True)
 
         lines = []
@@ -712,10 +706,10 @@ async def ttyd_sync_task(ctx: TTYDContext):
 
 
 def trigger_death(ctx):
-    """Receive a deathlink from another world: write 1 to the AP
-    scratch death byte so the game kills the player on next tick."""
     try:
-        dolphin.write_byte(0x80003240, 1)
+        if ctx.slot is not None and dolphin.is_hooked() and ctx.dolphin_connected and validate_connection():
+            ctx.death_sent = True
+            dolphin.write_byte(0x8000323F, 1)
     except Exception:
         logger.exception("trigger_death: write failed")
 
