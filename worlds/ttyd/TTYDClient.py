@@ -1,10 +1,3 @@
-# Install the bundled (forked) dolphin_memory_engine before ANY dme import,
-# then import it eagerly here. The client is only ever imported when actually
-# running the connector (never during generation/patching), so this is the
-# right place for the native load to happen and to surface a clean error if
-# the binary can't load. We publish the module onto TTYDPatcher so that
-# .ttyd_runtime's `from .TTYDPatcher import dolphin` (run during the import
-# below) binds the real module without a circular import.
 from . import TTYDPatcher
 TTYDPatcher.setup_dme_path()
 import dolphin_memory_engine_ttyd as dolphin
@@ -432,30 +425,29 @@ class TTYDContext(cmmCtx):
     async def set_received_item_flags(self):
         if not self.slot_data.get("remote_items"):
             return
-        for item in self.items_received:
-            if item.player != self.slot:
-                continue
-            info = location_gsw_info.get(item.location)
+            
+        if not self.save_loaded():
+            return
+            
+        for location in self.checked_locations:
+            info = location_gsw_info.get(location)
             if info is None or info[0] != GSWType.GSWF:
                 continue
             flag = info[1]
-            # Tattle locations don't use the placeholder flag stored in
-            # location_gsw_info; the game tracks them at 0x117A + unit_id.
-            # Mirror the translation done in check_ttyd_locations so we push
-            # the real in-game GSWF bit, not the AP-internal placeholder.
-            if 78780850 <= item.location <= 78780973:
-                flag = 0x117A + location_to_unit[item.location][0]
+
+            if 78780850 <= location <= 78780973:
+                flag = 0x117A + location_to_unit[location][0]
             if flag <= 0:
-                continue  # no valid flag to set; never push 0 into the ring
+                continue
             if flag in self._pushed_recv_flags:
                 continue
             if gswf_check(flag):
-                self._pushed_recv_flags.add(flag)  # already set in-game
+                self._pushed_recv_flags.add(flag)
                 continue
             if self._push_recv_flag(flag):
                 self._pushed_recv_flags.add(flag)
             else:
-                break  # ring full; retry remaining flags next tick
+                break
 
     async def check_ttyd_locations(self):
         locations_to_send = set()
@@ -496,9 +488,6 @@ class TTYDContext(cmmCtx):
 
 
 def _dolphin_sys_gamesettings_dir(dolphin_path: str) -> str:
-    """Resolve <Dolphin install>/Sys/GameSettings from the same path used to
-    launch the emulator. We don't run the exe for this - we just walk from it
-    to the Sys folder that ships beside it (inside the .app bundle on macOS)."""
     import os
     import sys
 
