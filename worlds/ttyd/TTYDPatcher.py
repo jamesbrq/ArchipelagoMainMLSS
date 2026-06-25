@@ -77,16 +77,34 @@ def setup_dme_path():
         while not zip_file_path.lower().endswith(".apworld"):
             zip_file_path = os.path.dirname(zip_file_path)
 
+        stat = os.stat(zip_file_path)
+        stamp = f"{int(stat.st_mtime)}_{stat.st_size}"
+
         target_dir_path = os.path.join(tempfile.gettempdir(), "ttyd_temp_dme")
         lib_parent = os.path.join(target_dir_path, "ttyd", "lib")
-        marker = os.path.join(lib_parent, "dolphin_memory_engine_ttyd", "__init__.py")
+        stamp_file = os.path.join(target_dir_path, ".apworld_stamp")
 
-        if not os.path.exists(marker):
+        current = None
+        if os.path.exists(stamp_file):
+            try:
+                with open(stamp_file, "r") as f:
+                    current = f.read().strip()
+            except OSError:
+                current = None
+
+        if current != stamp:
+            import shutil
+            shutil.rmtree(target_dir_path, ignore_errors=True)
             os.makedirs(target_dir_path, exist_ok=True)
             with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
                 for member in zip_ref.namelist():
                     if "dolphin_memory_engine" in member:
                         zip_ref.extract(member, target_dir_path)
+            try:
+                with open(stamp_file, "w") as f:
+                    f.write(stamp)
+            except OSError:
+                pass
     else:
         lib_parent = lib_path
 

@@ -534,7 +534,6 @@ class RemoteItems(Toggle):
 @dataclass
 class TTYDOptions(PerGameCommonOptions):
     death_link: DeathLink
-    start_inventory_from_pool: StartInventoryPool
     console_mode: ConsoleMode
     multiplayer: MultiplayerToggle
     remote_items: RemoteItems
