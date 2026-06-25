@@ -69,7 +69,6 @@ def validate_connection() -> bool:
     """Verify DME is hooked to TTYD by checking the GameCube disc Game ID in memory."""
     try:
         game_id = dolphin.read_bytes(GAME_ID_ADDRESS, 6)
-        logger.info(f"Game ID read from memory: {game_id}")
         return game_id == EXPECTED_GAME_ID
     except Exception:
         return False
