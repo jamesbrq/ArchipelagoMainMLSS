@@ -305,6 +305,30 @@ class ShuffleChapterStats(Toggle):
     display_name = "Shuffle Chapter Stats"
 
 
+class BossRandomizer(Choice):
+    """
+    Shuffles bosses amongst each other.
+    vanilla: Bosses will be the same as the original game.
+    chapter_bosses: Only end-of-chapter bosses will be shuffled amongst each other.
+    mini_bosses: Only mini-bosses will be shuffled amongst each other.
+    full: All bosses and mini-bosses will be shuffled together.
+    """
+    display_name = "Boss Randomizer"
+    option_vanilla = 0
+    option_chapter_bosses = 1
+    option_mini_bosses = 2
+    option_full = 3
+    default = 0
+
+
+class BossStatScaling(DefaultOnToggle):
+    """
+    Scales randomized bosses to replicate the exact HP and level of the boss that originally occupied that fight.
+    This is independent of Enemy Stat Scaling and only affects bosses; when disabled, bosses are never scaled.
+    """
+    display_name = "Boss Stat Scaling"
+
+
 class PermanentPeekaboo(Toggle):
     """
     The Peekaboo badge is always active, even when not equipped.
@@ -566,6 +590,8 @@ class TTYDOptions(PerGameCommonOptions):
     encounter_shuffle_type: EncounterShuffleType
     enemy_stat_scaling: EnemyStatScaling
     shuffle_chapter_stats: ShuffleChapterStats
+    boss_randomizer: BossRandomizer
+    boss_stat_scaling: BossStatScaling
     permanent_peekaboo: PermanentPeekaboo
     full_run_bar: FullRunBar
     first_attack: ZeroBPFirstAttack

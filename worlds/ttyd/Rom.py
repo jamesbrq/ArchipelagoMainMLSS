@@ -112,9 +112,6 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write(seed_options.get("star_shuffle", 1).to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x24B)
         caller.patcher.dol.data.write(seed_options.get("dazzle_rewards", 3).to_bytes(1, "big"))
-        console = bool(seed_options.get("console_mode", 0))
-        caller.patcher.dol.data.seek(0x24C)
-        caller.patcher.dol.data.write((1 if console else 0).to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x24D)
         caller.patcher.dol.data.write(seed_options.get("shop_purchase_limit", 1).to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x24E)
@@ -135,6 +132,13 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write(seed_options.get("badge_fp", 0).to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x25A)
         caller.patcher.dol.data.write(seed_options.get("partner_fp", 0).to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x25B)
+        caller.patcher.dol.data.write(seed_options.get("boss_randomizer", 0).to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x280)
+        caller.patcher.dol.data.write(seed_options.get("boss_stat_scaling", 0).to_bytes(1, "big"))
+        console = bool(seed_options.get("console_mode", 0))
+        caller.patcher.dol.data.seek(0x281)
+        caller.patcher.dol.data.write((1 if console else 0).to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x260)
         caller.patcher.dol.data.write(seed_options.get("yoshi_name", "Yoshi").encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
@@ -146,6 +150,8 @@ class TTYDPatchExtension(APPatchExtension):
         if not console:
             caller.patcher.dol.data.seek(0x3C25FC)
             caller.patcher.dol.data.write(int.to_bytes(0x33F4, 4, "big"))
+            caller.patcher.dol.data.seek(0x3C2604)
+            caller.patcher.dol.data.write(int.to_bytes(0x1178, 4, "big"))
             caller.patcher.dol.data.seek(0x297FB4)
             caller.patcher.dol.data.write(int.to_bytes(0x48000014, 4, "big"))
             caller.patcher.dol.data.seek(0x297E74)
@@ -186,7 +192,9 @@ class TTYDPatchExtension(APPatchExtension):
             caller.patcher.iso.add_new_file(f"files/mod/subrels/{file}.rel", io.BytesIO(pkgutil.get_data(__name__, f"data/{file}.rel")))
         caller.patcher.iso.add_new_file("files/mod/mod.rel", io.BytesIO(pkgutil.get_data(__name__, f"data/mod.rel")))
         caller.patcher.iso.add_new_file("files/mod/custom.rel", io.BytesIO(pkgutil.get_data(__name__, f"data/custom.rel")))
+        caller.patcher.iso.add_new_file("files/mod/custom2.rel", io.BytesIO(pkgutil.get_data(__name__, f"data/custom2.rel")))
         caller.patcher.iso.add_new_file("files/mod/enemies.bin", io.BytesIO(caller.get_file("enemies.bin")))
+        caller.patcher.iso.add_new_file("files/mod/bosses.bin", io.BytesIO(caller.get_file("bosses.bin")))
         caller.patcher.iso.add_new_file("files/msg/US/mod.txt", io.BytesIO(pkgutil.get_data(__name__, f"data/mod.txt")))
         caller.patcher.iso.add_new_file("files/msg/US/desc.txt", io.BytesIO(caller.get_file("desc.txt")))
 
@@ -350,6 +358,8 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "grubba_bribe_cost": world.options.grubba_bribe_cost.value,
         "blue_pipe_toggle": world.options.blue_pipe_toggle.value,
         "enemy_randomizer": world.options.enemy_randomizer.value,
+        "boss_randomizer": world.options.boss_randomizer.value,
+        "boss_stat_scaling": world.options.boss_stat_scaling.value,
         "enemy_stat_scaling": world.options.enemy_stat_scaling.value,
         "shuffle_chapter_stats": world.options.shuffle_chapter_stats.value,
         "badge_bp": world.options.badge_bp.value,
@@ -379,12 +389,22 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         for eid in ids:
             enemy_buffer.write(struct.pack("B", eid))
 
+    boss_buffer = io.BytesIO()
+    bosses = world.bosses
+    boss_buffer.write(struct.pack(">H", len(bosses)))
+    for entry in bosses:
+        ids = entry.enemy_ids
+        boss_buffer.write(struct.pack("B", len(ids)))
+        for eid in ids:
+            boss_buffer.write(struct.pack("B", eid))
+
     max_desc_size = 0x1000
     desc_data = buffer.getvalue()
     patch.write_file("desc.txt", desc_data + b'\x00' * (max_desc_size - len(desc_data)))
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))
     patch.write_file("enemies.bin", enemy_buffer.getvalue())
+    patch.write_file("bosses.bin", boss_buffer.getvalue())
 
 def classification_to_color(classification: ItemClassification = ItemClassification.filler) -> str:
     if classification & ItemClassification.progression:

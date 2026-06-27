@@ -4,7 +4,8 @@ import typing
 
 from worlds.generic.Rules import add_rule, forbid_items_for_player
 from . import StateLogic, location_table, EnemyRandomizer
-from .Options import Goal, PitItems
+from .Boss import parse_json_bosses
+from .Options import Goal, PitItems, BossRandomizer
 from .Data import stars, pit_exclusive_tattle_stars_required, location_to_unit
 from .Locations import get_location_ids, get_locations_by_tags, location_id_to_name
 from .Options import PalaceSkip
@@ -39,6 +40,7 @@ def set_tattle_rules(world: "TTYDWorld"):
         add_rule(world.get_location(location.name), lambda state: state.has("Goombella", world.player))
     rules_dict = get_random_enemy_tattle_rules_dict(world) \
         if world.options.enemy_randomizer != EnemyRandomizer.option_vanilla \
+        or world.options.boss_randomizer != BossRandomizer.option_vanilla \
         else get_tattle_rules_dict()
     for location_name, locations in rules_dict.items():
         if location_name in world.disabled_locations:
@@ -270,24 +272,63 @@ def get_tattle_rules_dict() -> dict[str, typing.List[int]]:
 def get_random_enemy_tattle_rules_dict(world: "TTYDWorld") -> dict[str, list[int]]:
     base_rules = get_tattle_rules_dict()
 
+    enemy_random = world.options.enemy_randomizer != EnemyRandomizer.option_vanilla
+    boss_random = world.options.boss_randomizer != BossRandomizer.option_vanilla
+
     encounter_enemy_sets = [
         (enc.location_id, set(enc.enemy_ids))
         for enc in world.encounters
-    ]
+    ] if enemy_random else []
+
+    # Boss randomizer: each arena keeps its vanilla tattle gating; whichever boss
+    # now occupies that arena inherits those locations (a permutation of base_rules).
+    boss_overrides: dict[str, list[int]] = {}
+    if boss_random:
+        unit_to_base: dict[int, list[int]] = {}
+        unit_to_key: dict[int, str] = {}
+        for key in base_rules:
+            for uid in location_to_unit[location_table[key]]:
+                unit_to_base.setdefault(uid, list(base_rules[key]))
+                unit_to_key.setdefault(uid, key)
+        for current, original in zip(world.bosses, parse_json_bosses()):
+            arena_locations: list[int] = []
+            for uid in original.enemy_ids:
+                arena_locations += unit_to_base.get(uid, [])
+            for uid in current.enemy_ids:
+                key = unit_to_key.get(uid)
+                if key is not None:
+                    boss_overrides.setdefault(key, [])
+                    boss_overrides[key] += arena_locations
 
     result: dict[str, list[int]] = {}
 
     for key in base_rules:
-        tattle_ids = set(location_to_unit[location_table[key]])  # <-- FIX
+        tattle_ids = set(location_to_unit[location_table[key]])
+        is_boss = key in boss_overrides
 
-        matching_locations = [
-            loc_id
-            for loc_id, enemy_set in encounter_enemy_sets
-            if enemy_set & tattle_ids
-        ]
-
-        # fallback to base rule if random finds nothing
-        result[key] = matching_locations if matching_locations else list(base_rules[key])
+        if is_boss:
+            # boss arena gating is a permutation of base_rules, merged with any normal
+            # encounters the unit also appears in. An empty result means the boss now
+            # sits in an endgame/untattleable arena, so leave it empty (set_tattle_rules
+            # routes [] to palace/Shadow Queen access) rather than falling back to this
+            # boss's own vanilla location, which would under-gate.
+            matching_locations = [
+                loc_id
+                for loc_id, enemy_set in encounter_enemy_sets
+                if enemy_set & tattle_ids
+            ]
+            matching_locations += boss_overrides[key]
+            result[key] = list(dict.fromkeys(matching_locations))
+        elif enemy_random:
+            matching_locations = [
+                loc_id
+                for loc_id, enemy_set in encounter_enemy_sets
+                if enemy_set & tattle_ids
+            ]
+            # fallback to base rule if random finds nothing
+            result[key] = matching_locations if matching_locations else list(base_rules[key])
+        else:
+            result[key] = list(base_rules[key])
 
         if key == "Tattle: Mini-Yux":
             result[key] = result["Tattle: Yux"]

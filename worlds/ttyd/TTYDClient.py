@@ -752,7 +752,8 @@ def trigger_death(ctx):
 def launch(*args):
     async def main(args):
         try:
-            _apply_dolphin_game_settings(settings.get_settings().ttyd_options.dolphin_path)
+            pass
+            #_apply_dolphin_game_settings(settings.get_settings().ttyd_options.dolphin_path)
         except Exception:
             pass
         if args.patch_file:

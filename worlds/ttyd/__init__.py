@@ -10,10 +10,11 @@ from .Data import starting_partners, stars, limit_pit, \
     pit_exclusive_tattle_stars_required, dazzle_counts, dazzle_location_names, chapter_keysanity_tags, \
     chapter_keys, limited_tags, limited_tag_items
 from .Enemy import Encounter, parse_json_encounters, randomize_encounters
+from .Boss import BossEncounter, parse_json_bosses, randomize_bosses
 from .Locations import all_locations, location_table, location_id_to_name, TTYDLocation, locationName_to_data, \
     get_locations_by_tags, get_vanilla_item_names, get_location_names, LocationData
 from .Options import Piecesanity, TTYDOptions, YoshiColor, StartingPartner, PitItems, LimitChapterEight, Goal, \
-    DazzleRewards, StarShuffle, EnemyRandomizer
+    DazzleRewards, StarShuffle, EnemyRandomizer, BossRandomizer
 from .Items import TTYDItem, itemList, item_table, ItemData, items_by_id
 from .Regions import create_regions, connect_regions, get_regions_dict, register_indirect_connections
 from .Rom import TTYDProcedurePatch, write_files
@@ -98,6 +99,7 @@ class TTYDWorld(World):
     locked_item_frequencies: Dict[str, int]
     in_pre_fill: bool
     encounters: list[Encounter] = None
+    bosses: list[BossEncounter] = None
     ut_can_gen_without_yaml = True
 
 
@@ -113,6 +115,7 @@ class TTYDWorld(World):
         self.limited_misc_locations = set()
         self.locked_item_frequencies = {}
         self.encounters = parse_json_encounters()
+        self.bosses = parse_json_bosses()
         # implementing yaml-less UT support
         if hasattr(self.multiworld, "re_gen_passthrough"):
             if self.game in self.multiworld.re_gen_passthrough:
@@ -133,6 +136,7 @@ class TTYDWorld(World):
                 self.options.shinesanity.value = slot_data["shinesanity"]
                 self.options.blue_pipe_toggle.value = slot_data["blue_pipe_toggle"]
                 self.options.enemy_randomizer.value = slot_data["enemy_randomizer"]
+                self.options.boss_randomizer.value = slot_data["boss_randomizer"]
                 return
         if self.options.limit_chapter_eight and self.options.palace_skip:
             logging.warning(f"{self.player_name}'s has enabled both Palace Skip and Limit Chapter 8. "
@@ -174,12 +178,15 @@ class TTYDWorld(World):
             self.disabled_locations.update(["Tattle: Lord Crump"])
         if self.options.enemy_randomizer != EnemyRandomizer.option_vanilla:
             randomize_encounters(self)
+        if self.options.boss_randomizer != BossRandomizer.option_vanilla:
+            randomize_bosses(self)
         if self.options.tattlesanity:
             extra_disabled = [location.name for name, locations in get_regions_dict().items()
                               if name in self.excluded_regions for location in locations]
             rules_dict = (
                 get_random_enemy_tattle_rules_dict(self)
                 if self.options.enemy_randomizer != EnemyRandomizer.option_vanilla
+                or self.options.boss_randomizer != BossRandomizer.option_vanilla
                 else get_tattle_rules_dict()
             )
             for location_name, locations in rules_dict.items():
@@ -289,6 +296,7 @@ class TTYDWorld(World):
         rules_dict = (
             get_random_enemy_tattle_rules_dict(self)
             if self.options.enemy_randomizer != EnemyRandomizer.option_vanilla
+            or self.options.boss_randomizer != BossRandomizer.option_vanilla
             else base_rules
         )
 
@@ -451,8 +459,10 @@ class TTYDWorld(World):
             "shinesanity": self.options.shinesanity.value,
             "blue_pipe_toggle": self.options.blue_pipe_toggle.value,
             "enemy_randomizer": self.options.enemy_randomizer.value,
+            "boss_randomizer": self.options.boss_randomizer.value,
             "tattle_rules": get_random_enemy_tattle_rules_dict(self)
             if self.options.enemy_randomizer != EnemyRandomizer.option_vanilla
+            or self.options.boss_randomizer != BossRandomizer.option_vanilla
             else get_tattle_rules_dict(),
             "multiplayer": self.options.multiplayer.value,
             "remote_items": self.options.remote_items.value,
