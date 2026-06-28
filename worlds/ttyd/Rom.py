@@ -147,6 +147,8 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write(pkgutil.get_data(__name__, "data/US.bin"))
         caller.patcher.dol.data.seek(0x6CE38)
         caller.patcher.dol.data.write(int.to_bytes(0x4BF94A50, 4, "big"))
+        caller.patcher.dol.data.seek(0x3C2604)
+        caller.patcher.dol.data.write(int.to_bytes(0xF20, 4, "big"))
         if not console:
             caller.patcher.dol.data.seek(0x3C25FC)
             caller.patcher.dol.data.write(int.to_bytes(0x33F4, 4, "big"))
