@@ -3131,5 +3131,46 @@
   "Rogueport Sewers Town: Dazzle Item 15": {
     "has": "Star Piece",
     "count": 100
+  },
+  "Rogueport Eastside: Garf's Trouble Reward": {
+    "has": "House Key"
+  },
+  "Rogueport Center: McGoomba's Trouble Reward": {
+    "has": "Box"
+  },
+  "Rogueport Docks: Bomberto's Trouble Reward": {
+    "has": "Walrus Whiskers"
+  },
+  "Hooktail's Castle Life Shroom Room: Koopook's Trouble Reward": {
+    "can_reach": "Hooktail's Castle Hooktail's Room: Diamond Star"
+  },
+  "Petalburg Eastside: Kroop's Trouble Reward": {
+    "can_reach": "Hooktail's Castle Hooktail's Room: Diamond Star"
+  },
+  "Rogueport Center: Plenn T's Trouble Reward": {
+    "and": [
+      {
+        "can_reach": "Hooktail's Castle Hooktail's Room: Diamond Star"
+      },
+      {
+        "has": "Courage Shell Pack"
+      }
+    ]
+  },
+  "Great Tree Entrance: Puni Elder's Trouble Reward": {
+    "and": [
+      {
+        "can_reach": "Great Tree Entrance: Emerald Star"
+      },
+      {
+        "has": "Life Shroom"
+      }
+    ]
+  },
+  "Rogueport Westside: Lahla's Trouble Reward": {
+    "can_reach": "Great Tree Entrance: Emerald Star"
+  },
+  "Rogueport Sewers Pit Entrance: Pine T. Jr's Trouble Reward": {
+    "can_reach": "Great Tree Entrance: Emerald Star"
   }
 }
