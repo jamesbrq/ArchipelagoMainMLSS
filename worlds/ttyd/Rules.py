@@ -17,6 +17,9 @@ if typing.TYPE_CHECKING:
 def set_rules(world: "TTYDWorld"):
     for location, rule in create_lambda_from_json(pkgutil.get_data(__name__, "json/rules.json").decode(), world).items():
         if location not in world.disabled_locations:
+            if location == "Glitzville Promoter's Office: Jolene's Trouble Reward" and not world.options.troublesanity:
+                add_rule(world.multiworld.get_location(location, world.player), lambda state: state.has("Battle Trunks", world.player, 20))
+                continue
             add_rule(world.multiworld.get_location(location, world.player), rule)
 
     for location in ["Palace of Shadow Final Staircase: Ultra Shroom", "Palace of Shadow Final Staircase: Jammin' Jelly"]:

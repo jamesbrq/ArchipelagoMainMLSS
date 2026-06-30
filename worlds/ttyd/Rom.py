@@ -141,6 +141,8 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write((1 if console else 0).to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x282)
         caller.patcher.dol.data.write(seed_options.get("moon_speed", 0).to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x283)
+        caller.patcher.dol.data.write(seed_options.get("troubles", 0).to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x260)
         caller.patcher.dol.data.write(seed_options.get("yoshi_name", "Yoshi").encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
@@ -263,7 +265,7 @@ class TTYDPatchExtension(APPatchExtension):
                             caller.patcher.dol.data.seek(0xB00 + ((unit_id - 1) * 2))
                             caller.patcher.dol.data.write(rom_id.to_bytes(2, "big"))
                         continue
-                    if "Dazzle" in location_name:
+                    if "Dazzle" in location_name or "Battle Trunks" in location_name:
                         caller.patcher.dol.data.seek(data.offset[0])
                         caller.patcher.dol.data.write(rom_id.to_bytes(2, "big"))
                 else:
@@ -371,7 +373,8 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "partner_fp": world.options.partner_fp.value,
         "console_mode": world.options.console_mode.value,
         "remote_items": world.options.remote_items.value,
-        "moon_speed": world.options.moon_speed.value
+        "moon_speed": world.options.moon_speed.value,
+        "troubles": world.options.troublesanity.value,
     }
 
     buffer = io.BytesIO()

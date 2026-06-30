@@ -730,16 +730,21 @@ location_gsw_info = {
     78780987: (GSWType.GSW, 1726, 14),   # Dazzle Item 14
     78780988: (GSWType.GSW, 1726, 15),   # Dazzle Item 15
     # Troubles
-    78780989: (GSWType.GSW, 1731, 2), # Garf Reward
-    78780990: (GSWType.GSWF, 6331, 1), # Garf House Key
-    78780991: (GSWType.GSW, 1732, 2), # McGoomba Reward
-    78780992: (GSWType.GSW, 1762, 1), # McGoomba Box
-    78780993: (GSWType.GSW, 1733, 2), # Arfurs Reward
-    78780994: (GSWType.GSW, 1734, 2), # Goomthers Reward
-    78780995: (GSWType.GSW, 1735, 2), # Mousimilians Reward
-    78780996: (GSWType.GSW, 1736, 2), # Bombertos Reward
-    78780997: (GSWType.GSW, 1737, 2), # Koopooks Reward
-    78780998: (GSWType.GSWF, 1629, 1), # Koopooks Reward
+    78780989: (GSWType.GSW, 1731, 2), # Garf's Reward
+    78780990: (GSWType.GSWF, 6331, 1), # Garf's House Key
+    78780991: (GSWType.GSW, 1732, 2), # McGoomba's Reward
+    78780992: (GSWType.GSW, 1762, 1), # McGoomba's Box
+    78780993: (GSWType.GSW, 1733, 2), # Arfur's Reward
+    78780994: (GSWType.GSW, 1734, 2), # Goomther's Reward
+    78780995: (GSWType.GSW, 1735, 2), # Mousimilian's Reward
+    78780996: (GSWType.GSW, 1736, 2), # Bomberto's Reward
+    78780997: (GSWType.GSW, 1737, 2), # Koopook's Reward
+    78780998: (GSWType.GSWF, 1629, 1), # Kroop's Reward
+    78780999: (GSWType.GSW, 1709, 2), # Plenn T's Reward
+    78781000: (GSWType.GSW, 1710, 2), # Puni Elder's Reward
+    78781001: (GSWType.GSW, 1711, 2), # Lahla's Reward
+    78781002: (GSWType.GSW, 1712, 2), # Pine. T's Reward
+    78781023: (GSWType.GSW, 1713, 2), # Jolene's Reward
 }
 
 item_prices = {

@@ -126,13 +126,6 @@
     "frequency": 4
   },
   {
-    "item_name": "Briefcase",
-    "id": 77772018,
-    "progression": "progression",
-    "rom_id": 81,
-    "frequency": 1
-  },
-  {
     "item_name": "Bump Attack",
     "id": 77772019,
     "progression": "useful",
@@ -1579,6 +1572,20 @@
     "id": 77772236,
     "progression": "useful",
     "rom_id": 94,
+    "frequency": 1
+  },
+  {
+    "item_name": "Battle Trunks",
+    "id": 77772237,
+    "progression": "progression",
+    "rom_id": 107,
+    "frequency": 0
+  },
+  {
+    "item_name": "Battle Trunks Pack",
+    "id": 77772238,
+    "progression": "progression",
+    "rom_id": 81,
     "frequency": 1
   }
 ]

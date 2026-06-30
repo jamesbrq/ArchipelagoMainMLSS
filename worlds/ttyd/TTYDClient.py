@@ -653,13 +653,10 @@ async def ttyd_sync_task(ctx: TTYDContext):
                 try:
                     if not validate_connection():
                         logger.info("TTYD is no longer running. Disconnecting from Dolphin.")
-                        try:
-                            await _vlink_send_part(ctx)
-                        except Exception:
-                            pass
                         dolphin.un_hook()
                         ctx.dolphin_connected = False
                         ctx.seed_verified = False
+                        await ctx.disconnect()
                         await asyncio.sleep(3)
                         continue
                     if not ctx.seed_verified:

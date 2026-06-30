@@ -6792,12 +6792,306 @@
     "id": 78781002,
     "rel": "tik",
     "offsets": [
-      "0x53084"
+      "0x1F5C0"
     ],
     "vanilla_item": 77772236,
     "tags": [
       "chapter_2",
       "pit",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 1",
+    "id": 78781003,
+    "rel": "dol",
+    "offsets": [
+      "0xB00"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 2",
+    "id": 78781004,
+    "rel": "dol",
+    "offsets": [
+      "0xB02"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 3",
+    "id": 78781005,
+    "rel": "dol",
+    "offsets": [
+      "0xB04"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 4",
+    "id": 78781006,
+    "rel": "dol",
+    "offsets": [
+      "0xB06"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 5",
+    "id": 78781007,
+    "rel": "dol",
+    "offsets": [
+      "0xB08"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 6",
+    "id": 78781008,
+    "rel": "dol",
+    "offsets": [
+      "0xB0A"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 7",
+    "id": 78781009,
+    "rel": "dol",
+    "offsets": [
+      "0xB0C"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 8",
+    "id": 78781010,
+    "rel": "dol",
+    "offsets": [
+      "0xB0E"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 9",
+    "id": 78781011,
+    "rel": "dol",
+    "offsets": [
+      "0xB10"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 10",
+    "id": 78781012,
+    "rel": "dol",
+    "offsets": [
+      "0xB12"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 11",
+    "id": 78781013,
+    "rel": "dol",
+    "offsets": [
+      "0xB14"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 12",
+    "id": 78781014,
+    "rel": "dol",
+    "offsets": [
+      "0xB16"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 13",
+    "id": 78781015,
+    "rel": "dol",
+    "offsets": [
+      "0xB18"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 14",
+    "id": 78781016,
+    "rel": "dol",
+    "offsets": [
+      "0xB1A"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 15",
+    "id": 78781017,
+    "rel": "dol",
+    "offsets": [
+      "0xB1C"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 16",
+    "id": 78781018,
+    "rel": "dol",
+    "offsets": [
+      "0xB1E"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 17",
+    "id": 78781019,
+    "rel": "dol",
+    "offsets": [
+      "0xB20"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 18",
+    "id": 78781020,
+    "rel": "dol",
+    "offsets": [
+      "0xB22"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 19",
+    "id": 78781021,
+    "rel": "dol",
+    "offsets": [
+      "0xB24"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Storage Room: Battle Trunks 20",
+    "id": 78781022,
+    "rel": "dol",
+    "offsets": [
+      "0xB26"
+    ],
+    "vanilla_item": 77772237,
+    "tags": [
+      "chapter_3",
+      "glitzville",
+      "trouble"
+    ]
+  },
+  {
+    "name": "Glitzville Promoter's Office: Jolene's Trouble Reward",
+    "id": 78781023,
+    "rel": "tou",
+    "offsets": [
+      "0x2E434"
+    ],
+    "vanilla_item": 77772000,
+    "tags": [
+      "chapter_3",
+      "glitzville",
       "trouble"
     ]
   }

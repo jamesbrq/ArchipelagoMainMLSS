@@ -1920,14 +1920,14 @@
         "has": "Yoshi"
       },
       {
-      "or": [
-         {
+        "or": [
+          {
             "has": "Bobbery"
           },
           {
             "has": "Koops"
           }
-      ]
+        ]
       },
       {
         "function": "ultra_boots"
@@ -3172,5 +3172,218 @@
   },
   "Rogueport Sewers Pit Entrance: Pine T. Jr's Trouble Reward": {
     "can_reach": "Great Tree Entrance: Emerald Star"
+  },
+  "Glitzville Storage Room: Battle Trunks 1": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 2": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 3": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 4": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 5": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 6": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 7": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 8": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 9": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 10": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 11": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 12": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 13": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 14": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 15": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 16": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 17": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 18": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 19": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Storage Room: Battle Trunks 20": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      }
+    ]
+  },
+  "Glitzville Promoter's Office: Jolene's Trouble Reward": {
+    "and": [
+      {
+        "can_reach": "Glitzville Arena: Gold Star"
+      },
+      {
+        "has": "Storage Key 1"
+      },
+      {
+        "has": "Battle Trunk Pack"
+      }
+    ]
   }
 }
