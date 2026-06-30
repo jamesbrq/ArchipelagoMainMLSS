@@ -139,6 +139,8 @@ class TTYDPatchExtension(APPatchExtension):
         console = bool(seed_options.get("console_mode", 0))
         caller.patcher.dol.data.seek(0x281)
         caller.patcher.dol.data.write((1 if console else 0).to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x282)
+        caller.patcher.dol.data.write(seed_options.get("moon_speed", 0).to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x260)
         caller.patcher.dol.data.write(seed_options.get("yoshi_name", "Yoshi").encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
@@ -368,7 +370,8 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "badge_fp": world.options.badge_fp.value,
         "partner_fp": world.options.partner_fp.value,
         "console_mode": world.options.console_mode.value,
-        "remote_items": world.options.remote_items.value
+        "remote_items": world.options.remote_items.value,
+        "moon_speed": world.options.moon_speed.value
     }
 
     buffer = io.BytesIO()

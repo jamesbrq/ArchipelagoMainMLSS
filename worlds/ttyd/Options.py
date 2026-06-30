@@ -329,6 +329,13 @@ class BossStatScaling(DefaultOnToggle):
     display_name = "Boss Stat Scaling"
 
 
+class NormalMoonSpeed(Toggle):
+    """
+    Mario's walking speed on the moon will be the same as his normal walking speed.
+    """
+    display_name = "Normal Moon Speed"
+
+
 class PermanentPeekaboo(Toggle):
     """
     The Peekaboo badge is always active, even when not equipped.
@@ -592,6 +599,7 @@ class TTYDOptions(PerGameCommonOptions):
     shuffle_chapter_stats: ShuffleChapterStats
     boss_randomizer: BossRandomizer
     boss_stat_scaling: BossStatScaling
+    moon_speed: NormalMoonSpeed
     permanent_peekaboo: PermanentPeekaboo
     full_run_bar: FullRunBar
     first_attack: ZeroBPFirstAttack
