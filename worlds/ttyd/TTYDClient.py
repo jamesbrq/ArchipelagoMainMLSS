@@ -510,13 +510,21 @@ def _dolphin_sys_gamesettings_dir(dolphin_path: str) -> str:
 
 
 
-def _apply_dolphin_game_settings(dolphin_path: str) -> None:
+def _apply_dolphin_game_settings(dolphin_path: str, console_mode: typing.Optional[bool] = None) -> None:
     import os
+
+    # console mode = real 24MB MEM1 + ARAM paging (override OFF); resident = 64MB (override ON)
+    if console_mode:
+        ram_override = "False"
+        mem1_size = "25165824"  # 0x01800000 = 24 MB (default; ignored while override off)
+    else:
+        ram_override = "True"
+        mem1_size = "67108864"  # 0x04000000 = 64 MB
 
     core_settings = {
         "MMU": "True",
-        "RAMOverrideEnable": "True",
-        "MEM1Size": "67108864",  # 0x04000000 = 64 MB
+        "RAMOverrideEnable": ram_override,
+        "MEM1Size": mem1_size,
     }
     try:
         ini_path = os.path.join(_dolphin_sys_gamesettings_dir(dolphin_path), "G8ME01.ini")
@@ -561,7 +569,8 @@ def _apply_dolphin_game_settings(dolphin_path: str) -> None:
 
         with open(ini_path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines) + "\n")
-        logger.info(f"Applied G8ME01 Dolphin settings (MMU + 64MB MEM1) in {ini_path}")
+        mode_desc = "24MB, override off" if console_mode else "64MB MEM1 override"
+        logger.info(f"Applied G8ME01 Dolphin settings (MMU + {mode_desc}) in {ini_path}")
     except Exception:
         logger.warning("Could not auto-apply Dolphin game settings (MMU + 64MB MEM1 "
                        "override). Set them manually: right-click the game in Dolphin > "
@@ -621,6 +630,20 @@ def _patch_world_version(patch_file: str):
         with zipfile.ZipFile(patch_file) as zf:
             with zf.open("options.json") as f:
                 return json.loads(f.read().decode("utf-8")).get("world_version")
+    except Exception:
+        return None
+
+
+def _patch_console_mode(patch_file: str):
+    """console_mode flag baked into the patch's options.json at generation.
+    The .apttyd is a zip archive; read the member directly without patching.
+    Returns True/False, or None if it can't be determined."""
+    import zipfile
+    import json
+    try:
+        with zipfile.ZipFile(patch_file) as zf:
+            with zf.open("options.json") as f:
+                return bool(json.loads(f.read().decode("utf-8")).get("console_mode", 0))
     except Exception:
         return None
 
@@ -748,8 +771,9 @@ def trigger_death(ctx):
 
 def launch(*args):
     async def main(args):
+        console_mode = _patch_console_mode(args.patch_file) if args.patch_file else None
         try:
-            _apply_dolphin_game_settings(settings.get_settings().ttyd_options.dolphin_path)
+            _apply_dolphin_game_settings(settings.get_settings().ttyd_options.dolphin_path, console_mode)
         except Exception:
             pass
         if args.patch_file:

@@ -744,6 +744,26 @@ location_gsw_info = {
     78781000: (GSWType.GSW, 1710, 2), # Puni Elder's Reward
     78781001: (GSWType.GSW, 1711, 2), # Lahla's Reward
     78781002: (GSWType.GSW, 1712, 2), # Pine. T's Reward
+    78781003: (GSWType.GSWF, 6333, 2), # Battle Trunks 1
+    78781004: (GSWType.GSWF, 6334, 2), # Battle Trunks 2
+    78781005: (GSWType.GSWF, 6335, 2), # Battle Trunks 3
+    78781006: (GSWType.GSWF, 6336, 2), # Battle Trunks 4
+    78781007: (GSWType.GSWF, 6337, 2), # Battle Trunks 5
+    78781008: (GSWType.GSWF, 6338, 2), # Battle Trunks 6
+    78781009: (GSWType.GSWF, 6339, 2), # Battle Trunks 7
+    78781010: (GSWType.GSWF, 6340, 2), # Battle Trunks 8
+    78781011: (GSWType.GSWF, 6341, 2), # Battle Trunks 9
+    78781012: (GSWType.GSWF, 6342, 2), # Battle Trunks 10
+    78781013: (GSWType.GSWF, 6343, 2), # Battle Trunks 11
+    78781014: (GSWType.GSWF, 6344, 2), # Battle Trunks 12
+    78781015: (GSWType.GSWF, 6345, 2), # Battle Trunks 13
+    78781016: (GSWType.GSWF, 6346, 2), # Battle Trunks 14
+    78781017: (GSWType.GSWF, 6347, 2), # Battle Trunks 15
+    78781018: (GSWType.GSWF, 6348, 2), # Battle Trunks 16
+    78781019: (GSWType.GSWF, 6349, 2), # Battle Trunks 17
+    78781020: (GSWType.GSWF, 6350, 2), # Battle Trunks 18
+    78781021: (GSWType.GSWF, 6351, 2), # Battle Trunks 19
+    78781022: (GSWType.GSWF, 6352, 2), # Battle Trunks 20
     78781023: (GSWType.GSW, 1713, 2), # Jolene's Reward
 }
 

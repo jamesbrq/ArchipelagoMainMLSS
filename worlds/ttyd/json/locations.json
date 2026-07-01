@@ -6806,7 +6806,7 @@
     "id": 78781003,
     "rel": "dol",
     "offsets": [
-      "0xB00"
+      "0xD00"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -6820,7 +6820,7 @@
     "id": 78781004,
     "rel": "dol",
     "offsets": [
-      "0xB02"
+      "0xD02"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -6834,7 +6834,7 @@
     "id": 78781005,
     "rel": "dol",
     "offsets": [
-      "0xB04"
+      "0xD04"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -6848,7 +6848,7 @@
     "id": 78781006,
     "rel": "dol",
     "offsets": [
-      "0xB06"
+      "0xD06"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -6862,7 +6862,7 @@
     "id": 78781007,
     "rel": "dol",
     "offsets": [
-      "0xB08"
+      "0xD08"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -6876,7 +6876,7 @@
     "id": 78781008,
     "rel": "dol",
     "offsets": [
-      "0xB0A"
+      "0xD0A"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -6890,7 +6890,7 @@
     "id": 78781009,
     "rel": "dol",
     "offsets": [
-      "0xB0C"
+      "0xD0C"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -6904,7 +6904,7 @@
     "id": 78781010,
     "rel": "dol",
     "offsets": [
-      "0xB0E"
+      "0xD0E"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -6918,7 +6918,7 @@
     "id": 78781011,
     "rel": "dol",
     "offsets": [
-      "0xB10"
+      "0xD10"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -6932,7 +6932,7 @@
     "id": 78781012,
     "rel": "dol",
     "offsets": [
-      "0xB12"
+      "0xD12"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -6946,7 +6946,7 @@
     "id": 78781013,
     "rel": "dol",
     "offsets": [
-      "0xB14"
+      "0xD14"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -6960,7 +6960,7 @@
     "id": 78781014,
     "rel": "dol",
     "offsets": [
-      "0xB16"
+      "0xD16"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -6974,7 +6974,7 @@
     "id": 78781015,
     "rel": "dol",
     "offsets": [
-      "0xB18"
+      "0xD18"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -6988,7 +6988,7 @@
     "id": 78781016,
     "rel": "dol",
     "offsets": [
-      "0xB1A"
+      "0xD1A"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -7002,7 +7002,7 @@
     "id": 78781017,
     "rel": "dol",
     "offsets": [
-      "0xB1C"
+      "0xD1C"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -7016,7 +7016,7 @@
     "id": 78781018,
     "rel": "dol",
     "offsets": [
-      "0xB1E"
+      "0xD1E"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -7030,7 +7030,7 @@
     "id": 78781019,
     "rel": "dol",
     "offsets": [
-      "0xB20"
+      "0xD20"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -7044,7 +7044,7 @@
     "id": 78781020,
     "rel": "dol",
     "offsets": [
-      "0xB22"
+      "0xD22"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -7058,7 +7058,7 @@
     "id": 78781021,
     "rel": "dol",
     "offsets": [
-      "0xB24"
+      "0xD24"
     ],
     "vanilla_item": 77772237,
     "tags": [
@@ -7072,7 +7072,7 @@
     "id": 78781022,
     "rel": "dol",
     "offsets": [
-      "0xB26"
+      "0xD26"
     ],
     "vanilla_item": 77772237,
     "tags": [
