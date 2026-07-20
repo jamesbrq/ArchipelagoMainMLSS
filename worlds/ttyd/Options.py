@@ -158,7 +158,7 @@ class Keysanity(DefaultOnToggle):
     display_name = "Keysanity"
 
 
-class Troublesanity(DefaultOnToggle):
+class Troublesanity(Toggle):
     """
     The trouble center will have their items randomized.
     Disabling this will keep the trouble center items in their original locations.
