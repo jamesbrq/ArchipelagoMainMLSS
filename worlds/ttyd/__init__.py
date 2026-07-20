@@ -176,6 +176,8 @@ class TTYDWorld(World):
                 self.disabled_locations.update(["Tattle: Shadow Queen"])
         if self.options.tattlesanity and self.options.disable_intermissions:
             self.disabled_locations.update(["Tattle: Lord Crump"])
+        if not self.options.troublesanity:
+            self.disabled_locations.update([location.name for location in get_locations_by_tags("trouble")])
         if self.options.enemy_randomizer != EnemyRandomizer.option_vanilla:
             randomize_encounters(self)
         if self.options.boss_randomizer != BossRandomizer.option_vanilla:

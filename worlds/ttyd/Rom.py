@@ -15,8 +15,7 @@ from .Data import Rels, shop_items, item_prices, rel_filepaths, location_to_unit
 from .TTYDPatcher import TTYDPatcher
 
 if TYPE_CHECKING:
-    from . import TTYDWorld
-
+    from . import TTYDWorld, get_locations_by_tags
 
 _SHOP_LIMIT_INFINITE = 0
 _SHOP_LIMIT_CONSUMABLES = 1
@@ -239,6 +238,9 @@ class TTYDPatchExtension(APPatchExtension):
         from CommonClient import logger
         locations: Dict[str, Tuple] = json.loads(caller.get_file(f"locations.json").decode("utf-8"))
         seed_options = json.loads(caller.get_file("options.json").decode("utf-8"))
+        if seed_options.get("troublesanity", 0) == 1:
+            locations.update({location.name: (location.vanilla_item, caller.player, 0) for location in
+                              get_locations_by_tags("trouble")})
         for location_name, (item_id, player, shop_price) in locations.items():
             data = locationName_to_data.get(location_name, None)
             if data is None:
@@ -376,7 +378,7 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "console_mode": world.options.console_mode.value,
         "remote_items": world.options.remote_items.value,
         "moon_speed": world.options.moon_speed.value,
-        "troubles": world.options.troublesanity.value,
+        "troubles": int(world.options.troublesanity),
     }
 
     buffer = io.BytesIO()

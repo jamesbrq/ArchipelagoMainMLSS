@@ -588,7 +588,7 @@ class TTYDOptions(PerGameCommonOptions):
     shop_purchase_limit: ShopPurchaseLimit
     shinesanity: Shinesanity
     keysanity: Keysanity
-    troublesanity: Troublesanity
+    troublesanity = False
     dazzle_rewards: DazzleRewards
     pit_items: PitItems
     limit_chapter_logic: LimitChapterLogic
