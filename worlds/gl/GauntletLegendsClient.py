@@ -87,7 +87,7 @@ class RetroSocket:
             await asyncio.sleep(2)
             return None
 
-    async def status(self) -> str:
+    async def status(self) -> str | None:
         message = "GET_STATUS"
         self.send(message)
         try:
@@ -95,6 +95,7 @@ class RetroSocket:
             return data.decode()
         except (asyncio.TimeoutError, ConnectionResetError, OSError):
             pass
+        return None
 
 
 def message_format(arg: str, params: str) -> str:
@@ -442,8 +443,8 @@ class GauntletLegendsContext(CommonContext):
 
         zone_or_level_changed = self.zone != self.current_zone or self.level != self.current_level
         if zone_or_level_changed:
-            if self.current_level & 0x8 == 0x8 and self.level_id != 0x58 and not await self.dead_or_menu():
-                await self.check_locations([loc.id for loc in level_locations[self.level_id]
+            if self.current_level & 0x8 == 0x8 and not await self.dead_or_menu():
+                await self.check_locations([loc.id for loc in level_locations.get(self.level_id, [])
                                             if "Mirror Shard" in loc.name or "Skorne" in loc.name])
             self.current_zone = self.zone
             self.current_level = self.level
@@ -564,6 +565,10 @@ async def gl_sync_task(ctx: GauntletLegendsContext):
             if not ctx.retro_connected:
                 logger.info("Attempting to connect to Retroarch...")
                 status = await ctx.socket.status()
+                if status is None:
+                    logger.info("Retroarch not running or not responding, waiting...")
+                    await asyncio.sleep(3)
+                    continue
                 ctx.retro_connected = True
                 ctx.rom_loaded = "CONTENTLESS" not in status
                 logger.info("Connected to Retroarch")
@@ -630,6 +635,7 @@ async def gl_sync_task(ctx: GauntletLegendsContext):
             logger.error(f"Error: {e}\n{traceback.format_exc()}")
             ctx.socket = RetroSocket()
             ctx.retro_connected = False
+            ctx.rom_loaded = False
             await asyncio.sleep(2)
 
 
