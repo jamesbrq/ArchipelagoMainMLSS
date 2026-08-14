@@ -14,7 +14,7 @@ import Utils
 from CommonClient import ClientCommandProcessor, get_base_parser, gui_enabled, logger, server_loop
 from NetUtils import NetworkItem, ClientStatus
 from . import Ghosts
-from .Data import location_gsw_info, location_to_unit, GSWType
+from .Data import location_gsw_info, location_to_unit, GSWType, INGREDIENT_UNLOCK_FLAGS, SEED_OBFUSCATION_KEY
 from .Items import items_by_id
 
 from .ttyd_runtime import (
@@ -27,10 +27,17 @@ from .ttyd_runtime import (
 )
 
 
-RECEIVED_INDEX = 0x803DB860
+RECEIVED_INDEX = 0x803DB890         # mod protocol >= 1
+RECEIVED_INDEX_LEGACY = 0x803DB860  # ISOs patched before the index move (pre-protocol)
 RECEIVED_ITEM_ARRAY = 0x80001000
 RECEIVED_LENGTH = 0x80000FFC
+MOD_PROTOCOL = 0x800031F8  # u32 written by Rom.py at patch time; 0 on old ISOs
 SEED = 0x80003210
+# GSW 1696: dirty-reason bitmask (see mod OWR.cpp / verification.py). The mod also sets
+# 0x08/0x10 itself whenever the flag ring or item array delivers anything.
+RUN_DIRTY_FLAG = 0x803DB190 + 1696
+DIRTY_DEBUG_COMMAND = 0x08
+DIRTY_ITEM_REPLAY = 0x10
 GP_BASE = 0x803DAC18
 GSWF_BASE = 0x178
 GSW0 = 0x174
@@ -79,6 +86,13 @@ def read_string(address: int, length: int):
     except Exception as e:
         logger.error(f"Error reading string from address {hex(address)}: {e}")
         return ""
+
+def dirty_run(reason_bit: int):
+    try:
+        current = dolphin.read_bytes(RUN_DIRTY_FLAG, 1)[0]
+        dolphin.write_bytes(RUN_DIRTY_FLAG, bytes([current | reason_bit]))
+    except Exception:
+        pass  # not hooked; nothing was affected in-game
 
 def get_rom_item_id(item: NetworkItem):
     return items_by_id[item.item].rom_id
@@ -167,6 +181,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         if not args:
             logger.info("gswf: subcommands - set / check")
             return
+        dirty_run(DIRTY_DEBUG_COMMAND)
         sub = args[0].strip().lower()
         rest = args[1:]
         if sub == "set":
@@ -192,6 +207,7 @@ class TTYDCommandProcessor(ClientCommandProcessor):
         if not args:
             logger.info("gsw: subcommands - set / check")
             return
+        dirty_run(DIRTY_DEBUG_COMMAND)
         sub = args[0].strip().lower()
         rest = args[1:]
         if sub == "set":
@@ -311,6 +327,7 @@ class TTYDContext(cmmCtx):
     tags = {"AP", Ghosts.VLINK_TAG}
     dolphin_connected: bool = False
     seed_verified: bool = False
+    received_index_addr: int = RECEIVED_INDEX
     slot_data: dict | None = {}
     checked_locations = set()
     previous_room = None
@@ -394,7 +411,7 @@ class TTYDContext(cmmCtx):
 
     async def receive_items(self):
         current_length = dolphin.read_word(RECEIVED_LENGTH)
-        index = dolphin.read_word(RECEIVED_INDEX)
+        index = dolphin.read_word(self.received_index_addr)
         if current_length != 0:
             return
         if index > len(self.items_received):
@@ -402,6 +419,8 @@ class TTYDContext(cmmCtx):
         items = min(len(self.items_received) - index, 255)
         if items <= 0:
             return
+
+        dirty_run(DIRTY_ITEM_REPLAY)
         item_ids = [get_rom_item_id(self.items_received[i]) for i in range(index, index + items)]
         packed_data = struct.pack(f'>{len(item_ids)}H', *item_ids)
         dolphin.write_bytes(RECEIVED_ITEM_ARRAY, packed_data)
@@ -449,6 +468,22 @@ class TTYDContext(cmmCtx):
             else:
                 break
 
+    async def set_ingredient_unlock_flags(self):
+        if not self.save_loaded():
+            return
+
+        for item in self.items_received:
+            flag = INGREDIENT_UNLOCK_FLAGS.get(get_rom_item_id(item))
+            if flag is None or flag in self._pushed_recv_flags:
+                continue
+            if gswf_check(flag):
+                self._pushed_recv_flags.add(flag)
+                continue
+            if self._push_recv_flag(flag):
+                self._pushed_recv_flags.add(flag)
+            else:
+                break
+
     async def check_ttyd_locations(self):
         locations_to_send = set()
         try:
@@ -457,7 +492,9 @@ class TTYDContext(cmmCtx):
                 if offset == 0:
                     continue
                 if 78780850 <= location <= 78780973:
-                    offset = 0x117A + location_to_unit[location][0]
+                    if any(gswf_check(0x117A + unit) for unit in location_to_unit[location]):
+                        locations_to_send.add(location)
+                    continue
                 if gsw_type.value == 0:
                     if gsw_check(offset) >= value:
                         locations_to_send.add(location)
@@ -684,7 +721,13 @@ async def ttyd_sync_task(ctx: TTYDContext):
                         continue
                     if not ctx.seed_verified:
                         logger.info("Checking ROM seed...")
-                        seed = read_string(SEED, 0x10)
+                        if dolphin.read_word(MOD_PROTOCOL) >= 2:
+                            # Protocol 2+: seed is stored XOR-obfuscated (revealed in-game on the credits)
+                            raw = dolphin.read_bytes(SEED, 0x10)
+                            seed = bytes(b ^ k for b, k in zip(raw, SEED_OBFUSCATION_KEY)).rstrip(b"\x00").decode(
+                                "utf-8", errors="replace")
+                        else:
+                            seed = read_string(SEED, 0x10)
                         if seed not in ctx.seed_name:
                             logger.info(ctx.seed_name)
                             await ctx.disconnect()
@@ -694,6 +737,13 @@ async def ttyd_sync_task(ctx: TTYDContext):
                             continue
                         ctx.seed_verified = True
                         logger.info("ROM Seed verified successfully.")
+                        # ISOs patched by pre-protocol apworlds keep the old
+                        # received-item index address; reading the new one there
+                        # would replay the whole item list forever.
+                        if dolphin.read_word(MOD_PROTOCOL) >= 1:
+                            ctx.received_index_addr = RECEIVED_INDEX
+                        else:
+                            ctx.received_index_addr = RECEIVED_INDEX_LEGACY
                     if "DeathLink" in ctx.tags:
                         await ctx.check_death()
                     if not ctx.save_loaded():
@@ -711,6 +761,7 @@ async def ttyd_sync_task(ctx: TTYDContext):
                         }])
                     await ctx.receive_items()
                     await ctx.set_received_item_flags()
+                    await ctx.set_ingredient_unlock_flags()
                     await ctx.check_ttyd_locations()
                     goal = ctx.slot_data.get("goal", 0)
                     if goal == 1: # Shadow Queen
@@ -720,6 +771,11 @@ async def ttyd_sync_task(ctx: TTYDContext):
                         star_count = dolphin.read_byte(0x8000323B)
                         if not ctx.finished_game and star_count <= 7 and star_count >= ctx.slot_data["goal_stars"]:
                             await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
+                    elif goal == 4: # Recipes
+                        if not ctx.finished_game:
+                            recipes_cooked = sum(1 for i in range(57) if gswf_check(6400 + i))
+                            if recipes_cooked >= ctx.slot_data.get("goal_recipes_range", 57):
+                                await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
                     else:
                         if not ctx.finished_game and gswf_check(5085):
                             await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])

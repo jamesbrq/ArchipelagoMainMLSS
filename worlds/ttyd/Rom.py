@@ -5,13 +5,14 @@ import struct
 
 import bsdiff4
 import random
+import time
 
 from typing import TYPE_CHECKING, Dict, Tuple, Iterable
 from BaseClasses import Location, ItemClassification
 from worlds.Files import APProcedurePatch, APTokenMixin, APPatchExtension, AutoPatchExtensionRegister
 from .Items import items_by_id, ItemData
 from .Locations import locationName_to_data, location_table, location_id_to_name
-from .Data import Rels, shop_items, item_prices, rel_filepaths, location_to_unit, shop_names
+from .Data import Rels, shop_items, item_prices, rel_filepaths, location_to_unit, shop_names, SEED_OBFUSCATION_KEY
 from .TTYDPatcher import TTYDPatcher
 
 if TYPE_CHECKING:
@@ -49,12 +50,21 @@ class TTYDPatchExtension(APPatchExtension):
 
         name_length = min(len(seed_options["player_name"]), 0x10)
         random.seed(seed_options["seed"] + seed_options["player"])
+        # Mod protocol version (RAM 0x800031F8, vanilla-zero): lets the client detect
+        # ISOs patched by older apworlds. 1 = received-item index at 0x803DB890
+        # (older builds used 0x803DB860, which overlapped trouble GSW vars).
+        # 2 = seed name at 0x210 stored XOR'd with SEED_OBFUSCATION_KEY.
+        caller.patcher.dol.data.seek(0x1F8)
+        caller.patcher.dol.data.write((2).to_bytes(4, "big"))
         caller.patcher.dol.data.seek(0x1FF)
         caller.patcher.dol.data.write(name_length.to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x200)
         caller.patcher.dol.data.write(seed_options["player_name"].encode("utf-8")[0:name_length])
+        # Seed name, XOR-obfuscated so it can't be read out of RAM until the mod
+        # reveals it on the credits (protocol 2; key shared with the mod and client)
+        seed_bytes = seed_options["seed_name"].encode("utf-8")[0:16].ljust(16, b"\x00")
         caller.patcher.dol.data.seek(0x210)
-        caller.patcher.dol.data.write(seed_options["seed_name"].encode("utf-8")[0:16])
+        caller.patcher.dol.data.write(bytes(b ^ k for b, k in zip(seed_bytes, SEED_OBFUSCATION_KEY)))
         caller.patcher.dol.data.seek(0x220)
         caller.patcher.dol.data.write(seed_options.get("palace_stars", 7).to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x221)
@@ -143,6 +153,24 @@ class TTYDPatchExtension(APPatchExtension):
         caller.patcher.dol.data.write(seed_options.get("moon_speed", 0).to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x283)
         caller.patcher.dol.data.write(seed_options.get("troubles", 0).to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x284)
+        caller.patcher.dol.data.write(seed_options.get("boss_scaling_nerfs", 0).to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x285)
+        caller.patcher.dol.data.write(seed_options.get("cooksanity", 0).to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x286)
+        caller.patcher.dol.data.write(seed_options.get("goal_recipes_range", 0).to_bytes(1, "big"))
+        caller.patcher.dol.data.seek(0x287)
+        caller.patcher.dol.data.write(seed_options.get("epilogue_skip", 0).to_bytes(1, "big"))
+        # Generation time in GC-epoch seconds (since 2000-01-01 UTC): the mod dirties any run
+        # whose RTC reads earlier than this, catching Custom RTC set to the past and clock
+        # rollback. Falls back to patch time for options.json files from older generators.
+        generation_time = seed_options.get("generation_time", int(time.time()))
+        caller.patcher.dol.data.seek(0x288)
+        caller.patcher.dol.data.write(max(0, generation_time - 946684800).to_bytes(4, "big"))
+        # Mod-side gate for the RTA timer + credits results display (deliberately not a
+        # yaml option; flip the options_dict value to control it per generation)
+        caller.patcher.dol.data.seek(0x28C)
+        caller.patcher.dol.data.write(seed_options.get("rta_timer", 1).to_bytes(1, "big"))
         caller.patcher.dol.data.seek(0x260)
         caller.patcher.dol.data.write(seed_options.get("yoshi_name", "Yoshi").encode("utf-8")[0:8] + b"\x00")
         caller.patcher.dol.data.seek(0xEB6B6)
@@ -194,6 +222,28 @@ class TTYDPatchExtension(APPatchExtension):
             for _off in (0x3F9B4, 0x3FB30, 0x3FE7C):
                 caller.patcher.dol.data.seek(_off)
                 caller.patcher.dol.data.write(int.to_bytes(0x3C800040, 4, "big"))
+        # Keep every AP-priced shop item's SELL price under its shop buy price
+        # (vanilla dishes sell for up to 150, and consumables/badges can be
+        # infinitely repurchasable depending on shop_purchase_limit). Same curve
+        # the badges use in vanilla: sell = buy // 2 — and never RAISE a vanilla
+        # sell price, so cheap items keep their vanilla values.
+        item_table_offset = 0x30D8A8  # dol file offset of itemDataTable (RAM 0x803108A8), 339 x 0x28
+        rom_buy_prices = {}
+        for ap_id, buy_price in item_prices.items():
+            data = items_by_id.get(ap_id)
+            if data is None:
+                continue
+            if not (0x80 <= data.rom_id <= 0x148):  # sellable range: consumables/recipes/badges
+                continue
+            rom_buy_prices[data.rom_id] = min(buy_price, rom_buy_prices.get(data.rom_id, buy_price))
+        for rom_id, buy_price in rom_buy_prices.items():
+            sell_offset = item_table_offset + rom_id * 0x28 + 0x1A
+            caller.patcher.dol.data.seek(sell_offset)
+            vanilla_sell = int.from_bytes(caller.patcher.dol.data.read(2), "big")
+            new_sell = max(1, min(vanilla_sell, buy_price // 2))
+            if new_sell < vanilla_sell:
+                caller.patcher.dol.data.seek(sell_offset)
+                caller.patcher.dol.data.write(new_sell.to_bytes(2, "big"))
         caller.patcher.iso.add_new_directory("files/mod")
         caller.patcher.iso.add_new_directory("files/mod/subrels")
         for file in [file for file in rel_filepaths if file != "mod"]:
@@ -267,7 +317,7 @@ class TTYDPatchExtension(APPatchExtension):
                             caller.patcher.dol.data.seek(0xB00 + ((unit_id - 1) * 2))
                             caller.patcher.dol.data.write(rom_id.to_bytes(2, "big"))
                         continue
-                    if "Dazzle" in location_name or "Battle Trunks" in location_name:
+                    if "Dazzle" in location_name or "Battle Trunks" in location_name or ": Cook " in location_name:
                         caller.patcher.dol.data.seek(data.offset[0])
                         caller.patcher.dol.data.write(rom_id.to_bytes(2, "big"))
                 else:
@@ -284,6 +334,24 @@ class TTYDPatchExtension(APPatchExtension):
                                 caller.patcher.rels[data.rel].write(int.to_bytes(20, 4, "big"))
                             else:
                                 caller.patcher.rels[data.rel].write(int.to_bytes(shop_price, 4, "big"))
+
+        try:
+            fallback_locations: Dict[str, int] = json.loads(caller.get_file("fallback_locations.json").decode("utf-8"))
+        except KeyError:
+            fallback_locations = {}
+        for location_name, item_id in fallback_locations.items():
+            data = locationName_to_data.get(location_name, None)
+            if data is None or not data.offset:
+                continue
+            rom_id = items_by_id[item_id].rom_id
+            if data.rel == Rels.dol:
+                if "Dazzle" in location_name or "Battle Trunks" in location_name or ": Cook " in location_name:
+                    caller.patcher.dol.data.seek(data.offset[0])
+                    caller.patcher.dol.data.write(rom_id.to_bytes(2, "big"))
+            else:
+                for offset in data.offset:
+                    caller.patcher.rels[data.rel].seek(offset)
+                    caller.patcher.rels[data.rel].write(rom_id.to_bytes(4, "big"))
 
 def get_rel_path(rel: Rels):
     return f'files/rel/{rel.value}.rel'
@@ -332,6 +400,14 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "world_version": world_version,
         "seed": world.multiworld.seed,
         "seed_name": world.multiworld.seed_name,
+        # Recorded at GENERATION time (not patch time, which runs on the player's machine
+        # and could be forged by pre-setting the clock): the mod dirties runs whose RTC
+        # reads earlier than this.
+        "generation_time": int(time.time()),
+        # RTA timer + credits results display gate (mod-side, intentionally not a yaml option).
+        # Off for normal seeds; the website's daily/weekly/monthly race seeds enable it by
+        # rewriting options.json inside the patch file it serves.
+        "rta_timer": 0,
         "player": world.player,
         "player_name": world.multiworld.player_name[world.player],
         "yoshi_name": world.options.yoshi_name.value,
@@ -368,6 +444,10 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
         "enemy_randomizer": world.options.enemy_randomizer.value,
         "boss_randomizer": world.options.boss_randomizer.value,
         "boss_stat_scaling": world.options.boss_stat_scaling.value,
+        "boss_scaling_nerfs": world.options.boss_scaling_nerfs.value,
+        "cooksanity": world.options.cooksanity.value,
+        "goal_recipes_range": world.options.goal_recipes_range.value,
+        "epilogue_skip": world.options.epilogue_skip.value,
         "enemy_stat_scaling": world.options.enemy_stat_scaling.value,
         "shuffle_chapter_stats": world.options.shuffle_chapter_stats.value,
         "badge_bp": world.options.badge_bp.value,
@@ -411,10 +491,19 @@ def write_files(world: "TTYDWorld", patch: TTYDProcedurePatch) -> None:
     max_desc_size = 0x1000
     desc_data = buffer.getvalue()
     patch.write_file("desc.txt", desc_data + b'\x00' * (max_desc_size - len(desc_data)))
+
+    # The mod loads these with DVDRead, whose length is rounded up to the 32-byte
+    # DVD granularity. Unpadded (bosses.bin is ~50 bytes) the read runs past the
+    # end of the file — and past the end of the ISO for the last files placed —
+    # failing the read in Dolphin ("The disc could not be read").
+    def pad_dvd(data: bytes, align: int = 32) -> bytes:
+        return data + b'\x00' * (-len(data) % align)
+
     patch.write_file("options.json", json.dumps(options_dict).encode("UTF-8"))
     patch.write_file(f"locations.json", json.dumps(locations_to_dict(world.multiworld.get_locations(world.player))).encode("UTF-8"))
-    patch.write_file("enemies.bin", enemy_buffer.getvalue())
-    patch.write_file("bosses.bin", boss_buffer.getvalue())
+    patch.write_file("fallback_locations.json", json.dumps(world.rom_fallback_locations).encode("UTF-8"))
+    patch.write_file("enemies.bin", pad_dvd(enemy_buffer.getvalue()))
+    patch.write_file("bosses.bin", pad_dvd(boss_buffer.getvalue()))
 
 def classification_to_color(classification: ItemClassification = ItemClassification.filler) -> str:
     if classification & ItemClassification.progression:
