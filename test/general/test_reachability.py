@@ -27,6 +27,12 @@ class TestBase(unittest.TestCase):
             "D20Z02S11[NW]", # difficulty must be hard
             "D20Z02S11[E]", # difficulty must be hard
         },
+        # area058 sits behind Mirror Room -> area058, whose two requirements are
+        # unclassified, so the rule generator fails the edge closed. Not a real dead
+        # end -- two souvenirs open it in game -- and it holds no checks.
+        "Disney's Magical Mirror": {
+            "area058",
+        },
         "Ocarina of Time": {
             "Prelude of Light Warp",  # Prelude is not progression by default
             "Serenade of Water Warp",  # Serenade is not progression by default

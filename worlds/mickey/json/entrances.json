@@ -1,0 +1,627 @@
+[
+ {
+  "name": "Hole Room -> Carpet Hallway",
+  "frm": "Hole Room",
+  "to": "Carpet Hallway"
+ },
+ {
+  "name": "Hole Room -> Mirror Room (Endgame Variant)",
+  "frm": "Hole Room",
+  "to": "Mirror Room (Endgame Variant)"
+ },
+ {
+  "name": "Hole Room -> Mirror Room",
+  "frm": "Hole Room",
+  "to": "Mirror Room"
+ },
+ {
+  "name": "Hole Room -> Wardrobe Room",
+  "frm": "Hole Room",
+  "to": "Wardrobe Room"
+ },
+ {
+  "name": "area001 -> Toy Room",
+  "frm": "area001",
+  "to": "Toy Room"
+ },
+ {
+  "name": "area001 -> TV Room",
+  "frm": "area001",
+  "to": "TV Room"
+ },
+ {
+  "name": "area001 -> Mickey the Flying Ace",
+  "frm": "area001",
+  "to": "Mickey the Flying Ace"
+ },
+ {
+  "name": "Toy Room -> area001",
+  "frm": "Toy Room",
+  "to": "area001"
+ },
+ {
+  "name": "Toy Room -> Train Station",
+  "frm": "Toy Room",
+  "to": "Train Station"
+ },
+ {
+  "name": "Candle Room -> TV Room",
+  "frm": "Candle Room",
+  "to": "TV Room"
+ },
+ {
+  "name": "Candle Room -> Carpet Hallway",
+  "frm": "Candle Room",
+  "to": "Carpet Hallway"
+ },
+ {
+  "name": "Kitchen -> Alcove",
+  "frm": "Kitchen",
+  "to": "Alcove"
+ },
+ {
+  "name": "Kitchen -> Wooden Hallway",
+  "frm": "Kitchen",
+  "to": "Wooden Hallway"
+ },
+ {
+  "name": "Kitchen -> Mickey the Snowboarder (Entry)",
+  "frm": "Kitchen",
+  "to": "Mickey the Snowboarder (Entry)"
+ },
+ {
+  "name": "Train Room -> area027",
+  "frm": "Train Room",
+  "to": "area027"
+ },
+ {
+  "name": "Train Room -> area001",
+  "frm": "Train Room",
+  "to": "area001"
+ },
+ {
+  "name": "Train Room -> Mickey the Flying Ace",
+  "frm": "Train Room",
+  "to": "Mickey the Flying Ace"
+ },
+ {
+  "name": "Train Station -> area024",
+  "frm": "Train Station",
+  "to": "area024"
+ },
+ {
+  "name": "Train Station -> Train Room",
+  "frm": "Train Station",
+  "to": "Train Room"
+ },
+ {
+  "name": "area008 -> Entrance",
+  "frm": "area008",
+  "to": "Entrance"
+ },
+ {
+  "name": "area008 -> area057",
+  "frm": "area008",
+  "to": "area057"
+ },
+ {
+  "name": "Grand Hall -> Sword Hallway",
+  "frm": "Grand Hall",
+  "to": "Sword Hallway"
+ },
+ {
+  "name": "Grand Hall -> Wooden Hallway",
+  "frm": "Grand Hall",
+  "to": "Wooden Hallway"
+ },
+ {
+  "name": "Grand Hall -> Dark Room",
+  "frm": "Grand Hall",
+  "to": "Dark Room"
+ },
+ {
+  "name": "Grand Hall -> Mirror Room",
+  "frm": "Grand Hall",
+  "to": "Mirror Room"
+ },
+ {
+  "name": "Alcove -> Kitchen",
+  "frm": "Alcove",
+  "to": "Kitchen"
+ },
+ {
+  "name": "Alcove -> Footstool Room",
+  "frm": "Alcove",
+  "to": "Footstool Room"
+ },
+ {
+  "name": "Sword Hallway -> Carpet Hallway",
+  "frm": "Sword Hallway",
+  "to": "Carpet Hallway"
+ },
+ {
+  "name": "Sword Hallway -> Grand Hall",
+  "frm": "Sword Hallway",
+  "to": "Grand Hall"
+ },
+ {
+  "name": "Mirror Room -> Hole Room",
+  "frm": "Mirror Room",
+  "to": "Hole Room"
+ },
+ {
+  "name": "Mirror Room -> Entrance",
+  "frm": "Mirror Room",
+  "to": "Entrance"
+ },
+ {
+  "name": "Mirror Room -> area058",
+  "frm": "Mirror Room",
+  "to": "area058"
+ },
+ {
+  "name": "Wooden Hallway -> Grand Hall",
+  "frm": "Wooden Hallway",
+  "to": "Grand Hall"
+ },
+ {
+  "name": "Wooden Hallway -> Tea Room",
+  "frm": "Wooden Hallway",
+  "to": "Tea Room"
+ },
+ {
+  "name": "Wooden Hallway -> Kitchen",
+  "frm": "Wooden Hallway",
+  "to": "Kitchen"
+ },
+ {
+  "name": "TV Room -> area001",
+  "frm": "TV Room",
+  "to": "area001"
+ },
+ {
+  "name": "TV Room -> Candle Room",
+  "frm": "TV Room",
+  "to": "Candle Room"
+ },
+ {
+  "name": "TV Room -> Dance with Mickey",
+  "frm": "TV Room",
+  "to": "Dance with Mickey"
+ },
+ {
+  "name": "Tea Room -> Wooden Hallway",
+  "frm": "Tea Room",
+  "to": "Wooden Hallway"
+ },
+ {
+  "name": "Dark Room -> Grand Hall",
+  "frm": "Dark Room",
+  "to": "Grand Hall"
+ },
+ {
+  "name": "Dark Room -> Basement",
+  "frm": "Dark Room",
+  "to": "Basement"
+ },
+ {
+  "name": "Crazy Hallway -> Bee Room",
+  "frm": "Crazy Hallway",
+  "to": "Bee Room"
+ },
+ {
+  "name": "Crazy Hallway -> Footstool Room",
+  "frm": "Crazy Hallway",
+  "to": "Footstool Room"
+ },
+ {
+  "name": "Bee Room -> Crazy Hallway",
+  "frm": "Bee Room",
+  "to": "Crazy Hallway"
+ },
+ {
+  "name": "Bee Room -> Fish Room",
+  "frm": "Bee Room",
+  "to": "Fish Room"
+ },
+ {
+  "name": "Fish Room -> Bee Room",
+  "frm": "Fish Room",
+  "to": "Bee Room"
+ },
+ {
+  "name": "Fish Room -> Wardrobe Room",
+  "frm": "Fish Room",
+  "to": "Wardrobe Room"
+ },
+ {
+  "name": "Fish Room -> Rug Room",
+  "frm": "Fish Room",
+  "to": "Rug Room"
+ },
+ {
+  "name": "Wardrobe Room -> Fish Room",
+  "frm": "Wardrobe Room",
+  "to": "Fish Room"
+ },
+ {
+  "name": "Wardrobe Room -> Grand Hall",
+  "frm": "Wardrobe Room",
+  "to": "Grand Hall"
+ },
+ {
+  "name": "Rug Room -> Fish Room",
+  "frm": "Rug Room",
+  "to": "Fish Room"
+ },
+ {
+  "name": "Rug Room -> Music Room",
+  "frm": "Rug Room",
+  "to": "Music Room"
+ },
+ {
+  "name": "Rug Room -> Attic",
+  "frm": "Rug Room",
+  "to": "Attic"
+ },
+ {
+  "name": "Footstool Room -> Alcove",
+  "frm": "Footstool Room",
+  "to": "Alcove"
+ },
+ {
+  "name": "Footstool Room -> Crazy Hallway",
+  "frm": "Footstool Room",
+  "to": "Crazy Hallway"
+ },
+ {
+  "name": "Footstool Room -> Mirror Room (Endgame Variant)",
+  "frm": "Footstool Room",
+  "to": "Mirror Room (Endgame Variant)"
+ },
+ {
+  "name": "Footstool Room -> Mirror Room",
+  "frm": "Footstool Room",
+  "to": "Mirror Room"
+ },
+ {
+  "name": "Carpet Hallway -> Candle Room",
+  "frm": "Carpet Hallway",
+  "to": "Candle Room"
+ },
+ {
+  "name": "Carpet Hallway -> Hole Room",
+  "frm": "Carpet Hallway",
+  "to": "Hole Room"
+ },
+ {
+  "name": "Carpet Hallway -> Piggy Room",
+  "frm": "Carpet Hallway",
+  "to": "Piggy Room"
+ },
+ {
+  "name": "Carpet Hallway -> Sword Hallway",
+  "frm": "Carpet Hallway",
+  "to": "Sword Hallway"
+ },
+ {
+  "name": "area024 -> Train Room",
+  "frm": "area024",
+  "to": "Train Room"
+ },
+ {
+  "name": "area024 -> area001",
+  "frm": "area024",
+  "to": "area001"
+ },
+ {
+  "name": "Piggy Room -> Carpet Hallway",
+  "frm": "Piggy Room",
+  "to": "Carpet Hallway"
+ },
+ {
+  "name": "Entrance -> Mirror Room",
+  "frm": "Entrance",
+  "to": "Mirror Room"
+ },
+ {
+  "name": "Entrance -> Mirror Room (Early Variant)",
+  "frm": "Entrance",
+  "to": "Mirror Room (Early Variant)"
+ },
+ {
+  "name": "area027 -> Train Room",
+  "frm": "area027",
+  "to": "Train Room"
+ },
+ {
+  "name": "Basement -> Dark Hallway",
+  "frm": "Basement",
+  "to": "Dark Hallway"
+ },
+ {
+  "name": "Basement -> Dark Room",
+  "frm": "Basement",
+  "to": "Dark Room"
+ },
+ {
+  "name": "Basement -> Avoid the Flying Sword",
+  "frm": "Basement",
+  "to": "Avoid the Flying Sword"
+ },
+ {
+  "name": "Storage Room -> Dark Hallway",
+  "frm": "Storage Room",
+  "to": "Dark Hallway"
+ },
+ {
+  "name": "Storage Room -> Cave",
+  "frm": "Storage Room",
+  "to": "Cave"
+ },
+ {
+  "name": "Cave -> Storage Room",
+  "frm": "Cave",
+  "to": "Storage Room"
+ },
+ {
+  "name": "Cave -> Gear Room",
+  "frm": "Cave",
+  "to": "Gear Room"
+ },
+ {
+  "name": "Gear Room -> Cave",
+  "frm": "Gear Room",
+  "to": "Cave"
+ },
+ {
+  "name": "Gear Room -> Bell Tower Roof",
+  "frm": "Gear Room",
+  "to": "Bell Tower Roof"
+ },
+ {
+  "name": "Gear Room -> Mirror Room (Endgame Variant)",
+  "frm": "Gear Room",
+  "to": "Mirror Room (Endgame Variant)"
+ },
+ {
+  "name": "Gear Room -> Mirror Room",
+  "frm": "Gear Room",
+  "to": "Mirror Room"
+ },
+ {
+  "name": "Bell Tower Roof -> Gear Room",
+  "frm": "Bell Tower Roof",
+  "to": "Gear Room"
+ },
+ {
+  "name": "Bell Tower Roof -> Bell Tower Interior",
+  "frm": "Bell Tower Roof",
+  "to": "Bell Tower Interior"
+ },
+ {
+  "name": "Dark Hallway -> Storage Room",
+  "frm": "Dark Hallway",
+  "to": "Storage Room"
+ },
+ {
+  "name": "Dark Hallway -> Basement",
+  "frm": "Dark Hallway",
+  "to": "Basement"
+ },
+ {
+  "name": "Bell Tower Interior -> Dungeon",
+  "frm": "Bell Tower Interior",
+  "to": "Dungeon"
+ },
+ {
+  "name": "Bell Tower Interior -> Bell Tower Roof",
+  "frm": "Bell Tower Interior",
+  "to": "Bell Tower Roof"
+ },
+ {
+  "name": "Dungeon -> Bell Tower Interior",
+  "frm": "Dungeon",
+  "to": "Bell Tower Interior"
+ },
+ {
+  "name": "Dungeon -> Old Hall",
+  "frm": "Dungeon",
+  "to": "Old Hall"
+ },
+ {
+  "name": "Dungeon -> Wine Cellar",
+  "frm": "Dungeon",
+  "to": "Wine Cellar"
+ },
+ {
+  "name": "Wine Cellar -> Dungeon",
+  "frm": "Wine Cellar",
+  "to": "Dungeon"
+ },
+ {
+  "name": "Wine Cellar -> Crash Barrels",
+  "frm": "Wine Cellar",
+  "to": "Crash Barrels"
+ },
+ {
+  "name": "Old Hall -> Fireplace Room",
+  "frm": "Old Hall",
+  "to": "Fireplace Room"
+ },
+ {
+  "name": "Old Hall -> Broken Room",
+  "frm": "Old Hall",
+  "to": "Broken Room"
+ },
+ {
+  "name": "Old Hall -> Dungeon",
+  "frm": "Old Hall",
+  "to": "Dungeon"
+ },
+ {
+  "name": "Broken Room -> Library",
+  "frm": "Broken Room",
+  "to": "Library"
+ },
+ {
+  "name": "Broken Room -> Old Hall",
+  "frm": "Broken Room",
+  "to": "Old Hall"
+ },
+ {
+  "name": "Broken Room -> Spa Room",
+  "frm": "Broken Room",
+  "to": "Spa Room"
+ },
+ {
+  "name": "Fireplace Room -> Old Hall",
+  "frm": "Fireplace Room",
+  "to": "Old Hall"
+ },
+ {
+  "name": "Attic -> Rug Room",
+  "frm": "Attic",
+  "to": "Rug Room"
+ },
+ {
+  "name": "Attic -> area043",
+  "frm": "Attic",
+  "to": "area043"
+ },
+ {
+  "name": "Music Room -> Rug Room",
+  "frm": "Music Room",
+  "to": "Rug Room"
+ },
+ {
+  "name": "Music Room -> Library",
+  "frm": "Music Room",
+  "to": "Library"
+ },
+ {
+  "name": "Music Room -> Mickey the Guitar Master",
+  "frm": "Music Room",
+  "to": "Mickey the Guitar Master"
+ },
+ {
+  "name": "area043 -> area044",
+  "frm": "area043",
+  "to": "area044"
+ },
+ {
+  "name": "area044 -> Music Room",
+  "frm": "area044",
+  "to": "Music Room"
+ },
+ {
+  "name": "Spa Room -> Broken Room",
+  "frm": "Spa Room",
+  "to": "Broken Room"
+ },
+ {
+  "name": "Library -> Broken Room",
+  "frm": "Library",
+  "to": "Broken Room"
+ },
+ {
+  "name": "Library -> Mirror Room (Endgame Variant)",
+  "frm": "Library",
+  "to": "Mirror Room (Endgame Variant)"
+ },
+ {
+  "name": "Library -> Mirror Room",
+  "frm": "Library",
+  "to": "Mirror Room"
+ },
+ {
+  "name": "Library -> Music Room",
+  "frm": "Library",
+  "to": "Music Room"
+ },
+ {
+  "name": "Mirror Room (Endgame Variant) -> Hole Room",
+  "frm": "Mirror Room (Endgame Variant)",
+  "to": "Hole Room"
+ },
+ {
+  "name": "Mirror Room (Endgame Variant) -> Mirror Room",
+  "frm": "Mirror Room (Endgame Variant)",
+  "to": "Mirror Room"
+ },
+ {
+  "name": "Mirror Room (Endgame Variant) -> Entrance",
+  "frm": "Mirror Room (Endgame Variant)",
+  "to": "Entrance"
+ },
+ {
+  "name": "Mirror Room (Endgame Variant) -> area008",
+  "frm": "Mirror Room (Endgame Variant)",
+  "to": "area008"
+ },
+ {
+  "name": "Mirror Room (Early Variant) -> Hole Room",
+  "frm": "Mirror Room (Early Variant)",
+  "to": "Hole Room"
+ },
+ {
+  "name": "Mirror Room (Early Variant) -> Mirror Room",
+  "frm": "Mirror Room (Early Variant)",
+  "to": "Mirror Room"
+ },
+ {
+  "name": "Mirror Room (Early Variant) -> Entrance",
+  "frm": "Mirror Room (Early Variant)",
+  "to": "Entrance"
+ },
+ {
+  "name": "Mickey the Snowboarder (Entry) -> Mickey the Snowboarder (Course)",
+  "frm": "Mickey the Snowboarder (Entry)",
+  "to": "Mickey the Snowboarder (Course)"
+ },
+ {
+  "name": "area057 -> Results Screen",
+  "frm": "area057",
+  "to": "Results Screen"
+ },
+ {
+  "name": "area058 -> Mirror Room",
+  "frm": "area058",
+  "to": "Mirror Room"
+ },
+ {
+  "name": "Avoid the Flying Sword -> Storage Room",
+  "frm": "Avoid the Flying Sword",
+  "to": "Storage Room"
+ },
+ {
+  "name": "area008 -> Results Screen",
+  "frm": "area008",
+  "to": "Results Screen"
+ },
+ {
+  "name": "Mickey the Snowboarder (Course) -> Sword Hallway",
+  "frm": "Mickey the Snowboarder (Course)",
+  "to": "Sword Hallway"
+ },
+ {
+  "name": "Mickey the Flying Ace -> area001",
+  "frm": "Mickey the Flying Ace",
+  "to": "area001"
+ },
+ {
+  "name": "Dance with Mickey -> TV Room",
+  "frm": "Dance with Mickey",
+  "to": "TV Room"
+ },
+ {
+  "name": "Mickey the Guitar Master -> Music Room",
+  "frm": "Mickey the Guitar Master",
+  "to": "Music Room"
+ },
+ {
+  "name": "Crash Barrels -> Wine Cellar",
+  "frm": "Crash Barrels",
+  "to": "Wine Cellar"
+ }
+]

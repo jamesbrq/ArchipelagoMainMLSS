@@ -1,0 +1,352 @@
+[
+ {
+  "item_name": "Key (Hole Room - Carpet Hallway)",
+  "id": 79790100,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area000:wp0x00",
+  "note": "per-door key for area000:wp0x00"
+ },
+ {
+  "item_name": "Key (Hole Room - Mirror Room)",
+  "id": 79790101,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area000:wp0x07",
+  "note": "per-door key for area000:wp0x07"
+ },
+ {
+  "item_name": "Key (area001 - Toy Room)",
+  "id": 79790102,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area001:wp0x00",
+  "note": "per-door key for area001:wp0x00"
+ },
+ {
+  "item_name": "Key (area001 - TV Room)",
+  "id": 79790103,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area001:wp0x06",
+  "note": "per-door key for area001:wp0x06"
+ },
+ {
+  "item_name": "Key (Candle Room - TV Room)",
+  "id": 79790104,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area003:wp0x05",
+  "note": "per-door key for area003:wp0x05"
+ },
+ {
+  "item_name": "Key (Candle Room - Carpet Hallway)",
+  "id": 79790105,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area003:wp0x06",
+  "note": "per-door key for area003:wp0x06"
+ },
+ {
+  "item_name": "Key (Kitchen - Wooden Hallway)",
+  "id": 79790106,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area005:wp0x0C",
+  "note": "per-door key for area005:wp0x0C"
+ },
+ {
+  "item_name": "Key (Grand Hall - Sword Hallway)",
+  "id": 79790107,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area009:wp0x00",
+  "note": "per-door key for area009:wp0x00"
+ },
+ {
+  "item_name": "Key (Grand Hall - Wooden Hallway)",
+  "id": 79790108,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area009:wp0x13",
+  "note": "per-door key for area009:wp0x13"
+ },
+ {
+  "item_name": "Key (Grand Hall - Dark Room)",
+  "id": 79790109,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area009:wp0x15",
+  "note": "per-door key for area009:wp0x15"
+ },
+ {
+  "item_name": "Key (Sword Hallway - Carpet Hallway)",
+  "id": 79790110,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area011:wp0x00",
+  "note": "per-door key for area011:wp0x00"
+ },
+ {
+  "item_name": "Key (Wooden Hallway - Tea Room)",
+  "id": 79790111,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area013:wp0x02",
+  "note": "per-door key for area013:wp0x02"
+ },
+ {
+  "item_name": "Key (Bee Room - Fish Room)",
+  "id": 79790112,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area018:wp0x05",
+  "note": "per-door key for area018:wp0x05"
+ },
+ {
+  "item_name": "Key (Fish Room - Wardrobe Room)",
+  "id": 79790113,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area019:wp0x01",
+  "note": "per-door key for area019:wp0x01"
+ },
+ {
+  "item_name": "Key (Rug Room - Music Room)",
+  "id": 79790114,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area021:wp0x01",
+  "note": "per-door key for area021:wp0x01"
+ },
+ {
+  "item_name": "Key (Footstool Room - Mirror Room)",
+  "id": 79790115,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area022:wp0x0A",
+  "note": "per-door key for area022:wp0x0A"
+ },
+ {
+  "item_name": "Key (Basement - Dark Hallway)",
+  "id": 79790116,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area028:wp0x07",
+  "note": "per-door key for area028:wp0x07"
+ },
+ {
+  "item_name": "Key (Storage Room - Dark Hallway)",
+  "id": 79790117,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area029:wp0x00",
+  "note": "per-door key for area029:wp0x00"
+ },
+ {
+  "item_name": "Key (Gear Room - Mirror Room)",
+  "id": 79790118,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area032:wp0x00",
+  "note": "per-door key for area032:wp0x00"
+ },
+ {
+  "item_name": "Key (Bell Tower Interior - Dungeon)",
+  "id": 79790119,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area035:wp0x00",
+  "note": "per-door key for area035:wp0x00"
+ },
+ {
+  "item_name": "Key (Dungeon - Old Hall)",
+  "id": 79790120,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area036:wp0x02",
+  "note": "per-door key for area036:wp0x02"
+ },
+ {
+  "item_name": "Key (Old Hall - Fireplace Room)",
+  "id": 79790121,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area038:wp0x01",
+  "note": "per-door key for area038:wp0x01"
+ },
+ {
+  "item_name": "Key (Old Hall - Broken Room)",
+  "id": 79790122,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area038:wp0x04",
+  "note": "per-door key for area038:wp0x04"
+ },
+ {
+  "item_name": "Key (Broken Room - Library)",
+  "id": 79790123,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area039:wp0x05",
+  "note": "per-door key for area039:wp0x05"
+ },
+ {
+  "item_name": "Key (Library - Mirror Room)",
+  "id": 79790124,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area046:wp0x02",
+  "note": "per-door key for area046:wp0x02"
+ },
+ {
+  "item_name": "Key (Mirror Room (Endgame Variant) - Entrance)",
+  "id": 79790125,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area051:wp0x04",
+  "note": "per-door key for area051:wp0x04"
+ },
+ {
+  "item_name": "Key (Mirror Room (Early Variant) - Hole Room)",
+  "id": 79790126,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area052:wp0x00",
+  "note": "per-door key for area052:wp0x00"
+ },
+ {
+  "item_name": "Key (Mirror Room - Entrance)",
+  "id": 79790127,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x000e",
+  "note": "per-door key for flag_0x000e"
+ },
+ {
+  "item_name": "Key (Kitchen - Alcove)",
+  "id": 79790128,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0013",
+  "note": "per-door key for flag_0x0013"
+ },
+ {
+  "item_name": "Key (Carpet Hallway - Piggy Room)",
+  "id": 79790129,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0014",
+  "note": "per-door key for flag_0x0014"
+ },
+ {
+  "item_name": "Key (Alcove - Footstool Room)",
+  "id": 79790130,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0040",
+  "note": "per-door key for flag_0x0040"
+ },
+ {
+  "item_name": "Key (Crazy Hallway - Footstool Room)",
+  "id": 79790131,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0041",
+  "note": "per-door key for flag_0x0041"
+ },
+ {
+  "item_name": "Key (Crazy Hallway - Bee Room)",
+  "id": 79790132,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0042",
+  "note": "per-door key for flag_0x0042"
+ },
+ {
+  "item_name": "Key (Fish Room - Rug Room)",
+  "id": 79790133,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0043",
+  "note": "per-door key for flag_0x0043"
+ },
+ {
+  "item_name": "Key (Music Room - Library)",
+  "id": 79790134,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0044",
+  "note": "per-door key for flag_0x0044"
+ }
+]

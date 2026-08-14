@@ -1,0 +1,1288 @@
+{
+ "locations": {
+  "Toy Room: Mirror Shard": false,
+  "Candle Room: Small Key": {
+   "has": {
+    "item": "Star Container",
+    "count": 2
+   }
+  },
+  "Kitchen: Mirror Shard": {
+   "has": {
+    "item": "Star Container",
+    "count": 3
+   }
+  },
+  "Bee Room: Mirror Shard": false,
+  "area024: Star Container": {
+   "has": {
+    "item": "Star Container",
+    "count": 1
+   }
+  }
+ },
+ "entrances": {
+  "Hole Room -> Mirror Room (Endgame Variant)": {
+   "has": {
+    "item": "Mirror Shard",
+    "count": 8
+   }
+  },
+  "area001 -> Mickey the Flying Ace": false,
+  "Toy Room -> Train Station": {
+   "has": {
+    "item": "Star Container",
+    "count": 2
+   }
+  },
+  "Kitchen -> Alcove": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  },
+  "Kitchen -> Mickey the Snowboarder (Entry)": {
+   "has": {
+    "item": "Star Container",
+    "count": 3
+   }
+  },
+  "Train Room -> area001": {
+   "and": [
+    false,
+    false
+   ]
+  },
+  "Train Room -> Mickey the Flying Ace": {
+   "has": {
+    "item": "Star Container",
+    "count": 3
+   }
+  },
+  "Train Station -> Train Room": false,
+  "Alcove -> Kitchen": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  },
+  "Alcove -> Footstool Room": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  },
+  "Mirror Room -> area058": {
+   "and": [
+    false,
+    false
+   ]
+  },
+  "TV Room -> Dance with Mickey": {
+   "has": {
+    "item": "Star Container",
+    "count": 3
+   }
+  },
+  "Crazy Hallway -> Bee Room": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  },
+  "Crazy Hallway -> Footstool Room": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  },
+  "Bee Room -> Crazy Hallway": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  },
+  "Fish Room -> Rug Room": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  },
+  "Rug Room -> Fish Room": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  },
+  "Footstool Room -> Alcove": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  },
+  "Footstool Room -> Crazy Hallway": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  },
+  "Footstool Room -> Mirror Room (Endgame Variant)": {
+   "has": {
+    "item": "Mirror Shard",
+    "count": 8
+   }
+  },
+  "Carpet Hallway -> Piggy Room": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  },
+  "area024 -> area001": {
+   "has": {
+    "item": "Star Container",
+    "count": 1
+   }
+  },
+  "Entrance -> Mirror Room": {
+   "and": [
+    false,
+    {
+     "or": [
+      {
+       "has": {
+        "item": "Small Key",
+        "count": 1
+       }
+      },
+      {
+       "has": {
+        "item": "Small Key",
+        "count": 1
+       }
+      }
+     ]
+    }
+   ]
+  },
+  "Entrance -> Mirror Room (Early Variant)": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  },
+  "Gear Room -> Mirror Room (Endgame Variant)": {
+   "has": {
+    "item": "Mirror Shard",
+    "count": 8
+   }
+  },
+  "Attic -> area043": {
+   "has": {
+    "item": "Star Container",
+    "count": 3
+   }
+  },
+  "Music Room -> Library": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  },
+  "Music Room -> Mickey the Guitar Master": {
+   "has": {
+    "item": "Star Container",
+    "count": 4
+   }
+  },
+  "Library -> Mirror Room (Endgame Variant)": {
+   "has": {
+    "item": "Mirror Shard",
+    "count": 8
+   }
+  },
+  "Library -> Music Room": {
+   "or": [
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    },
+    {
+     "has": {
+      "item": "Small Key",
+      "count": 1
+     }
+    }
+   ]
+  }
+ },
+ "tricks": {
+  "trick_01": {
+   "cost": 1,
+   "area": 0,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_02": {
+   "cost": 2,
+   "area": 2,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_03": {
+   "cost": 2,
+   "area": 2,
+   "entrances": [
+    "Toy Room -> Train Station"
+   ],
+   "locations": []
+  },
+  "trick_04": {
+   "cost": 1,
+   "area": 3,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_05": {
+   "cost": 1,
+   "area": 3,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_06": {
+   "cost": 0,
+   "area": 5,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_07": {
+   "cost": 2,
+   "area": 5,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_08": {
+   "cost": 3,
+   "area": 5,
+   "entrances": [
+    "Kitchen -> Mickey the Snowboarder (Entry)"
+   ],
+   "locations": []
+  },
+  "trick_09": {
+   "cost": 1,
+   "area": 6,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_10": {
+   "cost": 3,
+   "area": 6,
+   "entrances": [
+    "Train Room -> Mickey the Flying Ace"
+   ],
+   "locations": []
+  },
+  "trick_11": {
+   "cost": 1,
+   "area": 7,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_12": {
+   "cost": 1,
+   "area": 9,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_13": {
+   "cost": 1,
+   "area": 9,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_14": {
+   "cost": 2,
+   "area": 9,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_15": {
+   "cost": 2,
+   "area": 11,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_16": {
+   "cost": 3,
+   "area": 14,
+   "entrances": [
+    "TV Room -> Dance with Mickey"
+   ],
+   "locations": []
+  },
+  "trick_17": {
+   "cost": 1,
+   "area": 15,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_18": {
+   "cost": 2,
+   "area": 15,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_19": {
+   "cost": 1,
+   "area": 20,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_20": {
+   "cost": 1,
+   "area": 20,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_21": {
+   "cost": 1,
+   "area": 23,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_22": {
+   "cost": 1,
+   "area": 24,
+   "entrances": [
+    "area024 -> area001"
+   ],
+   "locations": []
+  },
+  "trick_23": {
+   "cost": 1,
+   "area": 24,
+   "entrances": [],
+   "locations": [
+    "area024: Star Container"
+   ]
+  },
+  "trick_24": {
+   "cost": 1,
+   "area": 26,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_25": {
+   "cost": 2,
+   "area": 29,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_26": {
+   "cost": 1,
+   "area": 32,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_27": {
+   "cost": 1,
+   "area": 33,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_28": {
+   "cost": 2,
+   "area": 33,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_29": {
+   "cost": 2,
+   "area": 39,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_30": {
+   "cost": 2,
+   "area": 39,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_31": {
+   "cost": 3,
+   "area": 41,
+   "entrances": [
+    "Attic -> area043"
+   ],
+   "locations": []
+  },
+  "trick_32": {
+   "cost": 4,
+   "area": 42,
+   "entrances": [
+    "Music Room -> Mickey the Guitar Master"
+   ],
+   "locations": []
+  },
+  "trick_33": {
+   "cost": 3,
+   "area": 45,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_34": {
+   "cost": 2,
+   "area": 46,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_35": {
+   "cost": 1,
+   "area": 0,
+   "entrances": [],
+   "locations": []
+  },
+  "trick_36": {
+   "cost": 2,
+   "area": 3,
+   "entrances": [],
+   "locations": [
+    "Candle Room: Small Key"
+   ]
+  },
+  "trick_37": {
+   "cost": 3,
+   "area": 5,
+   "entrances": [],
+   "locations": [
+    "Kitchen: Mirror Shard"
+   ]
+  },
+  "trick_38": {
+   "cost": 1,
+   "area": 29,
+   "entrances": [],
+   "locations": []
+  }
+ },
+ "doors": [
+  {
+   "id": "flag_0x000e",
+   "flag": 14,
+   "sides": [
+    "area012:wp0x04",
+    "area026:wp0x02",
+    "area052:wp0x04"
+   ],
+   "vanilla_locked": true,
+   "pool": true,
+   "entrances": [
+    "Entrance -> Mirror Room",
+    "Entrance -> Mirror Room (Early Variant)",
+    "Mirror Room (Early Variant) -> Entrance",
+    "Mirror Room -> Entrance"
+   ],
+   "key_item": "Key (Mirror Room - Entrance)"
+  },
+  {
+   "id": "flag_0x0013",
+   "flag": 19,
+   "sides": [
+    "area005:wp0x01",
+    "area010:wp0x00"
+   ],
+   "vanilla_locked": true,
+   "pool": true,
+   "entrances": [
+    "Alcove -> Kitchen",
+    "Kitchen -> Alcove"
+   ],
+   "key_item": "Key (Kitchen - Alcove)"
+  },
+  {
+   "id": "flag_0x0014",
+   "flag": 20,
+   "sides": [
+    "area023:wp0x01",
+    "area025:wp0x00"
+   ],
+   "vanilla_locked": true,
+   "pool": true,
+   "entrances": [
+    "Carpet Hallway -> Piggy Room",
+    "Piggy Room -> Carpet Hallway"
+   ],
+   "key_item": "Key (Carpet Hallway - Piggy Room)"
+  },
+  {
+   "id": "flag_0x0040",
+   "flag": 64,
+   "sides": [
+    "area010:wp0x16",
+    "area022:wp0x00"
+   ],
+   "vanilla_locked": true,
+   "pool": true,
+   "entrances": [
+    "Alcove -> Footstool Room",
+    "Footstool Room -> Alcove"
+   ],
+   "key_item": "Key (Alcove - Footstool Room)"
+  },
+  {
+   "id": "flag_0x0041",
+   "flag": 65,
+   "sides": [
+    "area017:wp0x00",
+    "area022:wp0x07"
+   ],
+   "vanilla_locked": true,
+   "pool": true,
+   "entrances": [
+    "Crazy Hallway -> Footstool Room",
+    "Footstool Room -> Crazy Hallway"
+   ],
+   "key_item": "Key (Crazy Hallway - Footstool Room)"
+  },
+  {
+   "id": "flag_0x0042",
+   "flag": 66,
+   "sides": [
+    "area017:wp0x0A",
+    "area018:wp0x00"
+   ],
+   "vanilla_locked": true,
+   "pool": true,
+   "entrances": [
+    "Bee Room -> Crazy Hallway",
+    "Crazy Hallway -> Bee Room"
+   ],
+   "key_item": "Key (Crazy Hallway - Bee Room)"
+  },
+  {
+   "id": "flag_0x0043",
+   "flag": 67,
+   "sides": [
+    "area019:wp0x03",
+    "area021:wp0x00"
+   ],
+   "vanilla_locked": true,
+   "pool": true,
+   "entrances": [
+    "Fish Room -> Rug Room",
+    "Rug Room -> Fish Room"
+   ],
+   "key_item": "Key (Fish Room - Rug Room)"
+  },
+  {
+   "id": "flag_0x0044",
+   "flag": 68,
+   "sides": [
+    "area042:wp0x01",
+    "area046:wp0x04"
+   ],
+   "vanilla_locked": true,
+   "pool": true,
+   "entrances": [
+    "Library -> Music Room",
+    "Music Room -> Library"
+   ],
+   "key_item": "Key (Music Room - Library)"
+  },
+  {
+   "id": "area000:wp0x00",
+   "flag": null,
+   "sides": [
+    "area000:wp0x00",
+    "area023:wp0x04"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Carpet Hallway -> Hole Room",
+    "Hole Room -> Carpet Hallway"
+   ],
+   "key_item": "Key (Hole Room - Carpet Hallway)"
+  },
+  {
+   "id": "area000:wp0x07",
+   "flag": null,
+   "sides": [
+    "area000:wp0x07",
+    "area012:wp0x00",
+    "area051:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Hole Room -> Mirror Room",
+    "Hole Room -> Mirror Room (Endgame Variant)",
+    "Mirror Room (Endgame Variant) -> Hole Room",
+    "Mirror Room -> Hole Room"
+   ],
+   "key_item": "Key (Hole Room - Mirror Room)"
+  },
+  {
+   "id": "area001:wp0x00",
+   "flag": null,
+   "sides": [
+    "area001:wp0x00",
+    "area002:wp0x04"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Toy Room -> area001",
+    "area001 -> Toy Room"
+   ],
+   "key_item": "Key (area001 - Toy Room)"
+  },
+  {
+   "id": "area001:wp0x06",
+   "flag": null,
+   "sides": [
+    "area001:wp0x06",
+    "area014:wp0x02"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "TV Room -> area001",
+    "area001 -> TV Room"
+   ],
+   "key_item": "Key (area001 - TV Room)"
+  },
+  {
+   "id": "area003:wp0x05",
+   "flag": null,
+   "sides": [
+    "area003:wp0x05",
+    "area014:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Candle Room -> TV Room",
+    "TV Room -> Candle Room"
+   ],
+   "key_item": "Key (Candle Room - TV Room)"
+  },
+  {
+   "id": "area003:wp0x06",
+   "flag": null,
+   "sides": [
+    "area003:wp0x06",
+    "area023:wp0x02"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Candle Room -> Carpet Hallway",
+    "Carpet Hallway -> Candle Room"
+   ],
+   "key_item": "Key (Candle Room - Carpet Hallway)"
+  },
+  {
+   "id": "area005:wp0x0C",
+   "flag": null,
+   "sides": [
+    "area005:wp0x0C",
+    "area013:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Kitchen -> Wooden Hallway",
+    "Wooden Hallway -> Kitchen"
+   ],
+   "key_item": "Key (Kitchen - Wooden Hallway)"
+  },
+  {
+   "id": "area006:wp0x07",
+   "flag": null,
+   "sides": [
+    "area006:wp0x07",
+    "area027:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": false,
+   "entrances": [
+    "Train Room -> area027",
+    "area027 -> Train Room"
+   ],
+   "key_item": "Key (Train Room - area027)"
+  },
+  {
+   "id": "area009:wp0x00",
+   "flag": null,
+   "sides": [
+    "area009:wp0x00",
+    "area011:wp0x0A"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Grand Hall -> Sword Hallway",
+    "Sword Hallway -> Grand Hall"
+   ],
+   "key_item": "Key (Grand Hall - Sword Hallway)"
+  },
+  {
+   "id": "area009:wp0x13",
+   "flag": null,
+   "sides": [
+    "area009:wp0x13",
+    "area013:wp0x01"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Grand Hall -> Wooden Hallway",
+    "Wooden Hallway -> Grand Hall"
+   ],
+   "key_item": "Key (Grand Hall - Wooden Hallway)"
+  },
+  {
+   "id": "area009:wp0x15",
+   "flag": null,
+   "sides": [
+    "area009:wp0x15",
+    "area016:wp0x01"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Dark Room -> Grand Hall",
+    "Grand Hall -> Dark Room"
+   ],
+   "key_item": "Key (Grand Hall - Dark Room)"
+  },
+  {
+   "id": "area011:wp0x00",
+   "flag": null,
+   "sides": [
+    "area011:wp0x00",
+    "area023:wp0x03"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Carpet Hallway -> Sword Hallway",
+    "Sword Hallway -> Carpet Hallway"
+   ],
+   "key_item": "Key (Sword Hallway - Carpet Hallway)"
+  },
+  {
+   "id": "area013:wp0x02",
+   "flag": null,
+   "sides": [
+    "area013:wp0x02",
+    "area015:wp0x0A"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Tea Room -> Wooden Hallway",
+    "Wooden Hallway -> Tea Room"
+   ],
+   "key_item": "Key (Wooden Hallway - Tea Room)"
+  },
+  {
+   "id": "area016:wp0x04",
+   "flag": null,
+   "sides": [
+    "area016:wp0x04",
+    "area028:wp0x03"
+   ],
+   "vanilla_locked": false,
+   "pool": false,
+   "entrances": [
+    "Basement -> Dark Room",
+    "Dark Room -> Basement"
+   ],
+   "key_item": "Key (Dark Room - Basement)"
+  },
+  {
+   "id": "area018:wp0x05",
+   "flag": null,
+   "sides": [
+    "area018:wp0x05",
+    "area019:wp0x04"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Bee Room -> Fish Room",
+    "Fish Room -> Bee Room"
+   ],
+   "key_item": "Key (Bee Room - Fish Room)"
+  },
+  {
+   "id": "area019:wp0x01",
+   "flag": null,
+   "sides": [
+    "area019:wp0x01",
+    "area020:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Fish Room -> Wardrobe Room",
+    "Wardrobe Room -> Fish Room"
+   ],
+   "key_item": "Key (Fish Room - Wardrobe Room)"
+  },
+  {
+   "id": "area021:wp0x01",
+   "flag": null,
+   "sides": [
+    "area021:wp0x01",
+    "area042:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Music Room -> Rug Room",
+    "Rug Room -> Music Room"
+   ],
+   "key_item": "Key (Rug Room - Music Room)"
+  },
+  {
+   "id": "area021:wp0x03",
+   "flag": null,
+   "sides": [
+    "area021:wp0x03",
+    "area041:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": false,
+   "entrances": [
+    "Attic -> Rug Room",
+    "Rug Room -> Attic"
+   ],
+   "key_item": "Key (Rug Room - Attic)"
+  },
+  {
+   "id": "area022:wp0x0A",
+   "flag": null,
+   "sides": [
+    "area022:wp0x0A"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Footstool Room -> Mirror Room",
+    "Footstool Room -> Mirror Room (Endgame Variant)"
+   ],
+   "key_item": "Key (Footstool Room - Mirror Room)"
+  },
+  {
+   "id": "area028:wp0x07",
+   "flag": null,
+   "sides": [
+    "area028:wp0x07",
+    "area034:wp0x05"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Basement -> Dark Hallway",
+    "Dark Hallway -> Basement"
+   ],
+   "key_item": "Key (Basement - Dark Hallway)"
+  },
+  {
+   "id": "area029:wp0x00",
+   "flag": null,
+   "sides": [
+    "area029:wp0x00",
+    "area034:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Dark Hallway -> Storage Room",
+    "Storage Room -> Dark Hallway"
+   ],
+   "key_item": "Key (Storage Room - Dark Hallway)"
+  },
+  {
+   "id": "area029:wp0x03",
+   "flag": null,
+   "sides": [
+    "area029:wp0x03",
+    "area031:wp0x01"
+   ],
+   "vanilla_locked": false,
+   "pool": false,
+   "entrances": [
+    "Cave -> Storage Room",
+    "Storage Room -> Cave"
+   ],
+   "key_item": "Key (Storage Room - Cave)"
+  },
+  {
+   "id": "area031:wp0x0C",
+   "flag": null,
+   "sides": [
+    "area031:wp0x0C",
+    "area032:wp0x0B"
+   ],
+   "vanilla_locked": false,
+   "pool": false,
+   "entrances": [
+    "Cave -> Gear Room",
+    "Gear Room -> Cave"
+   ],
+   "key_item": "Key (Cave - Gear Room)"
+  },
+  {
+   "id": "area032:wp0x00",
+   "flag": null,
+   "sides": [
+    "area032:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Gear Room -> Mirror Room",
+    "Gear Room -> Mirror Room (Endgame Variant)"
+   ],
+   "key_item": "Key (Gear Room - Mirror Room)"
+  },
+  {
+   "id": "area032:wp0x03",
+   "flag": null,
+   "sides": [
+    "area032:wp0x03",
+    "area033:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": false,
+   "entrances": [
+    "Bell Tower Roof -> Gear Room",
+    "Gear Room -> Bell Tower Roof"
+   ],
+   "key_item": "Key (Gear Room - Bell Tower Roof)"
+  },
+  {
+   "id": "area033:wp0x06",
+   "flag": null,
+   "sides": [
+    "area033:wp0x06",
+    "area035:wp0x0E"
+   ],
+   "vanilla_locked": false,
+   "pool": false,
+   "entrances": [
+    "Bell Tower Interior -> Bell Tower Roof",
+    "Bell Tower Roof -> Bell Tower Interior"
+   ],
+   "key_item": "Key (Bell Tower Roof - Bell Tower Interior)"
+  },
+  {
+   "id": "area035:wp0x00",
+   "flag": null,
+   "sides": [
+    "area035:wp0x00",
+    "area036:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Bell Tower Interior -> Dungeon",
+    "Dungeon -> Bell Tower Interior"
+   ],
+   "key_item": "Key (Bell Tower Interior - Dungeon)"
+  },
+  {
+   "id": "area036:wp0x02",
+   "flag": null,
+   "sides": [
+    "area036:wp0x02",
+    "area038:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Dungeon -> Old Hall",
+    "Old Hall -> Dungeon"
+   ],
+   "key_item": "Key (Dungeon - Old Hall)"
+  },
+  {
+   "id": "area036:wp0x05",
+   "flag": null,
+   "sides": [
+    "area036:wp0x05",
+    "area037:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": false,
+   "entrances": [
+    "Dungeon -> Wine Cellar",
+    "Wine Cellar -> Dungeon"
+   ],
+   "key_item": "Key (Dungeon - Wine Cellar)"
+  },
+  {
+   "id": "area038:wp0x01",
+   "flag": null,
+   "sides": [
+    "area038:wp0x01",
+    "area040:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Fireplace Room -> Old Hall",
+    "Old Hall -> Fireplace Room"
+   ],
+   "key_item": "Key (Old Hall - Fireplace Room)"
+  },
+  {
+   "id": "area038:wp0x04",
+   "flag": null,
+   "sides": [
+    "area038:wp0x04",
+    "area039:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Broken Room -> Old Hall",
+    "Old Hall -> Broken Room"
+   ],
+   "key_item": "Key (Old Hall - Broken Room)"
+  },
+  {
+   "id": "area039:wp0x05",
+   "flag": null,
+   "sides": [
+    "area039:wp0x05",
+    "area046:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Broken Room -> Library",
+    "Library -> Broken Room"
+   ],
+   "key_item": "Key (Broken Room - Library)"
+  },
+  {
+   "id": "area039:wp0x0B",
+   "flag": null,
+   "sides": [
+    "area039:wp0x0B",
+    "area045:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": false,
+   "entrances": [
+    "Broken Room -> Spa Room",
+    "Spa Room -> Broken Room"
+   ],
+   "key_item": "Key (Broken Room - Spa Room)"
+  },
+  {
+   "id": "area046:wp0x02",
+   "flag": null,
+   "sides": [
+    "area046:wp0x02"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Library -> Mirror Room",
+    "Library -> Mirror Room (Endgame Variant)"
+   ],
+   "key_item": "Key (Library - Mirror Room)"
+  },
+  {
+   "id": "area051:wp0x02",
+   "flag": null,
+   "sides": [
+    "area051:wp0x02"
+   ],
+   "vanilla_locked": false,
+   "pool": false,
+   "entrances": [
+    "Mirror Room (Endgame Variant) -> Mirror Room"
+   ],
+   "key_item": "Key (Mirror Room (Endgame Variant) - Mirror Room)"
+  },
+  {
+   "id": "area051:wp0x04",
+   "flag": null,
+   "sides": [
+    "area051:wp0x04"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Mirror Room (Endgame Variant) -> Entrance"
+   ],
+   "key_item": "Key (Mirror Room (Endgame Variant) - Entrance)"
+  },
+  {
+   "id": "area052:wp0x00",
+   "flag": null,
+   "sides": [
+    "area052:wp0x00"
+   ],
+   "vanilla_locked": false,
+   "pool": true,
+   "entrances": [
+    "Mirror Room (Early Variant) -> Hole Room"
+   ],
+   "key_item": "Key (Mirror Room (Early Variant) - Hole Room)"
+  },
+  {
+   "id": "area052:wp0x02",
+   "flag": null,
+   "sides": [
+    "area052:wp0x02"
+   ],
+   "vanilla_locked": false,
+   "pool": false,
+   "entrances": [
+    "Mirror Room (Early Variant) -> Mirror Room"
+   ],
+   "key_item": "Key (Mirror Room (Early Variant) - Mirror Room)"
+  }
+ ]
+}

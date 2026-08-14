@@ -1,0 +1,618 @@
+[
+ {
+  "item_name": "Small Key",
+  "id": 79790000,
+  "progression": 1,
+  "frequency": 8,
+  "grant": "counter_key",
+  "rom_id": "0x0A"
+ },
+ {
+  "item_name": "Mirror Shard",
+  "id": 79790001,
+  "progression": 1,
+  "frequency": 12,
+  "grant": "counter_shard",
+  "rom_id": "0x0B"
+ },
+ {
+  "item_name": "Star Container",
+  "id": 79790002,
+  "progression": 1,
+  "frequency": 12,
+  "grant": "counter_vessel",
+  "rom_id": "0x08"
+ },
+ {
+  "item_name": "Airplane",
+  "id": 79790003,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01EA"
+ },
+ {
+  "item_name": "Dog Collar",
+  "id": 79790004,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01E4"
+ },
+ {
+  "item_name": "Sword",
+  "id": 79790005,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01EB"
+ },
+ {
+  "item_name": "Minnie's Bow",
+  "id": 79790006,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01E5"
+ },
+ {
+  "item_name": "Doghouse",
+  "id": 79790007,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01E3"
+ },
+ {
+  "item_name": "Bronze statue",
+  "id": 79790008,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01F6"
+ },
+ {
+  "item_name": "Goofy Plaque",
+  "id": 79790009,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01E2"
+ },
+ {
+  "item_name": "Snowman",
+  "id": 79790010,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01EC"
+ },
+ {
+  "item_name": "Donald Duck Plush",
+  "id": 79790011,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01E1"
+ },
+ {
+  "item_name": "Heart Picture",
+  "id": 79790012,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01E0"
+ },
+ {
+  "item_name": "Bee",
+  "id": 79790013,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01F2"
+ },
+ {
+  "item_name": "Flower Pot",
+  "id": 79790014,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01EF"
+ },
+ {
+  "item_name": "Train",
+  "id": 79790015,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01F4"
+ },
+ {
+  "item_name": "Piggy Bank",
+  "id": 79790016,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01F0"
+ },
+ {
+  "item_name": "Pink Balloon",
+  "id": 79790017,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01F3"
+ },
+ {
+  "item_name": "Clock Tower Model",
+  "id": 79790018,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01E9"
+ },
+ {
+  "item_name": "Miniature Mansion",
+  "id": 79790019,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01F9"
+ },
+ {
+  "item_name": "Dojo",
+  "id": 79790020,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01F7"
+ },
+ {
+  "item_name": "Friends Picture",
+  "id": 79790021,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01E8"
+ },
+ {
+  "item_name": "Windmill",
+  "id": 79790022,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01F8"
+ },
+ {
+  "item_name": "Rubber Duck",
+  "id": 79790023,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01F1"
+ },
+ {
+  "item_name": "Cake",
+  "id": 79790024,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01EE"
+ },
+ {
+  "item_name": "Ghost",
+  "id": 79790025,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01F5"
+ },
+ {
+  "item_name": "Guitar",
+  "id": 79790026,
+  "progression": 2,
+  "frequency": 1,
+  "grant": "flag",
+  "rom_id": "0x01ED"
+ },
+ {
+  "item_name": "Hole Trick",
+  "id": 79790027,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0000"
+ },
+ {
+  "item_name": "Horse Trick",
+  "id": 79790028,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0001"
+ },
+ {
+  "item_name": "Witch Trick",
+  "id": 79790029,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0002"
+ },
+ {
+  "item_name": "Candle Trick",
+  "id": 79790030,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0003"
+ },
+ {
+  "item_name": "Shadow / Coin Trick",
+  "id": 79790031,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0004"
+ },
+ {
+  "item_name": "Trick: trick_06",
+  "id": 79790032,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0005"
+ },
+ {
+  "item_name": "Flour Cabinet Trick",
+  "id": 79790033,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0006"
+ },
+ {
+  "item_name": "Fridge Trick",
+  "id": 79790034,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0007"
+ },
+ {
+  "item_name": "Cord Trick",
+  "id": 79790035,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0008"
+ },
+ {
+  "item_name": "Plane Trick",
+  "id": 79790036,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0009"
+ },
+ {
+  "item_name": "Briefcase Trick (1 of 3)",
+  "id": 79790037,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x000A"
+ },
+ {
+  "item_name": "Urn Trick [trick_12]",
+  "id": 79790038,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x000B"
+ },
+ {
+  "item_name": "Urn Trick",
+  "id": 79790039,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x000C"
+ },
+ {
+  "item_name": "Chandelier Trick",
+  "id": 79790040,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x000D"
+ },
+ {
+  "item_name": "Painting Trick",
+  "id": 79790041,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x000E"
+ },
+ {
+  "item_name": "Trick: trick_16",
+  "id": 79790042,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x000F"
+ },
+ {
+  "item_name": "Chair Trick",
+  "id": 79790043,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0010"
+ },
+ {
+  "item_name": "Tea Set Trick",
+  "id": 79790044,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0011"
+ },
+ {
+  "item_name": "Magic Wardrobe Trick",
+  "id": 79790045,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0012"
+ },
+ {
+  "item_name": "Shard Wardrobe Trick",
+  "id": 79790046,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0013"
+ },
+ {
+  "item_name": "Carpet Trick",
+  "id": 79790047,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0014"
+ },
+ {
+  "item_name": "Briefcase Trick (2 of 3)",
+  "id": 79790048,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0015"
+ },
+ {
+  "item_name": "Briefcase Trick (3 of 3)",
+  "id": 79790049,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0016"
+ },
+ {
+  "item_name": "Star Door Trick",
+  "id": 79790050,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0017"
+ },
+ {
+  "item_name": "Shoe Trick",
+  "id": 79790051,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0018"
+ },
+ {
+  "item_name": "Lever Trick",
+  "id": 79790052,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0019"
+ },
+ {
+  "item_name": "Clock Face Trick",
+  "id": 79790053,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x001A"
+ },
+ {
+  "item_name": "Tightrope Trick",
+  "id": 79790054,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x001B"
+ },
+ {
+  "item_name": "Pole Trick (Part 1)",
+  "id": 79790055,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x001C"
+ },
+ {
+  "item_name": "Pole Trick (Part 2)",
+  "id": 79790056,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x001D"
+ },
+ {
+  "item_name": "Ghost Trick",
+  "id": 79790057,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x001E"
+ },
+ {
+  "item_name": "Guitar Trick",
+  "id": 79790058,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x001F"
+ },
+ {
+  "item_name": "Star Container Trick",
+  "id": 79790059,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0020"
+ },
+ {
+  "item_name": "Bookshelf Trick",
+  "id": 79790060,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0021"
+ },
+ {
+  "item_name": "Wardrobe Trick",
+  "id": 79790061,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0022"
+ },
+ {
+  "item_name": "Bed Trick",
+  "id": 79790062,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0023"
+ },
+ {
+  "item_name": "Silverware Cabinet Trick",
+  "id": 79790063,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0024"
+ },
+ {
+  "item_name": "Right Painting Trick",
+  "id": 79790064,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "ap_flag",
+  "rom_id": "0x0025"
+ },
+ {
+  "item_name": "Quest Item 0x04",
+  "id": 79790065,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "inventory",
+  "rom_id": "0x04"
+ },
+ {
+  "item_name": "Remote Control",
+  "id": 79790066,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "inventory",
+  "rom_id": "0x05"
+ },
+ {
+  "item_name": "Empty Can",
+  "id": 79790067,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "inventory",
+  "rom_id": "0x06"
+ },
+ {
+  "item_name": "Flower",
+  "id": 79790068,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "inventory",
+  "rom_id": "0x07"
+ },
+ {
+  "item_name": "Coin",
+  "id": 79790069,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "inventory",
+  "rom_id": "0x08"
+ },
+ {
+  "item_name": "Gear",
+  "id": 79790070,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "inventory",
+  "rom_id": "0x09"
+ },
+ {
+  "item_name": "Magnifying Glass",
+  "id": 79790071,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "inventory",
+  "rom_id": "0x0A"
+ },
+ {
+  "item_name": "Flashlight",
+  "id": 79790072,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "inventory",
+  "rom_id": "0x0B"
+ },
+ {
+  "item_name": "Marble",
+  "id": 79790073,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "inventory",
+  "rom_id": "0x0C"
+ },
+ {
+  "item_name": "Can with Goldfish",
+  "id": 79790074,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "inventory",
+  "rom_id": "0x0E"
+ },
+ {
+  "item_name": "Hat",
+  "id": 79790075,
+  "progression": 2,
+  "frequency": 5,
+  "grant": "flag",
+  "rom_id": "0x01E6"
+ },
+ {
+  "item_name": "Archipelago Item",
+  "id": 79790076,
+  "progression": 0,
+  "frequency": 64,
+  "grant": "none",
+  "rom_id": "0x0"
+ }
+]

@@ -1,0 +1,6 @@
+{
+    "game": "Disney's Magical Mirror",
+	"authors": [ "jamesbrq" ],
+    "minimum_ap_version": "0.6.6",
+    "world_version": "0.1.0"
+}
