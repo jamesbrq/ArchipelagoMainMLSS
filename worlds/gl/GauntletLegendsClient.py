@@ -643,24 +643,28 @@ _original_opt_content: dict[str, str | None] = {}
 
 
 async def _patch_opt():
-    """Create RetroArch core options override for CountPerOp=1."""
+    """Create RetroArch core options override for CountPerOp=1 and virefresh=2200."""
     retroarch_path = settings.get_settings().gl_options.retroarch_path
     override_dir = os.path.join(retroarch_path, "config", "Mupen64Plus-Next")
     os.makedirs(override_dir, exist_ok=True)
     override_path = os.path.join(override_dir, "Mupen64Plus-Next.opt")
-    target_setting = 'mupen64plus-CountPerOp = "1"'
+    target_settings = {
+        "mupen64plus-CountPerOp": "1",
+        "mupen64plus-virefresh": "2200",
+    }
 
     if override_path not in _original_opt_content:
         _original_opt_content[override_path] = open(override_path).read() if os.path.exists(override_path) else None
 
     content = _original_opt_content[override_path] or ""
-    if target_setting in content:
-        return
-
-    if "mupen64plus-CountPerOp" in content:
-        content = re.sub(r'mupen64plus-CountPerOp\s*=\s*"[^"]*"', target_setting, content)
-    else:
-        content = content.rstrip("\n") + f"\n{target_setting}\n" if content else f"{target_setting}\n"
+    for key, value in target_settings.items():
+        target_setting = f'{key} = "{value}"'
+        if target_setting in content:
+            continue
+        if key in content:
+            content = re.sub(rf'{re.escape(key)}\s*=\s*"[^"]*"', target_setting, content)
+        else:
+            content = content.rstrip("\n") + f"\n{target_setting}\n" if content else f"{target_setting}\n"
 
     with open(override_path, "w") as f:
         f.write(content)
