@@ -248,7 +248,7 @@ class PalaceSkip(Toggle):
     display_name = "Palace Skip"
 
 
-class CutsceneSkip(Toggle):
+class CutsceneSkip(DefaultOnToggle):
     """
     Skips some of the longer cutscenes in the game,
     such as the Shadow Queen cutscene, Fahr Outpost Cannon etc.
@@ -398,7 +398,7 @@ class FullRunBar(Toggle):
     display_name = "Full Run Bar"
 
 
-class DisableIntermissions(Toggle):
+class DisableIntermissions(DefaultOnToggle):
     """
     After obtaining a crystal star, mario will stay in the boss' room,
     and the sequence will be updated past the intermission.
@@ -406,12 +406,21 @@ class DisableIntermissions(Toggle):
     display_name = "Disable Intermissions"
 
 
-class FastTravel(Toggle):
+class FastTravel(DefaultOnToggle):
     """
     Enable this to gain the ability to warp to any area you have visited from the map
     screen in the main menu. Press A on the destination to open the warp confirmation dialog.
     """
     display_name = "Fast Travel"
+
+
+class InGameTracker(DefaultOnToggle):
+    """
+    Adds a logic tracker to the journal map.
+    All map nodes are colored by check availability.
+    Pressing X on a node opens a list of that area's locations and their accessibility.
+    """
+    display_name = "In-Game Tracker"
 
 
 class AlwaysSucceedConditions(Toggle):
@@ -641,6 +650,7 @@ class TTYDOptions(PerGameCommonOptions):
     epilogue_skip: EpilogueSkip
     disable_intermissions: DisableIntermissions
     fast_travel: FastTravel
+    in_game_tracker: InGameTracker
     succeed_conditions: AlwaysSucceedConditions
     open_westside: OpenWestside
     grubba_bribe_direction: GrubbaBribeDirection

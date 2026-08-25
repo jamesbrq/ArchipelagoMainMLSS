@@ -47,6 +47,7 @@ GAME_ID_ADDRESS = 0x80000000
 EXPECTED_GAME_ID = b"G8ME01"
 
 RECV_FLAG_RING = 0x80004600
+SENDER_NAME_RING = 0x80004700  # protocol 3: 16 slots x 16 bytes, sender names for the item feed
 RECV_FLAG_HEAD = RECV_FLAG_RING + 0x0
 RECV_FLAG_TAIL = RECV_FLAG_RING + 0x2
 RECV_FLAG_EVENTS = RECV_FLAG_RING + 0x4
@@ -416,12 +417,45 @@ class TTYDContext(cmmCtx):
             return
         if index > len(self.items_received):
             return
-        items = min(len(self.items_received) - index, 255)
+        # 15 per batch: with at most 15 items there are at most 15 distinct
+        # senders, so the name ring's slots 0-14 always cover the whole batch.
+        # The mod consumes a batch per frame, so backlogs still drain quickly.
+        items = min(len(self.items_received) - index, 15)
         if items <= 0:
             return
 
         dirty_run(DIRTY_ITEM_REPLAY)
-        item_ids = [get_rom_item_id(self.items_received[i]) for i in range(index, index + items)]
+        if dolphin.read_word(MOD_PROTOCOL) >= 3:
+            # Protocol 3 mailbox entries: rom id in bits 0-8, bits 9-12 = slot in
+            # the sender-name ring at SENDER_NAME_RING, bit 13 = announce in the
+            # in-game received-item feed, bits 14-15 = AP classification
+            # (0 filler, 1 useful, 2 progression, 3 trap).
+            #
+            # Every item from another player is announced; the mod streams large
+            # catch-up backlogs through its feed batch by batch and collapses
+            # what never fits into a "+N more" row. Ring slots are assigned per
+            # batch (the mod copies names out of the ring while consuming the
+            # batch, before releasing the mailbox); a batch is capped at 15
+            # items, so slots 0-14 always cover every sender by name.
+            batch_slots: dict = {}
+            item_ids = []
+            for i in range(index, index + items):
+                net_item = self.items_received[i]
+                packed = get_rom_item_id(net_item) & 0x1FF
+                cls = 3 if net_item.flags & 0b100 else 2 if net_item.flags & 0b001 \
+                    else 1 if net_item.flags & 0b010 else 0
+                packed |= cls << 14
+                if net_item.player != self.slot:
+                    name = self.player_names.get(net_item.player, "")
+                    if name not in batch_slots:
+                        slot = len(batch_slots)
+                        batch_slots[name] = slot
+                        raw = name.encode("ascii", "replace")[:15].ljust(16, b"\x00")
+                        dolphin.write_bytes(SENDER_NAME_RING + slot * 16, raw)
+                    packed |= 0x2000 | (batch_slots[name] << 9)
+                item_ids.append(packed)
+        else:
+            item_ids = [get_rom_item_id(self.items_received[i]) for i in range(index, index + items)]
         packed_data = struct.pack(f'>{len(item_ids)}H', *item_ids)
         dolphin.write_bytes(RECEIVED_ITEM_ARRAY, packed_data)
         dolphin.write_word(RECEIVED_LENGTH, items)
@@ -503,7 +537,7 @@ class TTYDContext(cmmCtx):
                         locations_to_send.add(location)
             if len(locations_to_send) > 0:
                 self.checked_locations &= locations_to_send
-                await self.send_msgs([{"cmd": 'LocationChecks', "locations": locations_to_send}])
+                await self.check_locations(locations_to_send)
         except Exception as e:
             logger.error(traceback.format_exc())
 

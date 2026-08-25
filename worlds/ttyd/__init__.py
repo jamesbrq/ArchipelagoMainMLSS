@@ -213,8 +213,11 @@ class TTYDWorld(World):
             self.excluded_regions.update(["Shadow Queen"])
             if self.options.tattlesanity:
                 self.disabled_locations.update(["Tattle: Shadow Queen"])
-        if self.options.tattlesanity and self.options.disable_intermissions:
+        if (self.options.tattlesanity and self.options.disable_intermissions
+                and self.options.boss_randomizer == BossRandomizer.option_vanilla):
             self.disabled_locations.update(["Tattle: Lord Crump"])
+        if self.options.tattlesanity and self.options.enemy_randomizer != EnemyRandomizer.option_vanilla:
+            self.disabled_locations.update(["Tattle: Koopatrol", "Tattle: Magikoopa"])
         if self.options.enemy_randomizer != EnemyRandomizer.option_vanilla:
             randomize_encounters(self)
         if self.options.boss_randomizer != BossRandomizer.option_vanilla:
