@@ -377,11 +377,11 @@ class BossScalingNerfs(DefaultOnToggle):
     display_name = "Boss Scaling Nerfs"
 
 
-class NormalMoonSpeed(Toggle):
+class FasterMoonSpeed(Toggle):
     """
-    Mario's walking speed on the moon will be the same as his normal walking speed.
+    Mario's walking speed on the moon will be increased to be the same as his normal walking speed.
     """
-    display_name = "Normal Moon Speed"
+    display_name = "Faster Moon Speed"
 
 
 class PermanentPeekaboo(Toggle):
@@ -421,6 +421,22 @@ class InGameTracker(DefaultOnToggle):
     Pressing X on a node opens a list of that area's locations and their accessibility.
     """
     display_name = "In-Game Tracker"
+
+
+class PanelHints(Toggle):
+    """
+    Colors hidden flip panels on the floor by accessibility.
+    This is recommended for beginners who want to learn where flip panels are located.
+    """
+    display_name = "Flip Panel Hints"
+
+
+class MirrorMode(Toggle):
+    """
+    Mirrors the game horizontally.
+    Everything in the overworld and in-battle will be mirrored completely.
+    """
+    display_name = "Mirror Mode"
 
 
 class AlwaysSucceedConditions(Toggle):
@@ -651,6 +667,8 @@ class TTYDOptions(PerGameCommonOptions):
     disable_intermissions: DisableIntermissions
     fast_travel: FastTravel
     in_game_tracker: InGameTracker
+    panel_hints: PanelHints
+    mirror_mode: MirrorMode
     succeed_conditions: AlwaysSucceedConditions
     open_westside: OpenWestside
     grubba_bribe_direction: GrubbaBribeDirection
@@ -662,7 +680,7 @@ class TTYDOptions(PerGameCommonOptions):
     boss_randomizer: BossRandomizer
     boss_stat_scaling: BossStatScaling
     boss_scaling_nerfs: BossScalingNerfs
-    moon_speed: NormalMoonSpeed
+    moon_speed: FasterMoonSpeed
     permanent_peekaboo: PermanentPeekaboo
     full_run_bar: FullRunBar
     first_attack: ZeroBPFirstAttack

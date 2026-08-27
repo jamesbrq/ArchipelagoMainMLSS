@@ -207,6 +207,9 @@ class TTYDWorld(World):
         if not self.options.cooksanity:
             self.disabled_locations.update(
                 location.name for location in get_locations_by_tags("cooking"))
+        if not self.options.troublesanity:
+            self.disabled_locations.update(
+                location.name for location in get_locations_by_tags("trouble"))
         if not self.options.tattlesanity:
             self.excluded_regions.update(["Tattlesanity"])
         if self.options.goal != Goal.option_shadow_queen:
