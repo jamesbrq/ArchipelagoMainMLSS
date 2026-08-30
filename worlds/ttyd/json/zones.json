@@ -122,7 +122,8 @@
         },
         "tags": [
             "Prologue",
-            "Six"
+            "Six",
+            "Chapter Edge"
         ]
     },
     {
@@ -136,7 +137,8 @@
         },
         "tags": [
             "Prologue",
-            "Three"
+            "Three",
+            "Chapter Edge"
         ]
     },
     {
@@ -302,7 +304,8 @@
         "rules": null,
         "tags": [
             "Prologue",
-            "One"
+            "One",
+            "Chapter Edge"
         ]
     },
     {
@@ -326,7 +329,8 @@
         "tags": [
             "Prologue",
             "Seven",
-            "Dungeon Exit"
+            "Dungeon Exit",
+            "Chapter Edge"
         ]
     },
     {
@@ -418,7 +422,8 @@
         "rules": null,
         "tags": [
             "Prologue",
-            "Four"
+            "Four",
+            "Chapter Edge"
         ]
     },
     {
@@ -531,7 +536,8 @@
         "rules": null,
         "tags": [
             "Prologue",
-            "One"
+            "One",
+            "Chapter Edge"
         ]
     },
     {
@@ -543,7 +549,8 @@
         "rules": null,
         "tags": [
             "Prologue",
-            "Two"
+            "Two",
+            "Chapter Edge"
         ]
     },
     {
@@ -601,7 +608,8 @@
         "rules": null,
         "tags": [
             "Prologue",
-            "Five"
+            "Five",
+            "Chapter Edge"
         ]
     },
     {
@@ -613,7 +621,8 @@
         "rules": null,
         "tags": [
             "Prologue",
-            "Six"
+            "Six",
+            "Chapter Edge"
         ]
     },
     {
@@ -826,7 +835,8 @@
         "rules": null,
         "tags": [
             "Prologue",
-            "Two"
+            "Two",
+            "Chapter Edge"
         ]
     },
     {
@@ -838,7 +848,8 @@
         "region": "petal_meadow_entrance",
         "tags": [
             "One",
-            "Prologue"
+            "Prologue",
+            "Chapter Edge"
         ]
     },
     {
@@ -947,7 +958,8 @@
         "region": "petalburg_east",
         "tags": [
             "One",
-            "Prologue"
+            "Prologue",
+            "Chapter Edge"
         ]
     },
     {
@@ -1604,7 +1616,10 @@
         "rules": {
             "and": [
                 {
-                    "has": "Castle Key"
+                    "has": {
+                        "item": "Castle Key",
+                        "count": 2
+                    }
                 },
                 {
                     "or": [
@@ -1648,6 +1663,9 @@
                     "has": "Plane Mode"
                 },
                 {
+                    "has": "Paper Mode"
+                },
+                {
                     "or": [
                         {
                             "has": "Koops"
@@ -1681,7 +1699,10 @@
         "bero": "w_bero_5",
         "target": "Hooktail's Castle Hooktail's Room Exterior - East",
         "rules": {
-            "has": "Castle Key"
+            "has": {
+                "item": "Castle Key",
+                "count": 3
+            }
         },
         "region": "hooktail_stair_central_upper",
         "tags": [
@@ -1719,7 +1740,8 @@
         "region": "boggly_entrance",
         "tags": [
             "Two",
-            "Prologue"
+            "Prologue",
+            "Chapter Edge"
         ]
     },
     {
@@ -1896,7 +1918,8 @@
         "region": "boggly_outside_tree",
         "tags": [
             "Two",
-            "Prologue"
+            "Prologue",
+            "Chapter Edge"
         ]
     },
     {
@@ -2330,7 +2353,7 @@
         "bero": "dokan",
         "target": "Great Tree Pool Room - Pipe Bottom",
         "rules": null,
-        "region": "tree_hundred_puni",
+        "region": "tree_hundred_puni_upper",
         "tags": [
             "Two"
         ]
@@ -2374,7 +2397,7 @@
         "bero": "e_bero",
         "target": "Great Tree Emerald Star Room - West",
         "rules": null,
-        "region": "tree_hundred_puni",
+        "region": "tree_hundred_puni_lower",
         "tags": [
             "Two"
         ]
@@ -2446,7 +2469,8 @@
         "region": "glitzville_main_square",
         "tags": [
             "Three",
-            "Prologue"
+            "Prologue",
+            "Chapter Edge"
         ]
     },
     {
@@ -2867,7 +2891,8 @@
         "region": "twilight_town_left",
         "tags": [
             "Four",
-            "Prologue"
+            "Prologue",
+            "Chapter Edge"
         ]
     },
     {
@@ -3205,7 +3230,7 @@
         "rules": {
             "or": [
                 {
-                    "has": "Steeple Key 1"
+                    "has": "Steeple Key"
                 },
                 {
                     "can_reach_region": "Creepy Steeple Parrot Room"
@@ -3519,7 +3544,9 @@
         },
         "region": "keelhaul_town",
         "tags": [
-            "Five"
+            "Prologue",
+            "Five",
+            "Chapter Edge"
         ]
     },
     {
@@ -4206,7 +4233,7 @@
     },
     {
         "name": "Excess Express Dining Car - East",
-        "map": "rsh_03_a",
+        "map": "rsh_03",
         "bero": "e_bero",
         "target": "Excess Express Middle Passenger Car - West",
         "rules": null,
@@ -4217,7 +4244,7 @@
     },
     {
         "name": "Excess Express Middle Passenger Car - West",
-        "map": "rsh_02_a",
+        "map": "rsh_02",
         "bero": "w_bero",
         "target": "Excess Express Dining Car - East",
         "rules": null,
@@ -4228,7 +4255,7 @@
     },
     {
         "name": "Excess Express Back Passenger Car - East",
-        "map": "rsh_04_a",
+        "map": "rsh_04",
         "bero": "e_bero",
         "target": "Excess Express Dining Car - West",
         "rules": null,
@@ -4239,7 +4266,7 @@
     },
     {
         "name": "Excess Express Dining Car - West",
-        "map": "rsh_03_a",
+        "map": "rsh_03",
         "bero": "w_bero",
         "target": "Excess Express Back Passenger Car - East",
         "rules": null,
@@ -4250,7 +4277,7 @@
     },
     {
         "name": "Excess Express Storage Car - East",
-        "map": "rsh_05_a",
+        "map": "rsh_05",
         "bero": "e_bero",
         "target": "Excess Express Back Passenger Car - West",
         "rules": null,
@@ -4261,7 +4288,7 @@
     },
     {
         "name": "Excess Express Back Passenger Car - West",
-        "map": "rsh_04_a",
+        "map": "rsh_04",
         "bero": "w_bero",
         "target": "Excess Express Storage Car - East",
         "rules": null,
@@ -4272,7 +4299,7 @@
     },
     {
         "name": "Excess Express Front Passenger Car - West",
-        "map": "rsh_01_a",
+        "map": "rsh_01",
         "bero": "w_bero",
         "target": "Excess Express Middle Passenger Car - East",
         "rules": null,
@@ -4283,7 +4310,7 @@
     },
     {
         "name": "Excess Express Middle Passenger Car - East",
-        "map": "rsh_02_a",
+        "map": "rsh_02",
         "bero": "e_bero",
         "target": "Excess Express Front Passenger Car - West",
         "rules": null,
@@ -4294,7 +4321,7 @@
     },
     {
         "name": "Excess Express Locomotive - West",
-        "map": "rsh_00_a",
+        "map": "rsh_00",
         "bero": "w_bero",
         "target": "Excess Express Front Passenger Car - East",
         "rules": null,
@@ -4305,7 +4332,7 @@
     },
     {
         "name": "Excess Express Front Passenger Car - East",
-        "map": "rsh_01_a",
+        "map": "rsh_01",
         "bero": "e_bero",
         "target": "Excess Express Locomotive - West",
         "rules": null,
@@ -4316,14 +4343,15 @@
     },
     {
         "name": "Excess Express Front Passenger Car - South",
-        "map": "rsh_01_a",
+        "map": "rsh_01",
         "bero": "s_bero",
         "target": "Rogueport Blimp - Train",
         "rules": null,
         "region": "express_front_car",
         "tags": [
             "Six",
-            "Prologue"
+            "Prologue",
+            "Chapter Edge"
         ]
     },
     {
@@ -4339,7 +4367,7 @@
     },
     {
         "name": "Excess Express Front Passenger Car - South Riverside Entrance",
-        "map": "rsh_01_b",
+        "map": "rsh_01",
         "bero": "s_bero",
         "target": "Riverside Station Drawbridge - Train Door",
         "rules": null,
@@ -4528,7 +4556,7 @@
     },
     {
         "name": "Excess Express Roof - East",
-        "map": "rsh_06_a",
+        "map": "rsh_06",
         "bero": "w_bero",
         "target": "Excess Express Storage Car - West",
         "rules": null,
@@ -4539,7 +4567,7 @@
     },
     {
         "name": "Excess Express Storage Car - West",
-        "map": "rsh_05_a",
+        "map": "rsh_05",
         "bero": "w_bero",
         "target": "Excess Express Roof - East",
         "rules": {
@@ -4603,7 +4631,7 @@
     },
     {
         "name": "Excess Express Front Passenger Car - South Poshley",
-        "map": "rsh_01_c",
+        "map": "rsh_01",
         "bero": "s_bero",
         "target": "Poshley Heights Station - North",
         "rules": null,
@@ -4742,7 +4770,8 @@
         "region": "fahr_entrance",
         "tags": [
             "Seven",
-            "Prologue"
+            "Prologue",
+            "Chapter Edge"
         ]
     },
     {
@@ -4754,7 +4783,8 @@
         "region": "sewer_west_fahr",
         "tags": [
             "Prologue",
-            "Seven"
+            "Seven",
+            "Chapter Edge"
         ]
     },
     {
@@ -5210,7 +5240,8 @@
         "tags": [
             "Seven",
             "Prologue",
-            "Dungeon Entrance"
+            "Dungeon Entrance",
+            "Chapter Edge"
         ]
     },
     {
@@ -5543,7 +5574,8 @@
         "region": "keelhaul_jungle_entrance",
         "tags": [
             "Five",
-            "Prologue"
+            "Prologue",
+            "Chapter Edge"
         ]
     },
     {
@@ -5564,7 +5596,8 @@
         "region": "poshley_sanctum_exterior",
         "tags": [
             "Six",
-            "Prologue"
+            "Prologue",
+            "Chapter Edge"
         ]
     },
     {
@@ -5576,7 +5609,8 @@
         "region": "palace_entrance",
         "tags": [
             "Eight",
-            "Prologue"
+            "Prologue",
+            "Chapter Edge"
         ]
     },
     {
@@ -5585,15 +5619,13 @@
         "bero": "n_bero",
         "target": "Palace of Shadow Entrance - West",
         "rules": {
-            "function": {
-                "name": "PalaceAccess",
-                "count": "world.options.palace_stars"
-            }
+            "function": "PalaceAccess"
         },
         "region": "ttyd",
         "tags": [
             "Prologue",
-            "Eight"
+            "Eight",
+            "Chapter Edge"
         ]
     },
     {
@@ -6284,7 +6316,10 @@
         "bero": "w_bero",
         "target": "Palace of Shadow Far Backroom 1 - East",
         "rules": {
-            "has": "Palace Key"
+            "has": {
+                "item": "Palace Key",
+                "count": 2
+            }
         },
         "region": "palace_far_backroom_two_top",
         "tags": [
@@ -6296,9 +6331,7 @@
         "map": "las_24",
         "bero": "w_bero",
         "target": "Palace of Shadow Far Backroom 2 - East",
-        "rules": {
-            "has": "null"
-        },
+        "rules": false,
         "region": "palace_far_backrrom_three_top",
         "tags": [
             "Eight"
@@ -6431,7 +6464,8 @@
         "rules": null,
         "region": "palace_grodus",
         "tags": [
-            "Eight"
+            "Eight",
+            "vanilla"
         ]
     },
     {
@@ -6442,7 +6476,8 @@
         "rules": null,
         "region": "palace_pre_grodus",
         "tags": [
-            "Eight"
+            "Eight",
+            "vanilla"
         ]
     },
     {
@@ -6453,7 +6488,8 @@
         "rules": null,
         "region": "palace_final_stair",
         "tags": [
-            "Eight"
+            "Eight",
+            "vanilla"
         ]
     },
     {
@@ -6464,7 +6500,8 @@
         "rules": null,
         "region": "palace_grodus",
         "tags": [
-            "Eight"
+            "Eight",
+            "vanilla"
         ]
     }
 ]
