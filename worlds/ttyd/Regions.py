@@ -2,7 +2,7 @@ import json
 import pkgutil
 import typing
 
-from BaseClasses import Entrance, Region
+from BaseClasses import Entrance, EntranceType, Region
 from .Locations import (TTYDLocation, shadow_queen, LocationData)
 from . import StateLogic, get_locations_by_tags
 from .Rules import _build_single_lambda, get_rule_region_dependencies
@@ -23,6 +23,8 @@ CHAPTER_TAGS = {1: "One", 2: "Two", 3: "Three", 4: "Four",
 
 
 class TTYDEntrance(Entrance):
+    TRAP_ROOMS = frozenset({"steeple_boo_background", "glitzville_attic"})
+
     def can_connect_to(self, other: Entrance, dead_end: bool, er_state: "ERPlacementState") -> bool:
         if not super().can_connect_to(other, dead_end, er_state):
             return False
@@ -31,12 +33,29 @@ class TTYDEntrance(Entrance):
         # trap room must not land in a trap room (covers the 2-cycle between
         # them and self-landings). Self-landings elsewhere are harmless -
         # vanilla has one (Palace Torch Stairs Room).
-        if other.name.endswith(" Landing"):
-            trap_rooms = {"steeple_boo_background", "glitzville_attic"}
-            src_tag = load_zones()[self.name].get("src_region")
-            dst_tag = load_zones()[other.name.removesuffix(" Landing")]["region"]
-            if src_tag in trap_rooms and dst_tag in trap_rooms:
-                return False
+        if not other.name.endswith(" Landing"):
+            return True
+        zones = load_zones()
+        src_tag = zones[self.name].get("src_region")
+        dst_tag = zones[other.name.removesuffix(" Landing")]["region"]
+        if src_tag in self.TRAP_ROOMS and dst_tag in self.TRAP_ROOMS:
+            return False
+        if dst_tag not in self.TRAP_ROOMS:
+            multiworld = self.parent_region.multiworld
+            trap_landings = sum(
+                1 for region in multiworld.get_regions(self.player)
+                for entrance in region.entrances
+                if entrance.parent_region is None and entrance.name.endswith(" Landing")
+                and zones[entrance.name.removesuffix(" Landing")]["region"] in self.TRAP_ROOMS)
+            if trap_landings:
+                outside_exits = sum(
+                    1 for region in multiworld.get_regions(self.player)
+                    for exit_ in region.exits
+                    if exit_.connected_region is None and exit_ is not self
+                    and exit_.randomization_type == EntranceType.ONE_WAY
+                    and zones.get(exit_.name, {}).get("src_region") not in self.TRAP_ROOMS)
+                if outside_exits < trap_landings:
+                    return False
         return True
 
 

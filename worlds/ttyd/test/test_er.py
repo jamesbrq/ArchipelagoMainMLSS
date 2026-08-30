@@ -187,9 +187,24 @@ class TestTRK3Tracker(ERBase):
             self.assertLess(disp_group, display_count)
 
 
-class TestERWithLimitedChapters(ERBase):
+class TestERClampsChapterLimits(ERBase):
     options = {"loading_zone_shuffle": True, "limit_chapter_logic": True,
                "limit_chapter_eight": True}
+
+    def test_chapter_limits_disabled(self):
+        world = self.multiworld.worlds[self.player]
+        self.assertFalse(world.options.limit_chapter_logic)
+        self.assertFalse(world.options.limit_chapter_eight)
+        self.assertEqual(world.limited_chapters, [])
+
+
+class TestERMinimalAccessibility(ERBase):
+    # fuzz regression (fuzz_output/error/ttyd/148): minimal accessibility lets
+    # generic ER cap the graph once the goal is beatable
+    options = {"loading_zone_shuffle": True, "accessibility": "minimal",
+               "limit_chapter_logic": True, "goal": "crystal_stars", "goal_stars": 1,
+               "pit_items": "filler", "boss_randomizer": "mini_bosses",
+               "tattlesanity": True, "disable_intermissions": True}
 
 
 class TestERWithPalaceSkip(ERBase):

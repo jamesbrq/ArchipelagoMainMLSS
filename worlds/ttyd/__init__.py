@@ -178,6 +178,14 @@ class TTYDWorld(World):
             logging.warning(f"{self.player_name} has Dungeon Shuffle enabled without Loading Zone Shuffle. "
                             f"Dungeon Shuffle will have no effect.")
         if self.options.loading_zone_shuffle:
+            if self.options.limit_chapter_logic:
+                logging.warning(f"{self.player_name} has Loading Zone Shuffle enabled. "
+                                f"Disabling Limit Chapter Logic (chapters don't exist under entrance shuffle).")
+                self.options.limit_chapter_logic.value = 0
+            if self.options.limit_chapter_eight:
+                logging.warning(f"{self.player_name} has Loading Zone Shuffle enabled. "
+                                f"Disabling Limit Chapter 8 (chapters don't exist under entrance shuffle).")
+                self.options.limit_chapter_eight.value = 0
             if self.options.piecesanity != Piecesanity.option_all:
                 logging.warning(f"{self.player_name} has Loading Zone Shuffle enabled. "
                                 f"Forcing Piecesanity: All for accessibility.")
@@ -555,7 +563,7 @@ class TTYDWorld(World):
                      locations.keys() if chapters != chapter for item in self.limited_items[chapters][tag]}
                 if len(self.limited_items[chapter][tag]) == 0:
                     continue
-                fill_locations = sorted(locs, key=lambda loc: loc.name)
+                fill_locations = sorted(locs, key=lambda location: location.name)
                 self.random.shuffle(fill_locations)
                 fill_restrictive(
                     self.multiworld,
@@ -566,7 +574,7 @@ class TTYDWorld(World):
                     lock=True
                 )
         self.in_pre_fill = False
-        misc_locations = sorted(self.limited_misc_locations, key=lambda loc: loc.name)
+        misc_locations = sorted(self.limited_misc_locations, key=lambda location: location.name)
         self.random.shuffle(misc_locations)
         fast_fill(self.multiworld, self.limited_misc_items, misc_locations)
 

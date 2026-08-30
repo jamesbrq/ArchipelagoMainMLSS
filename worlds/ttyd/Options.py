@@ -245,6 +245,7 @@ class LoadingZoneShuffle(Toggle):
     """
     Randomizes the loading zones (doors/pipes) between rooms, creating a non-linear world layout.
     Forces Piecesanity: All, Keysanity and Shopsanity when enabled.
+    Disables Limit Chapter Logic and Limit Chapter 8 (chapter areas don't exist under entrance shuffle).
     """
     display_name = "Loading Zone Shuffle"
 
