@@ -188,7 +188,7 @@
     {
         "name": "Rogueport Sewers East - House2",
         "map": "tik_01",
-        "bero": "w_dero2",
+        "bero": "w_bero2",
         "target": "Rogueport Sewers Fortune",
         "region": "sewer_east_fortune",
         "rules": null,
@@ -4405,7 +4405,7 @@
     {
         "name": "Riverside Station Stairs - West Bottom",
         "map": "eki_01",
-        "bero": "w_dero",
+        "bero": "w_bero",
         "target": "Riverside Station Entrance - East",
         "rules": null,
         "region": "riverside_stairs",
