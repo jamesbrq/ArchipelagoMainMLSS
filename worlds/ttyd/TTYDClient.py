@@ -402,26 +402,12 @@ class TTYDContext(cmmCtx):
             return
         if index > len(self.items_received):
             return
-        # 15 per batch: with at most 15 items there are at most 15 distinct
-        # senders, so the name ring's slots 0-14 always cover the whole batch.
-        # The mod consumes a batch per frame, so backlogs still drain quickly.
         items = min(len(self.items_received) - index, 15)
         if items <= 0:
             return
 
         dirty_run(DIRTY_ITEM_REPLAY)
         if dolphin.read_word(MOD_PROTOCOL) >= 3:
-            # Protocol 3 mailbox entries: rom id in bits 0-8, bits 9-12 = slot in
-            # the sender-name ring at SENDER_NAME_RING, bit 13 = announce in the
-            # in-game received-item feed, bits 14-15 = AP classification
-            # (0 filler, 1 useful, 2 progression, 3 trap).
-            #
-            # Every item from another player is announced; the mod streams large
-            # catch-up backlogs through its feed batch by batch and collapses
-            # what never fits into a "+N more" row. Ring slots are assigned per
-            # batch (the mod copies names out of the ring while consuming the
-            # batch, before releasing the mailbox); a batch is capped at 15
-            # items, so slots 0-14 always cover every sender by name.
             batch_slots: dict = {}
             item_ids = []
             for i in range(index, index + items):
