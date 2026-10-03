@@ -1,219 +1,206 @@
-"""Archipelago world for Disney's Magical Mirror Starring Mickey Mouse (GameCube, GDME01).
+from pathlib import Path
+from typing import Any, ClassVar
 
-Generation only, for now. There is no generate_output: the ROM half of the project
-patches an ISO from H:\\Mickey\\mods plus build/ap_patch.json, and the client RAM
-contract is not written yet, so a seed can be rolled and inspected but not played.
-That is why the world is hidden.
-"""
+import settings
 
-from typing import Any, ClassVar, Final, Mapping
-
-from BaseClasses import Region
+from BaseClasses import Region, Tutorial
 from Options import OptionError
 from worlds.AutoWorld import WebWorld, World
+from worlds.LauncherComponents import Component, SuffixIdentifier, Type, components, launch
 
 from .Items import (MickeyItem, door_keys, item_list, item_table,
                     mickey_item_name_groups, tricks)
-from .Locations import all_locations, get_locations_by_type
-from .Options import KeyMode, MickeyOptions
-from .Regions import connect_regions, create_regions
-from .Rules import goal_condition, impassable_locations, load_rules, set_rules
-from .Shuffle import build_requirements, door_pool_size, key_for
+from .Locations import (CHECK_FLAGS, NON_RANDOMIZED_LOCATION_IDS, all_locations,
+                        get_locations_by_type, non_randomized_locations)
+from .Options import MickeyOptions
+from .Regions import connect_regions, create_regions, shuffle_entrances
+from .Rules import build_requirements, impassable_locations, load_rules, order_fill, set_rules
+from .Rom import MickeyProcedurePatch, identity, write_files
 
-FILLER_ITEM: Final[str] = "Archipelago Item"
 
-# Location type -> the option that turns those checks on. Types absent from this
-# map are always checks: vessel, shard and key are the three counter pickups and
-# the goal is measured in shards, so there is no seed without them, and the 15
-# quest-item pickups are permanent by decision.
-CHECK_OPTIONS: Final[Mapping[str, str]] = {
-    "trick": "trick_checks",
-    "hat_spot": "hat_spot_checks",
-    "souvenir": "souvenir_checks",
-}
+def launch_client(*args: str) -> None:
+    from .MickeyClient import launch as launch_mickey_client
+    launch(launch_mickey_client, name="MickeyClient", args=args)
 
-# Souvenirs and the five hats are LOCATIONS ONLY. They stay defined in items.json
-# because that is where the game's own item table lives and because every souvenir
-# check names one as its `vanilla_item`, but none of them is ever placed: the check
-# is the reward, and the ROM keeps granting the souvenir itself the way it always
-# did. That is also why nothing needs suppressing on the ROM side.
-#
-# The consequence for the pool is that `flag` contributes nothing, so a full-options
-# seed is mostly progression items and filler; see the note in create_items.
-NOT_ITEMS: Final[str] = "flag"
 
-# Turning a category of checks off leaves those pickups behaving as they do in the
-# vanilla game, which means the pickup grants its own contents -- so the matching
-# items must leave the pool, or the seed contains each of them twice. Only tricks
-# are affected now that souvenirs and hats are not items, and tricks are keyed on
-# `tricks` rather than `trick_checks`: that option is what decides whether a trick
-# is an item at all, and the two are deliberately independent.
-ITEMS_BY_OPTION: Final[Mapping[str, tuple[str, ...]]] = {
-    "tricks": tricks,
-}
+components.append(
+    Component(
+        "Mickey Client",
+        func=launch_client,
+        component_type=Type.CLIENT,
+        file_identifier=SuffixIdentifier(".apmickey"),
+        game_name="Disney's Magical Mirror",
+        description="Open the Disney's Magical Mirror client.",
+    ),
+)
 
 
 class MickeyWebWorld(WebWorld):
     theme = "partyTime"
+    tutorials = [
+        Tutorial(
+            tutorial_name="Setup Guide",
+            description="A guide to setting up Disney's Magical Mirror for Archipelago.",
+            language="English",
+            file_name="setup_en.md",
+            link="setup/en",
+            authors=["jamesbrq"],
+        ),
+    ]
+
+
+class MickeySettings(settings.Group):
+    class DolphinPath(settings.UserFilePath):
+        """Dolphin executable used to open the patched game."""
+        is_exe = True
+        description = "Dolphin Executable"
+
+    class RomFile(settings.UserFilePath):
+        """File name of the clean GDME01 US revision 0 ISO."""
+        copy_to = "Disneys Magical Mirror Starring Mickey Mouse.iso"
+        description = "US Magical Mirror .iso File"
+
+    dolphin_path: DolphinPath = DolphinPath(None)
+    rom_file: RomFile = RomFile(RomFile.copy_to)
+    rom_start: bool = True
 
 
 class MickeyWorld(World):
     """
-    Mickey wakes to a mansion of living mirrors and a Mickey-shaped shadow that has
-    taken his reflection. Learn tricks from the furniture, hunt down twelve mirror
-    shards, and get your reflection back.
+    Explore the mansion, perform tricks, and collect Mirror Shards to help Mickey
+    return home through the mirror.
     """
 
     game = "Disney's Magical Mirror"
     web = MickeyWebWorld()
     options_dataclass = MickeyOptions
     options: MickeyOptions
-
-    # Unhide once generate_output writes a patch and the client can play a seed.
-    hidden = True
+    settings: ClassVar[MickeySettings]
 
     item_name_to_id = {name: data.id for name, data in item_table.items()}
-    location_name_to_id = {loc.name: loc.id for loc in all_locations}
+    location_name_to_id = {loc.name: loc.id for loc in all_locations
+                           if loc.id not in NON_RANDOMIZED_LOCATION_IDS}
     item_name_groups = mickey_item_name_groups
     location_name_groups = {
-        "Trick": {loc.name for loc in get_locations_by_type("trick")},
-        "Hat Spot": {loc.name for loc in get_locations_by_type("hat_spot")},
-        "Souvenir": {loc.name for loc in get_locations_by_type("souvenir")},
-        "Quest Item": {loc.name for loc in get_locations_by_type("quest_item")},
-        "Star Container": {loc.name for loc in get_locations_by_type("vessel")},
-        "Mirror Shard": {loc.name for loc in get_locations_by_type("shard")},
-        "Small Key": {loc.name for loc in get_locations_by_type("key")},
+        group: {loc.name for loc in get_locations_by_type(kind)
+                if loc.id not in NON_RANDOMIZED_LOCATION_IDS}
+        for group, kind in (
+            ('Trick', 'trick'), ('Souvenir', 'souvenir'), ('Quest Item', 'quest_item'),
+            ('Star Container', 'vessel'), ('Mirror Shard', 'shard'), ('Small Key', 'key'),
+            ('Star', 'star'), ('Hidden Hats', 'hidden_hat'),
+        )
     }
 
-    # Archipelago's reachability root. The room the player actually starts in is
-    # start_region_name, which Menu connects to; see Regions.connect_regions.
-    origin_region_name = "Menu"
-    start_region_name: ClassVar[str] = "area008"
-
+    start_region_name: ClassVar[str] = load_rules()['start_region']
     disabled_locations: set[str]
     created_regions: dict[str, Region]
-    starting_containers: int
-    # Locked doors and Small Keys are the same number by construction, so one
-    # value drives both the pool and the door selection.
-    key_count: int
-
-    # Set by Shuffle.build_requirements, at the end of create_regions.
+    # Set by Rules.build_requirements, at the end of create_regions.
     trick_costs: dict[str, int]
     locked_doors: list[dict[str, Any]]
-    unlocked_flags: list[int]
     location_requirements: dict[str, Any]
     entrance_requirements: dict[str, Any]
+    entrance_connections: dict[str, str]
+    door_locks: dict[str, int]
 
     def generate_early(self) -> None:
         self.disabled_locations = set()
-        self.created_regions = {}
-
-        # Checked here rather than in Shuffle because create_items runs first and
-        # needs the key count, and because a bad value should stop generation
-        # before any of the work.
-        self.key_count = self.options.locked_door_count.value
-        lockable = door_pool_size(load_rules().get("doors", []))
-        if self.key_count > lockable:
-            raise OptionError(
-                f"Disney's Magical Mirror ({self.player_name}): Locked Door Count is "
-                f"{self.key_count} but only {lockable} doors can carry a lock. That is "
-                "every door the analysis can prove is an ordinary door; the rest are "
-                "warp doors and trick warps, which have no lock to set.")
-
-        self.starting_containers = min(self.options.starting_star_containers.value,
-                                       item_table["Star Container"].frequency)
-        for _ in range(self.starting_containers):
+        self.entrance_connections = {}
+        self.door_locks = {}
+        for _ in range(self.options.starting_star_containers.value):
             self.multiworld.push_precollected(self.create_item("Star Container"))
 
     def create_regions(self) -> None:
-        for loc in all_locations:
-            option = CHECK_OPTIONS.get(loc.type)
-            if option is not None and not getattr(self.options, option):
-                self.disabled_locations.add(loc.name)
+        if not self.options.trick_checks:
+            self.disabled_locations.update(loc.name for loc in get_locations_by_type('trick'))
+        if not self.options.hidden_hats:
+            self.disabled_locations.update(loc.name for loc in get_locations_by_type('hidden_hat'))
         self.disabled_locations |= impassable_locations()
+        self.disabled_locations |= non_randomized_locations()
 
         create_regions(self)
         connect_regions(self)
 
-        # Requirements are decided here, not in set_rules, because create_items
-        # runs in between and needs to know which doors ended up locked: in
-        # per-door mode the pool holds those doors' keys and no others.
+        # Select locks before create_items adds their matching keys to the pool.
         self.location_requirements, self.entrance_requirements = \
             build_requirements(self)
 
     def create_items(self) -> None:
-        skipped: set[str] = set()
-        for option, items in ITEMS_BY_OPTION.items():
-            if not getattr(self.options, option):
-                skipped.update(items)
+        skipped = set(door_keys.values())
+        if not self.options.tricks:
+            skipped.update(tricks)
 
-        # Keys are the one category the item table does not decide: which key items
-        # exist and how many depends on the doors this seed locked. Everything else
-        # comes from its frequency.
-        keys: list[str] = [key_for(self, door) for door in self.locked_doors]
-        skipped.update({"Small Key", *door_keys.values()})
-
-        # Everything not in the pool: filler is added last to fit, souvenirs and
-        # hats are checks rather than items, and keys were counted above.
-        pool: list[str] = list(keys)
+        pool = [door_keys[door["id"]] for door in self.locked_doors]
         for item in item_list:
-            if item.grant in ("none", NOT_ITEMS) or item.item_name in skipped:
+            if item.item_name in skipped:
                 continue
             copies = item.frequency
             if item.item_name == "Star Container":
-                # Precollected containers come out of the pool, so the item and
-                # location counts stay equal.
-                copies -= self.starting_containers
+                copies -= self.options.starting_star_containers.value
             pool += [item.item_name] * copies
 
         checks = len(self.multiworld.get_unfilled_locations(self.player))
         if len(pool) > checks:
             raise OptionError(
-                f"Disney's Magical Mirror ({self.player_name}): {len(pool)} items to place but "
-                f"only {checks} checks to put them in. Turning a category of checks off without "
-                "turning off the items it carries overfills the pool -- enable Hat Spot Checks "
-                "(+59 checks), re-enable the checks you disabled, or disable Tricks (-38 items)."
-                + (f" Locked Door Count is also adding {self.key_count - 8} key(s) over vanilla."
-                   if self.key_count > 8 else ""))
+                f"{self.game} ({self.player_name}): {len(pool)} items for {checks} locations. "
+                "Enable more checks, disable Tricks, or lower Locked Door Count.")
 
         self.multiworld.itempool += [self.create_item(name) for name in pool]
-        self.multiworld.itempool += [self.create_item(FILLER_ITEM) for _ in range(checks - len(pool))]
+        self.multiworld.itempool += [self.create_item(self.get_filler_item_name()) for _ in range(checks - len(pool))]
 
     def set_rules(self) -> None:
         set_rules(self)
-        self.multiworld.completion_condition[self.player] = goal_condition(self)
+
+    def pre_fill(self) -> None:
+        shuffle_entrances(self)
+
+    def fill_hook(self, progitempool, usefulitempool, filleritempool, fill_locations) -> None:
+        order_fill(self, progitempool, fill_locations)
 
     def create_item(self, name: str) -> MickeyItem:
         item = item_table[name]
         return MickeyItem(item.item_name, item.progression, item.id, self.player)
 
     def get_filler_item_name(self) -> str:
-        return FILLER_ITEM
+        return "Star Refill"
 
     def fill_slot_data(self) -> dict[str, Any]:
-        # Option values only. What the client needs in order to write to the ROM --
-        # flag ids, counter offsets, per-location grant sites -- is the RAM contract
-        # (task #14) and is not settled yet.
         return {
+            "protocol": 3,
+            "token": identity(self.multiworld.seed_name, self.player, self.player_name),
+            "checks": {loc.address: CHECK_FLAGS[loc.address]
+                       for loc in self.get_locations() if loc.address in CHECK_FLAGS},
+            "flag_checks": {loc.id: loc.flag
+                            for loc in all_locations if loc.flag is not None
+                            and loc.name not in self.disabled_locations},
             "tricks": self.options.tricks.value,
             "trick_checks": self.options.trick_checks.value,
-            "hat_spot_checks": self.options.hat_spot_checks.value,
-            "souvenir_checks": self.options.souvenir_checks.value,
+            "hidden_hats": self.options.hidden_hats.value,
             "shards_required": self.options.shards_required.value,
-            "key_mode": self.options.key_mode.value,
-            "locked_door_count": self.key_count,
-            "starting_star_containers": self.starting_containers,
+            "locked_door_mode": self.options.locked_doors.value,
+            "locked_door_count": self.options.locked_door_count.value,
+            "starting_star_containers": self.options.starting_star_containers.value,
             "entrance_shuffle": self.options.entrance_shuffle.value,
+            "entrance_connections": self.entrance_connections,
+            "door_locks": self.door_locks,
             "death_link": self.options.death_link.value,
-            # trick id -> star containers required, one byte per trick in the ROM
-            # (the low 7 bits of the trick_set p5 payload). Sent even when the
-            # option is off, so the client never has to know the vanilla table.
+            # These same assignments drive logic and static ISO operands.
             "trick_costs": self.trick_costs,
-            # Doors that need a key: their event flag where they have one, and the
-            # areaNNN:wpXX sides to install the lock on.
-            "locked_doors": [{"id": door["id"], "flag": door["flag"],
-                              "sides": door["sides"]} for door in self.locked_doors],
-            # Vanilla locks that are gone. These flags must be SET on a new file,
-            # which is what makes the door start open.
-            "unlocked_door_flags": self.unlocked_flags,
+            "locked_doors": [door["id"] for door in self.locked_doors],
         }
+
+    def write_spoiler(self, spoiler_handle) -> None:
+        if self.door_locks:
+            spoiler_handle.write("\nShuffled door keys:\n")
+            for door in self.locked_doors:
+                sides = sorted(name for name, index in self.door_locks.items() if index == door['lock_index'])
+                if sides:
+                    spoiler_handle.write(f"{door['key_item']}: {sides[0]} <=> {sides[1]}\n")
+
+    def generate_output(self, output_directory: str) -> None:
+        patch = MickeyProcedurePatch(player=self.player, player_name=self.player_name)
+        write_files(self, patch)
+        path = Path(output_directory) / (
+            f"{self.multiworld.get_out_file_name_base(self.player)}{patch.patch_file_ending}"
+        )
+        patch.write(str(path))
+

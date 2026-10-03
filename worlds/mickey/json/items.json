@@ -1,13 +1,5 @@
 [
  {
-  "item_name": "Small Key",
-  "id": 79790000,
-  "progression": 1,
-  "frequency": 8,
-  "grant": "counter_key",
-  "rom_id": "0x0A"
- },
- {
   "item_name": "Mirror Shard",
   "id": 79790001,
   "progression": 1,
@@ -24,200 +16,8 @@
   "rom_id": "0x08"
  },
  {
-  "item_name": "Airplane",
-  "id": 79790003,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01EA"
- },
- {
-  "item_name": "Dog Collar",
-  "id": 79790004,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01E4"
- },
- {
-  "item_name": "Sword",
-  "id": 79790005,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01EB"
- },
- {
-  "item_name": "Minnie's Bow",
-  "id": 79790006,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01E5"
- },
- {
-  "item_name": "Doghouse",
-  "id": 79790007,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01E3"
- },
- {
-  "item_name": "Bronze statue",
-  "id": 79790008,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01F6"
- },
- {
-  "item_name": "Goofy Plaque",
-  "id": 79790009,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01E2"
- },
- {
-  "item_name": "Snowman",
-  "id": 79790010,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01EC"
- },
- {
-  "item_name": "Donald Duck Plush",
-  "id": 79790011,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01E1"
- },
- {
-  "item_name": "Heart Picture",
-  "id": 79790012,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01E0"
- },
- {
-  "item_name": "Bee",
-  "id": 79790013,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01F2"
- },
- {
-  "item_name": "Flower Pot",
-  "id": 79790014,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01EF"
- },
- {
-  "item_name": "Train",
-  "id": 79790015,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01F4"
- },
- {
-  "item_name": "Piggy Bank",
-  "id": 79790016,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01F0"
- },
- {
-  "item_name": "Pink Balloon",
-  "id": 79790017,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01F3"
- },
- {
-  "item_name": "Clock Tower Model",
-  "id": 79790018,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01E9"
- },
- {
-  "item_name": "Miniature Mansion",
-  "id": 79790019,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01F9"
- },
- {
-  "item_name": "Dojo",
-  "id": 79790020,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01F7"
- },
- {
-  "item_name": "Friends Picture",
-  "id": 79790021,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01E8"
- },
- {
-  "item_name": "Windmill",
-  "id": 79790022,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01F8"
- },
- {
-  "item_name": "Rubber Duck",
-  "id": 79790023,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01F1"
- },
- {
-  "item_name": "Cake",
-  "id": 79790024,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01EE"
- },
- {
-  "item_name": "Ghost",
-  "id": 79790025,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01F5"
- },
- {
-  "item_name": "Guitar",
-  "id": 79790026,
-  "progression": 2,
-  "frequency": 1,
-  "grant": "flag",
-  "rom_id": "0x01ED"
- },
- {
-  "item_name": "Hole Trick",
-  "id": 79790027,
+  "item_name": "Wardrobe Trick",
+  "id": 79790061,
   "progression": 1,
   "frequency": 1,
   "grant": "ap_flag",
@@ -256,14 +56,6 @@
   "rom_id": "0x0004"
  },
  {
-  "item_name": "Trick: trick_06",
-  "id": 79790032,
-  "progression": 1,
-  "frequency": 1,
-  "grant": "ap_flag",
-  "rom_id": "0x0005"
- },
- {
   "item_name": "Flour Cabinet Trick",
   "id": 79790033,
   "progression": 1,
@@ -296,20 +88,12 @@
   "rom_id": "0x0009"
  },
  {
-  "item_name": "Briefcase Trick (1 of 3)",
+  "item_name": "Briefcase Trick",
   "id": 79790037,
   "progression": 1,
   "frequency": 1,
   "grant": "ap_flag",
   "rom_id": "0x000A"
- },
- {
-  "item_name": "Urn Trick [trick_12]",
-  "id": 79790038,
-  "progression": 1,
-  "frequency": 1,
-  "grant": "ap_flag",
-  "rom_id": "0x000B"
  },
  {
   "item_name": "Urn Trick",
@@ -336,7 +120,7 @@
   "rom_id": "0x000E"
  },
  {
-  "item_name": "Trick: trick_16",
+  "item_name": "TV Trick",
   "id": 79790042,
   "progression": 1,
   "frequency": 1,
@@ -360,7 +144,7 @@
   "rom_id": "0x0011"
  },
  {
-  "item_name": "Magic Wardrobe Trick",
+  "item_name": "Shard Wardrobe Trick",
   "id": 79790045,
   "progression": 1,
   "frequency": 1,
@@ -368,7 +152,7 @@
   "rom_id": "0x0012"
  },
  {
-  "item_name": "Shard Wardrobe Trick",
+  "item_name": "Magic Wardrobe Trick",
   "id": 79790046,
   "progression": 1,
   "frequency": 1,
@@ -382,22 +166,6 @@
   "frequency": 1,
   "grant": "ap_flag",
   "rom_id": "0x0014"
- },
- {
-  "item_name": "Briefcase Trick (2 of 3)",
-  "id": 79790048,
-  "progression": 1,
-  "frequency": 1,
-  "grant": "ap_flag",
-  "rom_id": "0x0015"
- },
- {
-  "item_name": "Briefcase Trick (3 of 3)",
-  "id": 79790049,
-  "progression": 1,
-  "frequency": 1,
-  "grant": "ap_flag",
-  "rom_id": "0x0016"
  },
  {
   "item_name": "Star Door Trick",
@@ -440,20 +208,12 @@
   "rom_id": "0x001B"
  },
  {
-  "item_name": "Pole Trick (Part 1)",
+  "item_name": "Pole Trick",
   "id": 79790055,
   "progression": 1,
   "frequency": 1,
   "grant": "ap_flag",
   "rom_id": "0x001C"
- },
- {
-  "item_name": "Pole Trick (Part 2)",
-  "id": 79790056,
-  "progression": 1,
-  "frequency": 1,
-  "grant": "ap_flag",
-  "rom_id": "0x001D"
  },
  {
   "item_name": "Ghost Trick",
@@ -488,8 +248,8 @@
   "rom_id": "0x0021"
  },
  {
-  "item_name": "Wardrobe Trick",
-  "id": 79790061,
+  "item_name": "Hole Trick",
+  "id": 79790027,
   "progression": 1,
   "frequency": 1,
   "grant": "ap_flag",
@@ -520,14 +280,6 @@
   "rom_id": "0x0025"
  },
  {
-  "item_name": "Quest Item 0x04",
-  "id": 79790065,
-  "progression": 1,
-  "frequency": 1,
-  "grant": "inventory",
-  "rom_id": "0x04"
- },
- {
   "item_name": "Remote Control",
   "id": 79790066,
   "progression": 1,
@@ -555,7 +307,7 @@
   "item_name": "Coin",
   "id": 79790069,
   "progression": 1,
-  "frequency": 1,
+  "frequency": 3,
   "grant": "inventory",
   "rom_id": "0x08"
  },
@@ -600,19 +352,291 @@
   "rom_id": "0x0E"
  },
  {
-  "item_name": "Hat",
-  "id": 79790075,
-  "progression": 2,
-  "frequency": 5,
-  "grant": "flag",
-  "rom_id": "0x01E6"
- },
- {
-  "item_name": "Archipelago Item",
+  "item_name": "Star Refill",
   "id": 79790076,
   "progression": 0,
-  "frequency": 64,
-  "grant": "none",
+  "frequency": 0,
+  "grant": "star_refill",
   "rom_id": "0x0"
+ },
+ {
+  "item_name": "Key (Hole Room - Carpet Hallway)",
+  "id": 79790100,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area000:wp0x00",
+  "lock_index": 8
+ },
+ {
+  "item_name": "Key (Toy Room - Train Station)",
+  "id": 79790102,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area001:wp0x00",
+  "lock_index": 10
+ },
+ {
+  "item_name": "Key (Toy Room - TV Room)",
+  "id": 79790103,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area001:wp0x06",
+  "lock_index": 11
+ },
+ {
+  "item_name": "Key (Candle Room - TV Room)",
+  "id": 79790104,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area003:wp0x05",
+  "lock_index": 12
+ },
+ {
+  "item_name": "Key (Candle Room - Carpet Hallway)",
+  "id": 79790105,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area003:wp0x06",
+  "lock_index": 13
+ },
+ {
+  "item_name": "Key (Kitchen - Wooden Hallway)",
+  "id": 79790106,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area005:wp0x0C",
+  "lock_index": 14
+ },
+ {
+  "item_name": "Key (Grand Hall - Sword Hallway)",
+  "id": 79790107,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area009:wp0x00",
+  "lock_index": 15
+ },
+ {
+  "item_name": "Key (Grand Hall - Wooden Hallway)",
+  "id": 79790108,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area009:wp0x13",
+  "lock_index": 16
+ },
+ {
+  "item_name": "Key (Grand Hall - Dark Room)",
+  "id": 79790109,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area009:wp0x15",
+  "lock_index": 17
+ },
+ {
+  "item_name": "Key (Sword Hallway - Carpet Hallway)",
+  "id": 79790110,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area011:wp0x00",
+  "lock_index": 18
+ },
+ {
+  "item_name": "Key (Wooden Hallway - Tea Room)",
+  "id": 79790111,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area013:wp0x02",
+  "lock_index": 19
+ },
+ {
+  "item_name": "Key (Bee Room - Fish Room)",
+  "id": 79790112,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area018:wp0x05",
+  "lock_index": 20
+ },
+ {
+  "item_name": "Key (Fish Room - Wardrobe Room)",
+  "id": 79790113,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area019:wp0x01",
+  "lock_index": 21
+ },
+ {
+  "item_name": "Key (Rug Room - Music Room)",
+  "id": 79790114,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area021:wp0x01",
+  "lock_index": 22
+ },
+ {
+  "item_name": "Key (Basement - Dark Hallway)",
+  "id": 79790116,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area028:wp0x07",
+  "lock_index": 24
+ },
+ {
+  "item_name": "Key (Storage Room - Dark Hallway)",
+  "id": 79790117,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area029:wp0x00",
+  "lock_index": 25
+ },
+ {
+  "item_name": "Key (Bell Tower Interior - Dungeon)",
+  "id": 79790119,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area035:wp0x00",
+  "lock_index": 27
+ },
+ {
+  "item_name": "Key (Dungeon - Old Hall)",
+  "id": 79790120,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area036:wp0x02",
+  "lock_index": 28
+ },
+ {
+  "item_name": "Key (Old Hall - Fireplace Room)",
+  "id": 79790121,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area038:wp0x01",
+  "lock_index": 29
+ },
+ {
+  "item_name": "Key (Old Hall - Broken Room)",
+  "id": 79790122,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area038:wp0x04",
+  "lock_index": 30
+ },
+ {
+  "item_name": "Key (Broken Room - Library)",
+  "id": 79790123,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "area039:wp0x05",
+  "lock_index": 31
+ },
+ {
+  "item_name": "Key (Kitchen - Alcove)",
+  "id": 79790128,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0013",
+  "lock_index": 1
+ },
+ {
+  "item_name": "Key (Carpet Hallway - Piggy Room)",
+  "id": 79790129,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0014",
+  "lock_index": 2
+ },
+ {
+  "item_name": "Key (Alcove - Footstool Room)",
+  "id": 79790130,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0040",
+  "lock_index": 3
+ },
+ {
+  "item_name": "Key (Crazy Hallway - Footstool Room)",
+  "id": 79790131,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0041",
+  "lock_index": 4
+ },
+ {
+  "item_name": "Key (Crazy Hallway - Bee Room)",
+  "id": 79790132,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0042",
+  "lock_index": 5
+ },
+ {
+  "item_name": "Key (Fish Room - Rug Room)",
+  "id": 79790133,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0043",
+  "lock_index": 6
+ },
+ {
+  "item_name": "Key (Music Room - Library)",
+  "id": 79790134,
+  "progression": 1,
+  "frequency": 1,
+  "grant": "counter_key",
+  "rom_id": "0x0A",
+  "door": "flag_0x0044",
+  "lock_index": 7
  }
 ]

@@ -1,9 +1,12 @@
+import json
+import pkgutil
 import typing
 from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Dict, Final, List
+from typing import Final
 
-from BaseClasses import Region
+from BaseClasses import Entrance, EntranceType, Region
+from entrance_rando import EntranceRandomizationError, disconnect_entrance_for_randomization, randomize_entrances
 
 from .Locations import LocationData, MickeyLocation, all_locations
 
@@ -11,35 +14,40 @@ if typing.TYPE_CHECKING:
     from . import MickeyWorld
 
 
+class MickeyEntrance(Entrance):
+    def can_connect_to(self, other, dead_end, er_state):
+        # Introduce these rooms through their main floor/door, before using
+        # the Pole landings or Storage's painting-side entrance.
+        main_doors = {'Broken Room': 'Broken Room -> Old Hall',
+                      'Storage Room': 'Storage Room -> Dark Hallway'}
+        for entrance, region in ((self, self.parent_region), (other, other.connected_region)):
+            if (region.name in main_doors and region not in er_state.placed_regions
+                    and entrance.name != main_doors[region.name]):
+                return False
+        return super().can_connect_to(other, dead_end, er_state)
+
+
+class MickeyRegion(Region):
+    entrance_type = MickeyEntrance
+
+
 class EntranceData:
-    """One region-to-region connection, from json/entrances.json.
+    """One gameplay connection, combining alternate state/retry routes.
 
-    Names are unique by construction: area006 and area027 have parallel edges, so
-    a bare "A -> B" would collide and one edge's access rule would silently
-    overwrite the other's. Duplicates get a "#n" suffix, assigned by
-    tools/gen_ap_rules.py, which also keys the entrance rules -- so the two files
-    always agree.
-
-    NOT every warp in the game appears here. Excluded:
-      * 93 `omake` edges. They all originate from area050, the Bonus Room, whose
-        TV re-watches cutscenes -- the player is warped in so a script can play,
-        not given access. Structural proof: a normal room reaches its neighbours
-        through the warp table at ADB+0x18 and has NO direct Warp_set call
-        (area026 has zero); area050 has exactly one, fanning out to 36 areas via
-        a runtime table lookup.
-      * 12 negated requirements. "Before flag X is set" cannot be expressed --
-        CollectionState only grows.
-      * runtime-computed destinations and self-loops.
+    Internal room-state transitions are omitted. Rules retain any state-specific
+    conditions; physical area/walk-point identities remain in the door registry.
+    Shard cinematics, bonus replays and kids-mode-only routes are excluded.
     """
 
     name: str
     frm: str
     to: str
 
-    def __init__(self, name: str, frm: str, to: str):
+    def __init__(self, name: str, frm: str, to: str, doorway: dict | None = None):
         self.name = name
         self.frm = frm
         self.to = to
+        self.doorway = doorway
 
 
 class RegionData:
@@ -47,32 +55,20 @@ class RegionData:
     areas: Final[tuple[int, ...]]
     locations: Final[tuple[int, ...]]
 
-    def __init__(self, name: str, areas: List[int] | None = None, locations: List[int] | None = None):
+    def __init__(self, name: str, areas: list[int], locations: list[int]):
         self.name = name
-        self.areas = tuple(areas or ())
-        self.locations = tuple(locations or ())
+        self.areas = tuple(areas)
+        self.locations = tuple(locations)
 
 
-def import_entrances() -> tuple[EntranceData, ...]:
-    import orjson
-    import pkgutil
-
-    return tuple(EntranceData(**e) for e in orjson.loads(pkgutil.get_data(__name__, "json/entrances.json").decode("utf-8")))
-
-
-def import_regions() -> Mapping[str, RegionData]:
-    import orjson
-    import pkgutil
-
-    raw = orjson.loads(pkgutil.get_data(__name__, "json/regions.json").decode("utf-8"))
-    return MappingProxyType({name: RegionData(name, **data) for name, data in raw.items()})
-
-
-region_table: Final[Mapping[str, RegionData]] = import_regions()
-
-all_entrances: Final[tuple[EntranceData, ...]] = import_entrances()
-
-region_names: Final[tuple[str, ...]] = tuple(region_table)
+region_table: Final[Mapping[str, RegionData]] = MappingProxyType({
+    name: RegionData(name, **data)
+    for name, data in json.loads(pkgutil.get_data(__package__, "json/regions.json")).items()
+})
+all_entrances: Final[tuple[EntranceData, ...]] = tuple(
+    EntranceData(**entrance)
+    for entrance in json.loads(pkgutil.get_data(__package__, "json/entrances.json"))
+)
 
 locations_by_region: Final[Mapping[str, tuple[LocationData, ...]]] = MappingProxyType({
     name: tuple(loc for loc in all_locations if loc.region == name)
@@ -85,13 +81,16 @@ def create_regions(world: "MickeyWorld") -> None:
     multiworld = world.multiworld
     player = world.player
 
-    menu = Region("Menu", player, multiworld)
+    menu = MickeyRegion("Menu", player, multiworld)
     multiworld.regions.append(menu)
 
-    created: Dict[str, Region] = {"Menu": menu}
-    for name in region_names:
-        region = Region(name, player, multiworld)
-        for loc in locations_by_region[name]:
+    created = {"Menu": menu}
+    # Include transit rooms with no catalog locations, in entrance discovery order.
+    names = dict.fromkeys([*region_table, *(name for entrance in all_entrances
+                                          for name in (entrance.frm, entrance.to))])
+    for name in names:
+        region = MickeyRegion(name, player, multiworld)
+        for loc in locations_by_region.get(name, ()):
             if loc.name in world.disabled_locations:
                 continue
             region.locations.append(MickeyLocation(player, loc.name, loc.id, region))
@@ -102,36 +101,105 @@ def create_regions(world: "MickeyWorld") -> None:
 
 
 def connect_regions(world: "MickeyWorld") -> None:
-    """Wire the region graph, and connect Menu to the starting region.
-
-    Regions that hold no checks still need to exist, because they can sit on the
-    path between two that do -- a hallway with nothing in it is still a hallway.
-    They are created here on demand rather than in create_regions, which only
-    knows about regions from the location table.
-    """
-    multiworld = world.multiworld
-    player = world.player
+    """Connect the complete room graph and its starting region."""
     created = world.created_regions
-
-    def region(name: str) -> Region:
-        if name not in created:
-            made = Region(name, player, multiworld)
-            multiworld.regions.append(made)
-            created[name] = made
-        return created[name]
-
     for entrance in all_entrances:
-        region(entrance.frm).connect(region(entrance.to), entrance.name)
+        created[entrance.frm].connect(created[entrance.to], entrance.name)
+    created["Menu"].connect(created[world.start_region_name], "Start")
 
-    # The start region. data/ap_rules.json and data/map.json disagree here --
-    # area008 versus area012 entrance 14 -- and that is unresolved (#41). area008
-    # is used because it is what the solver proves completability from; if it is
-    # wrong, every reachability result checked against it is wrong too, so this
-    # is the one line to revisit first if generation behaves oddly.
-    #
-    # NOT world.origin_region_name: that is Archipelago's reachability root, and
-    # it stays "Menu". Pointing it at area008 would leave Menu an orphan that
-    # nothing sweeps through, and the edge below dead.
-    start = world.start_region_name
-    region(start)
-    created["Menu"].connect(created[start], "Start")
+
+def connect_minigame_exits(world: "MickeyWorld") -> None:
+    """A door's first-use minigame shares its destination and key requirement."""
+    for data in all_entrances:
+        sequence = data.doorway.get('minigame') if data.doorway else None
+        if not sequence:
+            continue
+        door = world.multiworld.get_entrance(data.name, world.player)
+        entry = world.multiworld.get_entrance(sequence['entrance'], world.player)
+        exit = world.multiworld.get_entrance(sequence['exit'], world.player)
+        world.entrance_requirements[entry.name] = world.entrance_requirements.get(data.name, True)
+        entry.access_rule = door.access_rule
+        if exit.connected_region:
+            exit.connected_region.entrances.remove(exit)
+        exit.connect(door.connected_region)
+        exit.access_rule = lambda state: True
+
+
+def shuffle_entrances(world: "MickeyWorld") -> None:
+    """Shuffle audited doorways, keeping locked and unlocked endpoints separate."""
+    mode = world.options.entrance_shuffle
+    if not mode:
+        return
+    locked = {name for door in world.locked_doors for name in door['entrances']}
+    candidates = {e.name: e for e in all_entrances if e.doorway}
+    if mode == mode.option_arrival_points:
+        # Each target describes an arrival beside its own outgoing doorway.
+        # Permute only the existing arrivals within the same destination room.
+        for room in sorted({e.to for e in candidates.values()}):
+            sources = [e for e in candidates.values() if e.to == room]
+            main = {'Broken Room': 'Old Hall -> Broken Room',
+                    'Storage Room': 'Dark Hallway -> Storage Room'}.get(room)
+            if main:
+                # Preserve the main arrival; secondary landings can exchange.
+                world.entrance_connections[main] = candidates[main].doorway['reverse']
+                sources = [e for e in sources if e.name != main]
+            targets = [e.doorway['reverse'] for e in sources]
+            world.random.shuffle(targets)
+            world.entrance_connections.update(zip((e.name for e in sources), targets))
+    else:
+        if candidates:
+            from .Rules import assign_shuffled_locks, restrict_secondary_arrivals, _solvable
+            requirements = dict(world.entrance_requirements)
+            access_rules = {name: world.multiworld.get_entrance(name, world.player).access_rule
+                            for name in candidates}
+            for attempt in range(100):
+                for name in candidates:
+                    entrance = world.multiworld.get_entrance(name, world.player)
+                    entrance.randomization_type = EntranceType.TWO_WAY
+                    entrance.randomization_group = int(name in locked)
+                    disconnect_entrance_for_randomization(entrance)
+                    sequence = candidates[name].doorway.get('minigame')
+                    if sequence:
+                        # Until a pair is chosen, its old minigame destination
+                        # must not grant the shuffler a second route to a room.
+                        world.multiworld.get_entrance(sequence['exit'], world.player).access_rule = lambda state: False
+                try:
+                    result = randomize_entrances(world, coupled=True, target_group_lookup={0: [0], 1: [1]})
+                    world.entrance_connections.update(result.pairings)
+                    assign_shuffled_locks(world)
+                    restrict_secondary_arrivals(world)
+                    connect_minigame_exits(world)
+                    targets = {name: candidates[target].frm for name, target in result.pairings}
+                    if not _solvable(world, world.location_requirements, world.entrance_requirements,
+                                     world.locked_doors, targets):
+                        raise EntranceRandomizationError('Shuffled doors cannot bootstrap progression')
+                    break
+                except EntranceRandomizationError:
+                    world.entrance_connections.clear()
+                    world.door_locks.clear()
+                    world.entrance_requirements = dict(requirements)
+                    # Restore both graph and key rules after a disconnected
+                    # placement or a layout without enough early checks.
+                    for region in world.created_regions.values():
+                        region.entrances[:] = [e for e in region.entrances
+                                              if e.parent_region or e.name not in candidates]
+                    for name, data in candidates.items():
+                        entrance = world.multiworld.get_entrance(name, world.player)
+                        entrance.access_rule = access_rules[name]
+                        if entrance.connected_region:
+                            entrance.connected_region.entrances.remove(entrance)
+                        entrance.connect(world.created_regions[data.to])
+                    connect_minigame_exits(world)
+                    if attempt == 99:
+                        raise
+    if mode == mode.option_arrival_points:
+        from .Rules import restrict_secondary_arrivals
+        restrict_secondary_arrivals(world)
+    connect_minigame_exits(world)
+    for source, target in world.entrance_connections.items():
+        arrival = candidates[target]
+        world.multiworld.spoiler.set_entrance(
+            source, f'{arrival.frm} (door to {arrival.to})', 'entrance', world.player)
+        if sequence := candidates[source].doorway.get('minigame'):
+            world.multiworld.spoiler.set_entrance(
+                sequence['exit'], f'{arrival.frm} (door to {arrival.to})', 'entrance', world.player)

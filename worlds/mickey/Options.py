@@ -7,8 +7,8 @@ class Tricks(DefaultOnToggle):
     """
     Tricks will be added to the pool as items, and each trick's interaction is
     locked until you receive it.
-    There are 38 tricks. Six of them are the only route into an area, so with this
-    enabled they become progression items.
+    There are 33 unlock items. Some unlock multiple stages or alternate paths
+    of the same trick. Tricks needed to reach new areas are progression items.
     Disabling this leaves every trick performable from the start.
     """
     display_name = "Tricks"
@@ -17,28 +17,20 @@ class Tricks(DefaultOnToggle):
 class TrickChecks(DefaultOnToggle):
     """
     Performing a trick for the first time is a check.
-    38 locations. Independent of the Tricks option: you can shuffle the checks
+    36 locations. Independent of the Tricks option: you can shuffle the checks
     without locking the tricks themselves, or the reverse.
     """
     display_name = "Trick Checks"
 
 
-class HatSpotChecks(Toggle):
-    """
-    The 59 hat-hiding spots become checks, and every one is filled.
-    In the real game you hide 5 hats and find them again later, so only 5 of the
-    59 spots ever hold anything. Enabling this fills all of them, which adds 59
-    locations -- the single largest category in the game.
-    """
-    display_name = "Hat Spot Checks"
+class HiddenHats(Toggle):
+    """Add the 30 hidden hat boxes as checks, three in each of ten rooms.
 
-
-class SouvenirChecks(DefaultOnToggle):
+    Reveal a box using its room interaction, then open it to collect the placed
+    item. Disabled removes these locations from generation and hides the boxes
+    in-game. The original boxes and their opening animations are preserved.
     """
-    The 24 souvenirs become checks.
-    Souvenirs are pure collectibles; none of them is known to gate anything.
-    """
-    display_name = "Souvenir Checks"
+    display_name = "Hidden Hats"
 
 
 class TrickCostShuffle(Choice):
@@ -46,14 +38,16 @@ class TrickCostShuffle(Choice):
     Randomize what each trick costs in stars.
     A trick costs five points per unit and your capacity is five points per star
     container, so a trick's cost is really the number of containers you must own to
-    perform it at all. Vanilla spreads 38 tricks over one free trick, 18 costing
-    one container, 12 costing two, 6 costing three and one costing four.
-    Shuffle: deal those same costs out to different tricks. The total the game asks
-    of you is unchanged, only which rooms are expensive.
-    Randomized: roll every trick independently between 1 and 4, which asks for
+    perform it at all. The active vanilla tricks cost between one and four
+    containers. Separate stages and alternate paths retain individual costs.
+    Shuffle: deal those same per-trick costs out to different tricks.
+    Randomized: roll every trick between 1 and 4, which asks for
     considerably more than vanilla and can make an early trick expensive.
-    Only 10 access rules quote a trick's cost today, so most of this changes what
-    the game charges you and not what the logic expects.
+    Each trick check requires its assigned capacity, as do the tagged routes
+    and rewards that depend on that trick. The assigned costs are written into
+    both script and compiled registrations when patching the game.
+    Cost assignments keep mandatory consecutive sequences within twelve
+    containers, including Lever plus three Clock Face activations for its reward.
     """
     display_name = "Trick Cost Shuffle"
     option_off = 0
@@ -64,64 +58,48 @@ class TrickCostShuffle(Choice):
 
 class LockedDoorCount(Range):
     """
-    How many doors are locked, and how many keys exist.
-    The two move together: every locked door costs exactly one key and the pool
-    holds one key per locked door, so there are never spares and never a door you
-    cannot open. Vanilla is 8 of each.
-    Below 8, doors are dropped from the vanilla set and start open. Above 8, extra
-    doors are locked, drawn from the 35 the analysis can prove are ordinary doors --
-    which is also the ceiling. At 0 nothing is locked and no keys are in the pool.
+    Number of locked doors, each with its own matching key in the pool.
+    With Vanilla locked doors, fewer than 7 selects a random subset of the
+    seven eligible vanilla locks; more than 7 adds random extra doors.
+    With Randomized locked doors, the whole set is chosen randomly.
+    Both Mirror Room doors always start unlocked.
+    At 0 nothing is locked and no keys are in the pool. Maximum: 28.
     Raising this makes keys a much larger share of the item pool, so with few checks
     enabled a high count can ask for more items than there are places to put them.
     """
     display_name = "Locked Door Count"
     range_start = 0
-    range_end = 35
+    range_end = 28
     default = 8
 
 
-class LockedDoorShuffle(Toggle):
+class LockedDoors(Choice):
     """
-    Move the key locks onto a different set of doors.
-    The doors that need a key in vanilla start open, and the same number of other
-    doors are locked instead, drawn from the 35 the analysis can prove are ordinary
-    doors. How many is Locked Door Count.
-    A door's two sides move together, because unlocking one unlocks both.
-    There is exactly one key per locked door and no spares, so a layout that
-    strands a key behind its own lock is unsolvable; layouts are tested before
-    being accepted and generation fails rather than shipping a dead seed.
+    Choose where locks appear. Every locked door uses its own matching key.
+    Vanilla: use the seven eligible vanilla locks; Locked Door Count can remove
+    some or add random extra doors while retaining all seven.
+    Randomized: choose from all 28 eligible two-way doors.
+    Both Mirror Room doors always start unlocked in either mode.
+    Both sides of a physical door share a lock. Locked Door Count controls
+    the number of locks and matching keys in either mode.
     """
-    display_name = "Locked Door Shuffle"
+    display_name = "Locked Doors"
+    option_vanilla = 0
+    option_randomized = 1
+    default = 0
 
 
 class ShardsRequired(Range):
     """
     How many Mirror Shards are needed to finish.
-    The game requires all 12: the final room sends you to the results screen
-    instead of the ending unless the counter reads exactly 12. Lowering this
-    shortens the seed.
+    The ending and its Mirror Room route require at least this many shards.
+    Collecting additional shards will not prevent completion. Souvenirs which
+    require all twelve shards retain that requirement.
     """
     display_name = "Shards Required"
     range_start = 1
     range_end = 12
     default = 12
-
-
-class KeyMode(Choice):
-    """
-    How locked doors work.
-    Vanilla: one generic Small Key item, spent on any door, as the game does it.
-    Keys and doors are equal in number with no spares, so every key matters and a
-    key spent early is a key you do not have later.
-    Per Door: each locked door gets its own key, named for the two rooms it joins,
-    and no counter is involved. The pool is the same size either way -- one key per
-    locked door -- but a key you find is only ever useful on one door, which makes
-    routing more legible and cannot strand you on a door you already paid for.
-    """
-    display_name = "Key Mode"
-    option_vanilla = 0
-    option_per_door = 1
-    default = 0
 
 
 class StartingStarContainers(Range):
@@ -143,29 +121,45 @@ class EntranceShuffle(Choice):
     Off: doors go where they always did.
     Arrival Points: a door still leads to the same room, but you arrive at a
     different point inside it.
-    Only Arrival Points is offered. Rewiring a door to a different ROOM breaks the
-    game -- the destination's own entry conditions no longer hold, which was
-    confirmed in testing (wrong room, broken scripts, no Mickey), and Archipelago's
-    entrance randomization has no way to express an arrival condition either.
+    Ordinary Doors: shuffle audited two-way doors with matching return paths.
+    Locked doorways shuffle with locked doorways and share one key per new pair.
+    Arrival Points preserves each door's original key. Broken Room - Spa Room
+    shuffles its first Pole crossing and repeat door together; both Pole parts
+    and their combined cost remain required on the Broken Room side. Other
+    quest-gated doors, special free returns and scripted routes stay fixed.
+    Flying Sword follows the shuffled Basement doorway on its first use.
+    The Mirror Room - Hole Room doorway shuffles as one pair across its room
+    versions; the Mirror Room - Entrance doorway remains fixed. Logic first
+    introduces Broken Room through its Old Hall-side entrance and Storage Room
+    through its Dark Hallway-side entrance.
     """
     display_name = "Entrance Shuffle"
     option_off = 0
     option_arrival_points = 1
+    option_ordinary_doors = 2
+    default = 0
+
+
+class Costume(Choice):
+    """Mickey's appearance. Cosmetic only; applied to your own game during patching."""
+    display_name = "Costume"
+    option_original = 0
+    option_black_hooded_cloak = 1
+    option_steamboat_willie = 2
+    option_sorcerer = 3
     default = 0
 
 
 @dataclass
 class MickeyOptions(PerGameCommonOptions):
+    costume: Costume
     start_inventory_from_pool: StartInventoryPool
     tricks: Tricks
     trick_checks: TrickChecks
-    hat_spot_checks: HatSpotChecks
-    souvenir_checks: SouvenirChecks
+    hidden_hats: HiddenHats
     trick_cost_shuffle: TrickCostShuffle
     locked_door_count: LockedDoorCount
-    locked_door_shuffle: LockedDoorShuffle
+    locked_doors: LockedDoors
     shards_required: ShardsRequired
-    key_mode: KeyMode
     starting_star_containers: StartingStarContainers
     entrance_shuffle: EntranceShuffle
-    death_link: DeathLink
