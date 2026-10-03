@@ -132,69 +132,49 @@ def shuffle_entrances(world: "MickeyWorld") -> None:
         return
     locked = {name for door in world.locked_doors for name in door['entrances']}
     candidates = {e.name: e for e in all_entrances if e.doorway}
-    if mode == mode.option_arrival_points:
-        # Each target describes an arrival beside its own outgoing doorway.
-        # Permute only the existing arrivals within the same destination room.
-        for room in sorted({e.to for e in candidates.values()}):
-            sources = [e for e in candidates.values() if e.to == room]
-            main = {'Broken Room': 'Old Hall -> Broken Room',
-                    'Storage Room': 'Dark Hallway -> Storage Room'}.get(room)
-            if main:
-                # Preserve the main arrival; secondary landings can exchange.
-                world.entrance_connections[main] = candidates[main].doorway['reverse']
-                sources = [e for e in sources if e.name != main]
-            targets = [e.doorway['reverse'] for e in sources]
-            world.random.shuffle(targets)
-            world.entrance_connections.update(zip((e.name for e in sources), targets))
-    else:
-        if candidates:
-            from .Rules import assign_shuffled_locks, restrict_secondary_arrivals, _solvable
-            requirements = dict(world.entrance_requirements)
-            access_rules = {name: world.multiworld.get_entrance(name, world.player).access_rule
-                            for name in candidates}
-            for attempt in range(100):
-                for name in candidates:
+    if candidates:
+        from .Rules import assign_shuffled_locks, restrict_secondary_arrivals, _solvable
+        requirements = dict(world.entrance_requirements)
+        access_rules = {name: world.multiworld.get_entrance(name, world.player).access_rule
+                        for name in candidates}
+        for attempt in range(100):
+            for name in candidates:
+                entrance = world.multiworld.get_entrance(name, world.player)
+                entrance.randomization_type = EntranceType.TWO_WAY
+                entrance.randomization_group = int(name in locked)
+                disconnect_entrance_for_randomization(entrance)
+                sequence = candidates[name].doorway.get('minigame')
+                if sequence:
+                    # Until a pair is chosen, its old minigame destination
+                    # must not grant the shuffler a second route to a room.
+                    world.multiworld.get_entrance(sequence['exit'], world.player).access_rule = lambda state: False
+            try:
+                result = randomize_entrances(world, coupled=True, target_group_lookup={0: [0], 1: [1]})
+                world.entrance_connections.update(result.pairings)
+                assign_shuffled_locks(world)
+                restrict_secondary_arrivals(world)
+                connect_minigame_exits(world)
+                targets = {name: candidates[target].frm for name, target in result.pairings}
+                if not _solvable(world, world.location_requirements, world.entrance_requirements,
+                                 world.locked_doors, targets):
+                    raise EntranceRandomizationError('Shuffled doors cannot bootstrap progression')
+                break
+            except EntranceRandomizationError:
+                world.entrance_connections.clear()
+                world.door_locks.clear()
+                world.entrance_requirements = dict(requirements)
+                for region in world.created_regions.values():
+                    region.entrances[:] = [e for e in region.entrances
+                                          if e.parent_region or e.name not in candidates]
+                for name, data in candidates.items():
                     entrance = world.multiworld.get_entrance(name, world.player)
-                    entrance.randomization_type = EntranceType.TWO_WAY
-                    entrance.randomization_group = int(name in locked)
-                    disconnect_entrance_for_randomization(entrance)
-                    sequence = candidates[name].doorway.get('minigame')
-                    if sequence:
-                        # Until a pair is chosen, its old minigame destination
-                        # must not grant the shuffler a second route to a room.
-                        world.multiworld.get_entrance(sequence['exit'], world.player).access_rule = lambda state: False
-                try:
-                    result = randomize_entrances(world, coupled=True, target_group_lookup={0: [0], 1: [1]})
-                    world.entrance_connections.update(result.pairings)
-                    assign_shuffled_locks(world)
-                    restrict_secondary_arrivals(world)
-                    connect_minigame_exits(world)
-                    targets = {name: candidates[target].frm for name, target in result.pairings}
-                    if not _solvable(world, world.location_requirements, world.entrance_requirements,
-                                     world.locked_doors, targets):
-                        raise EntranceRandomizationError('Shuffled doors cannot bootstrap progression')
-                    break
-                except EntranceRandomizationError:
-                    world.entrance_connections.clear()
-                    world.door_locks.clear()
-                    world.entrance_requirements = dict(requirements)
-                    # Restore both graph and key rules after a disconnected
-                    # placement or a layout without enough early checks.
-                    for region in world.created_regions.values():
-                        region.entrances[:] = [e for e in region.entrances
-                                              if e.parent_region or e.name not in candidates]
-                    for name, data in candidates.items():
-                        entrance = world.multiworld.get_entrance(name, world.player)
-                        entrance.access_rule = access_rules[name]
-                        if entrance.connected_region:
-                            entrance.connected_region.entrances.remove(entrance)
-                        entrance.connect(world.created_regions[data.to])
-                    connect_minigame_exits(world)
-                    if attempt == 99:
-                        raise
-    if mode == mode.option_arrival_points:
-        from .Rules import restrict_secondary_arrivals
-        restrict_secondary_arrivals(world)
+                    entrance.access_rule = access_rules[name]
+                    if entrance.connected_region:
+                        entrance.connected_region.entrances.remove(entrance)
+                    entrance.connect(world.created_regions[data.to])
+                connect_minigame_exits(world)
+                if attempt == 99:
+                    raise
     connect_minigame_exits(world)
     for source, target in world.entrance_connections.items():
         arrival = candidates[target]

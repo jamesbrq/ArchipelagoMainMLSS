@@ -32,16 +32,8 @@ def load_rules() -> dict:
 
 
 def order_fill(world: "MickeyWorld", progression: list, locations: list) -> None:
-    """Give restrictive fill an order that preserves the opening's scarce checks.
-
-    Build a forward progression order with the actual AP access rules, then put
-    deeper checks first. Core fill consumes items from the end, so it places late
-    items in late checks before assigning the keys and capacity needed to start.
-    Ordering items alone still lets late items consume the starting checks.
-
-    This only reorders this player's entries. AP retains responsibility for
-    placement, locality, exclusions, priorities, plando and accessibility.
-    """
+    # Keep AP's shuffled locations except where scarce checks must be saved for
+    # the items that open the next route. Sorting every check pushes rewards late.
     remaining = defaultdict(list)
     for item in progression:
         if item.player == world.player:
@@ -49,8 +41,6 @@ def order_fill(world: "MickeyWorld", progression: list, locations: list) -> None
     if not remaining:
         return
 
-    # Capacity often needs multiple copies before it opens a check. Prefer it
-    # when single-item reachability ties, as in the door-layout bootstrap search.
     names = list(dict.fromkeys([
         'Star Container', *quest_items,
         *(record['item'] for record in _RULES['tricks'].values()),
@@ -60,8 +50,11 @@ def order_fill(world: "MickeyWorld", progression: list, locations: list) -> None
     state.sweep_for_advancements()
     checks = [loc for loc in locations if loc.player == world.player]
     depths = {loc: 0 for loc in checks if loc.can_reach(state)}
+    reserved = set()
     ordered = []
     while remaining:
+        if len(depths) <= len(ordered) + 1:
+            reserved.update(depths)
         best_name, best_state, best_score = None, None, (-1, -1)
         for name in names:
             if name not in remaining:
@@ -84,9 +77,11 @@ def order_fill(world: "MickeyWorld", progression: list, locations: list) -> None
     items = iter(ordered)
     progression[:] = [next(items) if item.player == world.player else item
                       for item in progression]
-    # Stable sorting keeps AP's randomized order among equally deep checks.
-    checks = iter(sorted(checks, key=lambda loc: depths.get(loc, len(ordered) + 1),
-                         reverse=True))
+    # Core fills backwards. Protect only the bottleneck checks at the end;
+    # the rest retain their random order, including the order within each depth.
+    checks = iter([loc for loc in checks if loc not in reserved]
+                  + sorted((loc for loc in checks if loc in reserved),
+                           key=depths.__getitem__, reverse=True))
     locations[:] = [next(checks) if loc.player == world.player else loc
                     for loc in locations]
 
@@ -116,24 +111,11 @@ def _cap_shards(requirement, count):
 
 
 def impassable_locations() -> frozenset[str]:
-    """Checks whose requirement is `false`.
-
-    tools/gen_ap_rules.py fails closed, so `false` means "we have not classified
-    this yet", not "this is provably impossible". The world drops these rather
-    than shipping a check nobody can ever reach; they come back on their own once
-    the generator can express the requirement.
-    """
     return frozenset(name for name, requirement in _RULES["locations"].items()
                      if requirement is False)
 
 
 def set_rules(world: "MickeyWorld") -> None:
-    """Attach access rules to checks and to entrances.
-
-    build_requirements runs during create_regions, before create_items needs the
-    chosen door locks. Attach those option-adjusted requirements here and install
-    the configured completion condition.
-    """
     world.multiworld.completion_condition[world.player] = goal_condition(world)
     locations, entrances = world.location_requirements, world.entrance_requirements
 
@@ -143,13 +125,8 @@ def set_rules(world: "MickeyWorld") -> None:
         add_rule(world.get_location(location), _build_single_lambda(requirement, world))
 
     for entrance, requirement in entrances.items():
-        # connect_regions has run by now, so every entrance named in rules.json
-        # must exist. A KeyError here means the two files disagree about a name,
-        # which would silently drop an access rule -- fail instead.
         connection = world.multiworld.get_entrance(entrance, world.player)
         add_rule(connection, _build_single_lambda(requirement, world))
-        # AP must revisit this entrance when a separately reached scene room
-        # becomes available later in the same region sweep.
         pending = [requirement]
         while pending:
             term = pending.pop()
@@ -164,11 +141,6 @@ def set_rules(world: "MickeyWorld") -> None:
 
 
 def compile_requirement(requirement):
-    """Compile a requirement accepting item counts and region reachability.
-
-    Unknown shapes fail closed. Reserved function rules fail at generation time.
-    Both access checks and the solver use this parser, without evaluating Python.
-    """
     if requirement is True:
         return lambda has, can_reach: True
     if not isinstance(requirement, dict):
@@ -196,12 +168,6 @@ def compile_requirement(requirement):
 
 
 def assign_shuffled_locks(world: "MickeyWorld") -> None:
-    """Give each coupled locked pair one existing key and shared saved open bit.
-
-    Each key stays associated with one of its original physical doorways. The
-    old and new pairs form cycles, so matching pairs to their incident old keys
-    uses every selected key exactly once without changing the pool or lock count.
-    """
     doors = {d['lock_index']: d for d in world.locked_doors}
     original = {name: d['lock_index'] for d in world.locked_doors for name in d['entrances']}
     pairs = sorted({tuple(sorted((source, target)))
@@ -233,12 +199,6 @@ def assign_shuffled_locks(world: "MickeyWorld") -> None:
 
 
 def restrict_secondary_arrivals(world: "MickeyWorld") -> None:
-    """Secondary arrivals require earlier main-entrance access and a return path.
-
-    ER places doors with all items, so choosing the main entrance first there
-    is insufficient to guarantee that restrictive fill uses it first. Apply
-    this to the actual paired source as well, in both AP and the layout solver.
-    """
     landings = {name: world.entrance_requirements[name] for name in (
         'Broken Room -> Library', 'Broken Room -> Spa Room', 'Storage Room -> Cave')}
     for source, target in world.entrance_connections.items():
@@ -266,12 +226,6 @@ def _build_single_lambda(requirement, world: "MickeyWorld") -> typing.Callable:
 
 
 def build_requirements(world: "MickeyWorld") -> tuple[dict[str, Any], dict[str, Any]]:
-    """(location requirements, entrance requirements) with both shuffles applied.
-
-    Also records the assignments on the world, for fill_slot_data -- the ROM side
-    needs the trick cost bytes and the door lock list, and neither is recoverable
-    from the rules afterwards.
-    """
     raw = load_rules()
     locations = dict(raw.get("locations", {}))
     entrances = {name: _cap_shards(req, world.options.shards_required.value)
@@ -287,13 +241,6 @@ def build_requirements(world: "MickeyWorld") -> tuple[dict[str, Any], dict[str, 
 
 
 def _resolve_scene_requirements(locations, entrances):
-    """Expand native scene prerequisites without adding AP event locations.
-
-    A scene remains playable when its check category is disabled. Its region,
-    tools, parent tricks and this seed's trick costs still have to be reachable.
-    Expand after trick requirements are applied so both evaluators see the same
-    ordinary item/region predicates. Reject unknown references and cycles.
-    """
     regions = {loc.name: loc.region for group in locations_by_region.values() for loc in group}
 
     known_regions = {*locations_by_region, *(e.frm for e in all_entrances),
@@ -319,17 +266,8 @@ def _resolve_scene_requirements(locations, entrances):
     return ({name: expand(req, (name,)) for name, req in locations.items()},
             {name: expand(req) for name, req in entrances.items()})
 
-
-# ------------------------------------------------------------------ trick costs
-
 def _shuffle_trick_costs(world: "MickeyWorld", tricks: dict[str, Any],
                          locations: dict, entrances: dict) -> dict[str, int]:
-    """Reassign every trick's star cost, and rewrite the rules that quote it.
-
-    A trick costs 5 x cost trick points and capacity is 5 x containers, so the
-    cost is the number of Star Containers required. add_trick_requirements applies
-    it to each trick and its dependent routes; the patcher writes the same costs.
-    """
     vanilla = {tid: rec["cost"] for tid, rec in tricks.items()}
     mode = world.options.trick_cost_shuffle
     if mode == mode.option_off:
@@ -346,9 +284,7 @@ def _shuffle_trick_costs(world: "MickeyWorld", tricks: dict[str, Any],
             world.random.shuffle(costs)
             assigned = dict(zip(ids, costs))
         else:
-            assigned = {t: world.random.randint(1, 4) for t in ids}
-        # Repeated activations must fit in a full meter. Do not lower the rule
-        # to twelve when the actual sequence would still cost more than that.
+            assigned = {t: world.random.randint(1, 6) for t in ids}
         if all(sum(assigned[t] for t in sequence) <= item_table['Star Container'].frequency
                for sequence in sequences):
             break
@@ -365,34 +301,9 @@ def _shuffle_trick_costs(world: "MickeyWorld", tricks: dict[str, Any],
                 entrances[name] = _set_count(entrances[name], "Star Container", cost)
     return assigned
 
-
-# ------------------------------------------------------------------ door locks
-
 def _choose_locks(world: "MickeyWorld", doors: list[dict[str, Any]],
                   locations: dict, entrances: dict
                   ) -> list[dict[str, Any]]:
-    """Pick which doors are locked, and rewrite the rules to match.
-
-    The lock unit is a physical door, not a doorway: a door has up to two sides
-    and unlocking it from either sets the same event flag, so both sides move
-    together. Candidates are the doors the analysis marks as installed by
-    door_open_set with no key check -- the ones a lock could be installed on
-    instead. Warp doors and trick warps are not doors and are not in the pool.
-
-    How placement and count combine:
-
-      * vanilla, count 7   -- the seven eligible vanilla doors.
-      * vanilla, count < 7 -- that many of the vanilla doors, chosen at random;
-                                  the rest start open.
-      * vanilla, count > 7 -- all seven plus extras from the pool.
-      * randomized         -- that many drawn from the whole pool, vanilla
-                                  doors included but with no head start.
-
-    Rolls are checked before being accepted, because there is exactly one key per
-    locked door and no slack: a layout that puts every key behind a lock is
-    unsolvable, and letting it through would surface much later as a fill failure
-    with no explanation.
-    """
     pool = [d for d in doors if d["pool"]]
     vanilla = [d for d in pool if d["vanilla_locked"]]
     count = world.options.locked_door_count.value
@@ -429,10 +340,6 @@ def _choose_locks(world: "MickeyWorld", doors: list[dict[str, Any]],
 def _apply_locks(doors: list[dict[str, Any]],
                  chosen: list[dict[str, Any]], locations: dict,
                  entrances: dict) -> tuple[dict, dict]:
-    """Requirements with every key term removed, then re-added to `chosen` only.
-
-    Remove all baseline door-key terms before applying this seed's locks.
-    """
     keys = set(door_keys.values())
     locs, ents = dict(locations), dict(entrances)
     for door in doors:
@@ -452,18 +359,6 @@ def _apply_locks(doors: list[dict[str, Any]],
 
 def _solvable(world: "MickeyWorld", locations: dict, entrances: dict,
               chosen: list[dict[str, Any]], targets: dict | None = None) -> bool:
-    """Two structural tests, cheapest first.
-
-    1. Holding every key, trick, container and shard, the goal and every enabled check
-       must be reachable. `accessibility: full` demands exactly this, so a layout
-       failing it cannot generate no matter how items are placed.
-    2. The key economy has to bootstrap. Starting with precollected items, repeatedly assume
-       the checks you can already reach could hold the items you need, and see
-       whether that grows to the full set. This is the optimism Archipelago's own
-       fill operates under -- it places progression where you can reach it -- so a
-       layout that passes may still fail to fill, but one that fails here cannot
-       pass this conservative bootstrap search.
-    """
     start = world.start_region_name
     enabled = [loc for region in locations_by_region
                for loc in locations_by_region[region]
@@ -487,10 +382,6 @@ def _solvable(world: "MickeyWorld", locations: dict, entrances: dict,
                                                     all_items, reached):
             return False
 
-    # The reachable checks are a shared budget: n checks can hold n items and no
-    # more. Consider keys only for doors ON THE FRONTIER -- a door with a
-    # side in the reached set. A fixed key order could spend that budget on
-    # unreachable doors and misjudge whether the layout can progress.
     frm_of = {entrance.name: entrance.frm for entrance in all_entrances}
     key_sides = {door['id']: [name for name in door['entrances']
                              if name not in world.door_locks] +
@@ -508,9 +399,6 @@ def _solvable(world: "MickeyWorld", locations: dict, entrances: dict,
 
         if budget <= 0:
             return False
-        # Spend one check at a time, favoring the item that opens the most
-        # checks, then rooms. Spending on every frontier key at once can waste
-        # the few checks available at the start on doors leading to dead ends.
         candidates = set(caps)
         candidates.update(door_keys[door["id"]] for door in chosen
                           if any(frm_of.get(name) in reached for name in key_sides[door['id']]))
@@ -551,9 +439,6 @@ def _sweep(entrances: dict, counts: dict[str, int], start: str,
         if len(reached) == previous:
             break
     return reached
-
-
-# ------------------------------------------------- requirement dict surgery
 
 def _set_count(req: Any, item: str, count: int) -> Any:
     """Rewrite every `has item` count in `req`. count 0 satisfies it outright."""
@@ -615,8 +500,6 @@ def add_trick_requirements(world, registry, locations, entrances):
         terms = []
         if world.options.tricks:
             terms.append({'has': record['item']})
-        # Consecutive tricks share one meter: earlier mandatory spending must
-        # fit as well. Optional tricks are omitted from the minimum-cost route.
         cost = sum(world.trick_costs[step] for step in record.get('cost_sequence', [tid]))
         if cost:
             terms.append({'has': {'item': 'Star Container', 'count': cost}})
@@ -634,13 +517,9 @@ def add_trick_requirements(world, registry, locations, entrances):
             for name in set(names):
                 old = mapping.get(name, True)
                 mapping[name] = {'and': [old, *terms]} if terms else old
-        # A reward can require more consecutive activations than the trick's
-        # own check. Repeated IDs deliberately charge the same trick again.
         for name, sequence in record.get('location_cost_sequences', {}).items():
             cost = sum(world.trick_costs[step] for step in sequence)
             locations[name] = _with_count(locations.get(name, True), 'Star Container', cost)
-    # Alternate scripts can complete one check. Either successful route is
-    # sufficient, including when their star costs differ in a shuffled seed.
     for name, routes in check_routes.items():
         route = routes[0] if len(routes) == 1 else {'or': routes}
         locations[name] = {'and': [locations.get(name, True), route]}

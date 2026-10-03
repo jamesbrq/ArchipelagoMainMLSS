@@ -182,7 +182,6 @@ class MickeyWorld(World):
             "entrance_shuffle": self.options.entrance_shuffle.value,
             "entrance_connections": self.entrance_connections,
             "door_locks": self.door_locks,
-            "death_link": self.options.death_link.value,
             # These same assignments drive logic and static ISO operands.
             "trick_costs": self.trick_costs,
             "locked_doors": [door["id"] for door in self.locked_doors],

@@ -26,8 +26,6 @@ class ItemData:
         self.frequency = frequency
         self.grant = grant
         self.rom_id = int(rom_id, 16)
-        # Only per-door keys carry this: the door id from json/rules.json this key
-        # opens. Empty for every other item.
         self.door = door
         self.lock_index = lock_index
 

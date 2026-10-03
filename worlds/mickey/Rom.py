@@ -65,9 +65,6 @@ def pickup_model(original, appearance, texture):
     model[15] = texture
     model[0x38:0x54] = original[0x38:0x54]
     model[0x5c:0x60] = original[0x5c:0x60]
-    # Native callbacks and collision still use the original joint hierarchy.
-    # Put the replacement on one additional static joint so those animations
-    # cannot stretch a new item or change the old interaction volume.
     joints = original[13]
     model[13] = joints + 1
     old_transforms, old_parents = struct.unpack_from('>II', original, 0x20)
@@ -79,15 +76,12 @@ def pickup_model(original, appearance, texture):
     model.extend(struct.pack('>9f', 0, 0, 0, 0, 0, 0, 1, 1, 1))
     struct.pack_into('>II', model, 0x20, transforms, parents)
     position = struct.unpack_from('>I', model, 0x10)[0]
-    # Authored appearance deltas all use the scene renderer's seven-byte
-    # vertex descriptor: matrix, position index, normal index, UV index.
     while model[position] in (0x80, 0x88, 0x90, 0x98, 0xa0):
         count = struct.unpack_from('>H', model, position + 1)[0]
         position += 3
         for vertex in range(count):
             model[position + vertex * 7] = joints * 3
         position += count * 7
-    # The original hit volume belongs to the check, not the assigned item.
     collision, hit = struct.unpack_from('>II', original, 0x54)
     target = len(model)
     model.extend(original[collision:])
@@ -97,8 +91,6 @@ def pickup_model(original, appearance, texture):
     old_y = [struct.unpack_from('>f', original, p + 4)[0] for p in range(start, end, 12)]
     start, end = struct.unpack_from('>II', model)
     vertices = [struct.unpack_from('>3f', model, p) for p in range(start, end, 12)]
-    # Floor-baked keys/shards must not put half of a new upright model below
-    # the floor. Held and floating objects retain their original centre.
     if max(old_y) - min(old_y) < 1:
         centre[1] = min(old_y) - min(v[1] for v in vertices) + .4
     for offset, vertex in zip(range(start, end, 12), vertices):
@@ -140,8 +132,6 @@ class MickeyPatchExtension(APPatchExtension):
             area = int(rec['rel'][4:])
             name = f'files/mickey/area{area:02d}/{rec["rel"]}.rel'
             data = patcher.iso.get_changed_file_data(name)
-            # This authored source always reports AP's check and grants nothing
-            # locally. Its appearance is independent of the pickup choreography.
             index = rec['items'].index('ap')
             kind, script = rec['bases']
             ground, display, reward = (int(offset, 16) for offset in rec['offsets'])
@@ -149,7 +139,6 @@ class MickeyPatchExtension(APPatchExtension):
             fs.write_u8(data, ground + 3, script + 4 * index)
             fs.write_u8(data, display, kind + 2 * index + 1)
             fs.write_u8(data, reward, script + 4 * index + 3)
-            # Reveal spawns use the same model; their baked idle script stays intact.
             for offset in rec.get('extra', []):
                 fs.write_u8(data, int(offset, 16), kind + 2 * index)
             patcher.iso.changed_files[name] = data
@@ -235,8 +224,6 @@ class MickeyPatchExtension(APPatchExtension):
                 area, spawn, walk = doorways[target]['arrival']
                 name = sequence['file']
                 data = patcher.iso.get_changed_file_data(name)
-                # Marked Warp_set arguments carry the complete door arrival.
-                # Authored ap.rel restores normal door movement after the game.
                 fs.write_u16(data, sequence['area_operand'], 0x100 | area)
                 fs.write_u16(data, sequence['arrival_operand'], spawn << 8 | walk)
                 patcher.iso.changed_files[name] = data
@@ -264,7 +251,7 @@ class MickeyPatchExtension(APPatchExtension):
 class MickeyProcedurePatch(APProcedurePatch):
     """TTYD-style AP procedures operate on gclib streams and export directly."""
     game = "Disney's Magical Mirror"
-    hash = None  # Game ID and revision are checked when opening the disc.
+    hash = None
     patch_file_ending = '.apmickey'
     result_file_ending = '.iso'
     procedure = [("patch_mod", []), ("patch_items", []), ("close_iso", [])]
@@ -297,8 +284,6 @@ class MickeyProcedurePatch(APProcedurePatch):
             raise ValueError('Output must be a different file from the base game')
         self.report('Checking the base game...')
         self.patcher = MickeyPatcher(base, load_json('patches/base.json'))
-        # AP's default patch() caches one whole ROM byte string. As in TTYD,
-        # dispatch its registered extensions over gclib's per-file streams.
         extensions = AutoPatchExtensionRegister.get_handler(self.game)
         if not isinstance(extensions, list):
             extensions = [extensions]
