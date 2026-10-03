@@ -52,7 +52,7 @@ def configure_runtime(runtime, layout, descriptor):
 
 
 def load_template():
-    return load_json('runtime_template.json')
+    return load_json('patches/runtime_template.json')
 
 
 def identity(seed_name, player, name):
