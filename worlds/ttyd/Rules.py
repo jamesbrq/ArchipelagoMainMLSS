@@ -166,7 +166,7 @@ def get_tattle_rules_dict() -> dict[str, typing.List[int]]:
         "Tattle: Spania": [78780145, 78780267, 78780638],
         "Tattle: Fuzzy": [78780170, 78780296, 78780638],
         "Tattle: Koopa Troopa": [78780193, 78780170],
-        "Tattle: Blooper": [78780133],
+        "Tattle: Blooper": [78780183],
         "Tattle: Lord Crump": [78780511],
         "Tattle: Gus": [78780047],
         "Tattle: Cleft": [78780216, 78780639],
