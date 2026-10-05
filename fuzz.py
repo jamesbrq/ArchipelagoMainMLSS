@@ -278,6 +278,7 @@ def call_generate(yaml_path, args):
                 "player_files_path": yaml_path,
                 "seed": random.randint(0, 1000000000),
                 "multi": 1,
+                "allow_quantity": False,
                 "spoiler": 1,
                 "outputpath": output_path,
                 "race": False,
