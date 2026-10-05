@@ -221,6 +221,7 @@ class LimitChapterLogic(Toggle):
     """
     Progression items will only appear in required chapters, and in common areas. You will not need to
     check the chapters that are out of logic whatsoever. You can still visit them for local items (badges, consumables, etc) if you want or need to.
+    To view what chapters are expected of you, you're able to check what stars are illuminated on the Thousand-Year Door.
     """
     display_name = "Limit Chapter Logic"
 
@@ -539,12 +540,12 @@ class BlockVisibility(Choice):
 
 class ExperienceMultiplier(Range):
     """
-    Multiplies the experience you gain from battles.
+    Multiplies the experience you gain from battles by percentage.
     """
     display_name = "Experience Multiplier"
     range_start = 0
-    range_end = 10
-    default = 1
+    range_end = 1000
+    default = 100
 
 
 class StartingHP(Range):
