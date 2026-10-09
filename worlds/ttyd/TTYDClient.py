@@ -8,6 +8,7 @@ import struct
 import subprocess
 import traceback
 import typing
+import re
 import settings
 import Patch
 import Utils
